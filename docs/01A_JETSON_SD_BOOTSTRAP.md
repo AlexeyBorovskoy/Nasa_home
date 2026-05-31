@@ -101,6 +101,35 @@ Runtime-артефакты не коммитятся:
 Нельзя брать образ для Jetson Orin Nano или других Jetson-плат без явного
 подтверждения модели.
 
+## 7.1. Локальные материалы в проекте
+
+В проект перенесён локальный каталог внешних материалов:
+
+```text
+/home/alexey/work/NASA/external_docs/jatson
+```
+
+Он не коммитится в GitHub, потому что содержит большие сторонние бинарные
+файлы. Состав, размеры и checksums зафиксированы в:
+
+```text
+docs/references/JETSON_LOCAL_ASSETS.md
+```
+
+Для текущего Stage 0 уже есть локальный SD-образ:
+
+```text
+external_docs/jatson/jetson-nano-jp461-sd-card-image.zip
+```
+
+и локальный Etcher:
+
+```text
+external_docs/jatson/balenaEtcher-linux-x64-2.1.6.zip
+```
+
+Если checksum совпадает с manifest, повторно скачивать образ не нужно.
+
 ## 8. Команды инвентаризации на ноутбуке
 
 До скачивания образа:
@@ -129,6 +158,10 @@ dmesg | tail -n 50
 2. Скачать `Jetson Nano Developer Kit SD Card Image`.
 3. Сохранить архив вне репозитория.
 4. Зафиксировать имя файла, размер и checksum, если NVIDIA публикует checksum.
+
+Для текущего проекта этот шаг уже частично выполнен: локальный архив находится
+в `external_docs/jatson/`. Перед записью карты нужно только повторно проверить
+checksum по `docs/references/JETSON_LOCAL_ASSETS.md`.
 
 Пример проверки локального файла:
 

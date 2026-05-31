@@ -89,6 +89,7 @@ docs/
   12_BACKUP_RESTORE.md
   14_TEST_PLAN.md
   16_GITHUB_PUBLICATION.md
+  references/JETSON_LOCAL_ASSETS.md
 
 services/
   llm-gateway/              FastAPI-шлюз с redaction и mock-режимом
@@ -187,6 +188,7 @@ find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12' -o -name 
 - Отключение Immich machine learning нужно явно довести в compose перед тестом на Jetson.
 - `config/llm-policy.yaml` описывает целевую политику, но не все лимиты уже enforced в коде.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
+- Локальные Jetson-материалы лежат в `external_docs/jatson` и не коммитятся; manifest см. в `docs/references/JETSON_LOCAL_ASSETS.md`.
 
 ### Roadmap
 
@@ -299,6 +301,10 @@ find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12' -o -name 
 ```
 
 Review the output manually before pushing. The repository is intended to contain only templates, documentation, and source code.
+
+Local Jetson assets are stored in `external_docs/jatson` and are not committed.
+See `docs/references/JETSON_LOCAL_ASSETS.md` for the local inventory,
+checksums, and Stage 0 usage notes.
 
 ## License
 
