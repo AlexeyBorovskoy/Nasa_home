@@ -263,6 +263,7 @@ NASA/
 ├── docs/
 │   ├── 00_OVERVIEW.md
 │   ├── 01_HARDWARE_AUDIT.md
+│   ├── 01A_JETSON_SD_BOOTSTRAP.md
 │   ├── 02_REQUIREMENTS.md
 │   ├── 03_ARCHITECTURE.md
 │   ├── 04_STORAGE_DESIGN.md
@@ -308,6 +309,7 @@ NASA/
 | `AGENTS.md` | правила работы Codex/агентов |
 | `AUDIT_2026-05-31.md` | аудит целостности перед первым запуском |
 | `docs/00_OVERVIEW.md` | обзор концепции |
+| `docs/01A_JETSON_SD_BOOTSTRAP.md` | подготовка microSD, первый boot и SSH без HDD |
 | `docs/01_HARDWARE_AUDIT.md` | аппаратный аудит Jetson |
 | `docs/02_REQUIREMENTS.md` | требования к железу, ПО и сети |
 | `docs/03_ARCHITECTURE.md` | компактная архитектурная схема |
@@ -329,6 +331,7 @@ NASA/
 
 | Этап | Содержание | Контроль результата |
 |---|---|---|
+| Stage 0 | microSD image, first boot, SSH | Jetson загружается, есть LAN IP и SSH |
 | Stage 1A | hardware audit, storage, Samba/SFTP | отчёт аудита, mount, тест записи |
 | Stage 1B | Nextcloud | web login, файл, WebDAV, Android client |
 | Stage 1C | Immich | 20-50 фото, 2-3 видео, `docker stats` |
@@ -350,12 +353,15 @@ NASA/
 
 ## 16. Первый практический шаг
 
-Перед развёртыванием сервисов нужно выполнить диагностику на целевом Jetson:
+Если готовой стартовой microSD нет, первый практический шаг — подготовить
+загрузочную карту по `docs/01A_JETSON_SD_BOOTSTRAP.md`.
+
+После первого boot и SSH нужно выполнить диагностику на целевом Jetson:
 
 ```bash
 ./scripts/diagnostics/hardware_audit.sh
-./scripts/diagnostics/storage_health.sh /dev/sda
 ```
 
+`storage_health.sh` запускается позже, когда USB HDD будет физически доступен.
 После аудита принимается решение по подготовке HDD, `fstab`, структуре
 `/mnt/storage` и только затем запускаются сервисы.

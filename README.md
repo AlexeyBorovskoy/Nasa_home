@@ -79,6 +79,7 @@ docker/compose/
 docs/
   00_OVERVIEW.md
   01_HARDWARE_AUDIT.md
+  01A_JETSON_SD_BOOTSTRAP.md
   03_ARCHITECTURE.md
   04_STORAGE_DESIGN.md
   05_NETWORKING_VPN.md
@@ -106,6 +107,7 @@ prompts/
 
 | Этап | Содержание | Статус |
 |---|---|---|
+| Stage 0 | Подготовка microSD и первый boot Jetson | описано |
 | Stage 1A | Hardware audit, storage, Samba/SFTP | спроектировано |
 | Stage 1B | Nextcloud | compose-черновик |
 | Stage 1C | Immich в ограниченном режиме | compose-черновик |
@@ -118,22 +120,23 @@ prompts/
 
 1. Прочитать `AGENTS.md`.
 2. Прочитать `PROJECT_CONTEXT.md`.
-3. На целевом хосте выполнить hardware audit:
+3. Если готовой стартовой microSD нет, выполнить `docs/01A_JETSON_SD_BOOTSTRAP.md`.
+4. После первого boot и SSH выполнить hardware audit на целевом хосте:
 
 ```bash
 ./scripts/diagnostics/hardware_audit.sh
 ```
 
-4. Подготовить хранилище по `docs/04_STORAGE_DESIGN.md`.
-5. Создать локальный env-файл:
+5. Подготовить хранилище по `docs/04_STORAGE_DESIGN.md`, когда HDD будет доступен.
+6. Создать локальный env-файл:
 
 ```bash
 cp config/.env.example config/.env
 chmod 600 config/.env
 ```
 
-6. Локально заменить все placeholder-значения в `config/.env`. Не коммитить этот файл.
-7. Разворачивать блоки по очереди: storage, NAS-доступ, Nextcloud, Immich, LLM Gateway, backups.
+7. Локально заменить все placeholder-значения в `config/.env`. Не коммитить этот файл.
+8. Разворачивать блоки по очереди: storage, NAS-доступ, Nextcloud, Immich, LLM Gateway, backups.
 
 ### Docker Compose
 
@@ -259,22 +262,23 @@ Jetson Nano has limited RAM and CPU headroom. Heavy ML photo analysis, large vid
 
 1. Read `AGENTS.md`.
 2. Read `PROJECT_CONTEXT.md`.
-3. Run the hardware audit on the target host:
+3. If there is no prepared boot microSD card, follow `docs/01A_JETSON_SD_BOOTSTRAP.md`.
+4. After first boot and SSH access, run the hardware audit on the target host:
 
 ```bash
 ./scripts/diagnostics/hardware_audit.sh
 ```
 
-4. Prepare storage according to `docs/04_STORAGE_DESIGN.md`.
-5. Create a local environment file:
+5. Prepare storage according to `docs/04_STORAGE_DESIGN.md` when the HDD is available.
+6. Create a local environment file:
 
 ```bash
 cp config/.env.example config/.env
 chmod 600 config/.env
 ```
 
-6. Replace all placeholder values in `config/.env` locally. Do not commit it.
-7. Deploy one block at a time: storage, NAS access, Nextcloud, Immich, LLM Gateway, backups.
+7. Replace all placeholder values in `config/.env` locally. Do not commit it.
+8. Deploy one block at a time: storage, NAS access, Nextcloud, Immich, LLM Gateway, backups.
 
 ### Compose Compatibility Note
 
