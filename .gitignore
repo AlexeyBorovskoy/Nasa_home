@@ -14,6 +14,7 @@ config/*.local.yml
 # Runtime data
 external_docs/
 data/
+runtime/
 volumes/
 logs/
 backups/

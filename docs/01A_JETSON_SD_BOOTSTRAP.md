@@ -203,7 +203,9 @@ sudo eject /dev/sdX
 2. Подключить Ethernet.
 3. Выбрать режим первого запуска:
    - монитор + клавиатура + мышь;
-   - headless через micro-USB serial/device mode.
+   - headless через micro-USB serial/device mode;
+   - офлайн-настройка rootfs на ноутбуке без монитора и консоли — см. §11.2
+     (так Jetson и был реально настроен 2026-05-31).
 4. Подключить питание.
 5. Пройти первичную настройку Ubuntu/L4T:
    - принять license;
@@ -287,6 +289,78 @@ nmap -sn 192.168.1.0/24
 - SSH работает в direct-link схеме;
 - выполнен минимальный hardware audit без HDD;
 - нет необходимости менять firewall или port forwarding на роутере.
+
+## 11.2. Headless offline-настройка rootfs (без монитора и serial-консоли)
+
+Применено **2026-05-31** — основной путь, которым Jetson был реально настроен.
+
+Подходит, когда первичную настройку (oem-config) нельзя пройти интерактивно:
+монитора нет, а USB-serial на стоковом образе Jetson Nano консоли **не даёт**
+(kernel console и getty висят на 40-пиновом UART `ttyTHS0`, а не на USB-гаджете
+`ttyGS0`). При этом по Micro-USB в device mode Jetson всё равно поднимает сеть
+`192.168.55.1` (хост получает `192.168.55.100`), но до завершения oem-config
+`sshd` не стартует, поэтому зайти некуда. Решение — сделать офлайн на ноутбуке
+то же, что делает мастер: завести пользователя, переключить загрузку в
+`multi-user`, включить ssh.
+
+1. Выключить Jetson, вынуть microSD, вставить в **USB-картридер** ноутбука (в
+   VMware пробросить ридер в VM). Rootfs — раздел APP (ext4, `*p1`),
+   автомонтируется в `/media/<user>/<UUID>`.
+
+2. Проверить состояние (read-only):
+
+```bash
+R=/media/<user>/<UUID>
+head -1 "$R/etc/nv_tegra_release"                  # подтвердить, что это Jetson rootfs
+awk -F: '$3>=1000 && $3<65534' "$R/etc/passwd"     # есть ли пользователь (uid>=1000)
+readlink "$R/etc/systemd/system/default.target"    # nv-oem-config.target => мастер не пройден
+```
+
+3. От root (chroot не нужен и невозможен без `qemu-aarch64-static` — правим файлы
+   напрямую; `useradd --root` спотыкается об отсутствие `$R/dev/null`). Бэкап
+   исходных файлов сохранить рядом как `*.nasabak`:
+
+```bash
+U=admin; HOSTN=nasa-jetson
+HASH=$(openssl passwd -6)                 # введёт пароль интерактивно
+for f in passwd shadow group; do sudo cp -a "$R/etc/$f" "$R/etc/$f.nasabak"; done
+# /etc/passwd:  admin:x:1000:1000:admin,,,:/home/admin:/bin/bash
+# /etc/shadow:  admin:$HASH:19500:0:99999:7:::
+# /etc/group:   создать admin:x:1000: и добавить admin в
+#               sudo,adm,dialout,audio,video,plugdev,netdev,i2c,gpio
+# /home/admin:  cp -a "$R/etc/skel" "$R/home/admin"; chown -R 1000:1000 "$R/home/admin"
+
+# загрузка в multi-user вместо oem-config:
+sudo ln -sf /lib/systemd/system/multi-user.target "$R/etc/systemd/system/default.target"
+sudo ln -sf /dev/null "$R/etc/systemd/system/nv-oem-config.service"
+# ssh host-ключи (иначе sshd не стартует) + hostname:
+for t in rsa ecdsa ed25519; do sudo ssh-keygen -q -t "$t" -f "$R/etc/ssh/ssh_host_${t}_key" -N ''; done
+echo "$HOSTN" | sudo tee "$R/etc/hostname"
+```
+
+> Числовой владелец `/home/admin` должен быть `1000:1000` (на хосте отобразится
+> как локальный uid 1000 — это нормально; на Jetson uid 1000 = `admin`).
+
+4. `sync && sudo umount "$R"`, вернуть microSD в Jetson, подать питание.
+
+5. Зайти по SSH через device mode (поставить свой ключ для входа без пароля):
+
+```bash
+ssh admin@192.168.55.1
+ssh-copy-id admin@192.168.55.1     # опционально
+```
+
+6. Расширить rootfs на всю карту. На стоковом образе APP-раздел физически
+   последний (наибольший start-сектор), поэтому штатный resize работает онлайн:
+
+```bash
+/usr/lib/nvidia/resizefs/nvresizefs.sh --check     # должно быть true
+sudo /usr/lib/nvidia/resizefs/nvresizefs.sh        # без аргументов = вся карта
+df -h /                                            # ~13G -> ~59G
+```
+
+Реквизиты доступа — в `config/.env` (`JETSON_*`, gitignored) и `.master.env`
+(`NASA_JETSON_*`). Откат — восстановить `/etc/*.nasabak` на карте.
 
 ## 12. Проверка первого запуска
 
