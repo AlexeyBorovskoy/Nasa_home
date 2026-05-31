@@ -25,11 +25,13 @@ DeepSeek API поддерживает формат, совместимый с Op
 ```env
 LLM_PROVIDER=deepseek
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-v4-flash
-DEEPSEEK_REASONER_MODEL=deepseek-v4-pro
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_REASONER_MODEL=deepseek-reasoner
 ```
 
-Legacy-имена `deepseek-chat` и `deepseek-reasoner` оставлены только для совместимости.
+`deepseek-chat` / `deepseek-reasoner` — рабочие имена DeepSeek API (подтверждено
+живым вызовом 2026-05-31). Имена `deepseek-v4-flash` / `deepseek-v4-pro`
+зарезервированы на будущее и сейчас API не принимаются.
 
 ## 5. Разрешённые сценарии Stage 1
 

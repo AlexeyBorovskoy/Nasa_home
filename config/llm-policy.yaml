@@ -40,8 +40,10 @@ logging:
   retention_days: 14
 
 models:
-  default: deepseek-v4-flash
-  reasoning: deepseek-v4-pro
-  compatibility_legacy:
-    - deepseek-chat
-    - deepseek-reasoner
+  # Рабочие имена DeepSeek API (подтверждено живым вызовом 2026-05-31).
+  default: deepseek-chat
+  reasoning: deepseek-reasoner
+  # v4-имена зарезервированы на будущее — на 2026-05-31 DeepSeek API их не принимает.
+  reserved_future:
+    - deepseek-v4-flash
+    - deepseek-v4-pro

@@ -5,21 +5,25 @@ SECRET_ASSIGNMENT_PATTERN='[A-Z0-9_]*(API[_-]?KEY|SECRET|TOKEN|PASSWORD|BEARER)[
 PRIVATE_KEY_PATTERN='-----BEGIN [A-Z ]*PRIVATE KEY-----'
 PLACEHOLDER_PATTERN='(change_me|replace_me|example|mock|REDACTED|ВАШ_)'
 
-matches="$(
-  grep -RInE "$SECRET_ASSIGNMENT_PATTERN|$PRIVATE_KEY_PATTERN" . \
-  --exclude-dir=.git \
-  --exclude-dir=runtime \
-  --exclude-dir=__pycache__ \
-  --exclude='*.zip' \
-  --exclude='.env.example' \
-  --exclude='.gitignore' \
-  --exclude='README.md' \
-  --exclude='AGENTS.md' \
-  --exclude='PROJECT_CONTEXT.md' \
-  --exclude='AUDIT_*.md' \
-  --exclude='*.md' \
-  --exclude='check_no_secrets.sh' || true
-)"
+# Сканируем только то, что git реально опубликует (tracked-файлы).
+# Untracked/.gitignored (например локальный config/.env с реальными ключами)
+# не являются риском публикации. Если секретный файл случайно git add-нут —
+# он попадёт в список и будет пойман.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  file_list="$(git ls-files)"
+else
+  file_list="$(find . -type f -not -path './.git/*')"
+fi
+
+scan_files="$(printf '%s\n' "$file_list" \
+  | grep -Ev '(^|/)\.env\.example$|(^|/)\.gitignore$|\.md$|\.zip$|(^|/)check_no_secrets\.sh$' \
+  || true)"
+
+matches=""
+if [ -n "$scan_files" ]; then
+  matches="$(printf '%s\n' "$scan_files" | tr '\n' '\0' \
+    | xargs -0 grep -InE "$SECRET_ASSIGNMENT_PATTERN|$PRIVATE_KEY_PATTERN" 2>/dev/null || true)"
+fi
 
 matches="$(printf '%s\n' "$matches" | grep -Ev "$PLACEHOLDER_PATTERN" || true)"
 

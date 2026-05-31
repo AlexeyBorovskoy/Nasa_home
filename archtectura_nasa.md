@@ -196,13 +196,14 @@ LLM Gateway — единственная точка выхода к внешне
 - токены, пароли, приватные ключи;
 - полные логи с персональными данными.
 
-Актуальные модели в шаблоне:
+Актуальные модели в шаблоне (рабочие имена DeepSeek API, подтверждено живым
+вызовом 2026-05-31):
 
-- `DEEPSEEK_MODEL=deepseek-v4-flash`
-- `DEEPSEEK_REASONER_MODEL=deepseek-v4-pro`
+- `DEEPSEEK_MODEL=deepseek-chat`
+- `DEEPSEEK_REASONER_MODEL=deepseek-reasoner`
 
-Legacy-имена `deepseek-chat` и `deepseek-reasoner` оставлены только в
-`config/llm-policy.yaml` как compatibility-секция.
+Имена `deepseek-v4-flash` / `deepseek-v4-pro` зарезервированы на будущее
+(`config/llm-policy.yaml` → `reserved_future`) и сейчас API не принимаются.
 
 Детали: `docs/08_LLM_GATEWAY_DEEPSEEK.md` и
 `services/llm-gateway/README.md`.

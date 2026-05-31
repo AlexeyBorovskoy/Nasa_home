@@ -61,7 +61,7 @@ def chat(payload: ChatRequest):
     provider = os.getenv("LLM_PROVIDER", "deepseek")
     base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     api_key = os.getenv("DEEPSEEK_API_KEY", "")
-    model = os.getenv("DEEPSEEK_REASONER_MODEL" if payload.reasoning else "DEEPSEEK_MODEL", "deepseek-v4-flash")
+    model = os.getenv("DEEPSEEK_REASONER_MODEL" if payload.reasoning else "DEEPSEEK_MODEL", "deepseek-chat")
 
     if payload.mode != "safe":
         raise HTTPException(status_code=400, detail="raw mode is disabled in Stage 1")
