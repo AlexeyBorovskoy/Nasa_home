@@ -89,7 +89,9 @@ docs/
   12_BACKUP_RESTORE.md
   14_TEST_PLAN.md
   16_GITHUB_PUBLICATION.md
+  references/EXTERNAL_DOCS_CACHE.md
   references/JETSON_LOCAL_ASSETS.md
+  references/REFERENCE_LINKS.md
 
 services/
   llm-gateway/              FastAPI-шлюз с redaction и mock-режимом
@@ -189,6 +191,7 @@ find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12' -o -name 
 - `config/llm-policy.yaml` описывает целевую политику, но не все лимиты уже enforced в коде.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Локальные Jetson-материалы лежат в `external_docs/jatson` и не коммитятся; manifest см. в `docs/references/JETSON_LOCAL_ASSETS.md`.
+- Локальный cache внешней документации лежит в `external_docs/`; manifest см. в `docs/references/EXTERNAL_DOCS_CACHE.md`.
 
 ### Roadmap
 
@@ -305,6 +308,9 @@ Review the output manually before pushing. The repository is intended to contain
 Local Jetson assets are stored in `external_docs/jatson` and are not committed.
 See `docs/references/JETSON_LOCAL_ASSETS.md` for the local inventory,
 checksums, and Stage 0 usage notes.
+
+The broader external documentation cache is stored in `external_docs/` and is
+not committed. See `docs/references/EXTERNAL_DOCS_CACHE.md`.
 
 ## License
 

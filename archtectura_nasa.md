@@ -280,7 +280,9 @@ NASA/
 │   ├── 15_ALTERNATIVES_REVIEW.md
 │   ├── 16_GITHUB_PUBLICATION.md
 │   ├── references/
-│   │   └── JETSON_LOCAL_ASSETS.md
+│   │   ├── EXTERNAL_DOCS_CACHE.md
+│   │   ├── JETSON_LOCAL_ASSETS.md
+│   │   └── REFERENCE_LINKS.md
 │   └── decisions/
 │       └── ADR-0001-nextcloud-immich-deepseek.md
 ├── prompts/
@@ -312,7 +314,9 @@ NASA/
 | `AUDIT_2026-05-31.md` | аудит целостности перед первым запуском |
 | `docs/00_OVERVIEW.md` | обзор концепции |
 | `docs/01A_JETSON_SD_BOOTSTRAP.md` | подготовка microSD, первый boot и SSH без HDD |
+| `docs/references/EXTERNAL_DOCS_CACHE.md` | manifest локального cache внешней документации |
 | `docs/references/JETSON_LOCAL_ASSETS.md` | локальный manifest Jetson-образа, Etcher и NVIDIA PDF |
+| `docs/references/REFERENCE_LINKS.md` | чистый список официальных reference-ссылок |
 | `docs/01_HARDWARE_AUDIT.md` | аппаратный аудит Jetson |
 | `docs/02_REQUIREMENTS.md` | требования к железу, ПО и сети |
 | `docs/03_ARCHITECTURE.md` | компактная архитектурная схема |
@@ -348,6 +352,8 @@ NASA/
 - Docker Compose требует v2; `docker-compose` v1 может не подходить.
 - Локальные внешние материалы Jetson находятся в `external_docs/jatson` и
   исключены из Git.
+- Внешняя документация скачана в `external_docs/` для локальной работы; в Git
+  хранится только manifest.
 - `IMMICH_DISABLE_MACHINE_LEARNING` нужно связать с compose.
 - `backup_databases.sh` пока placeholder.
 - `config/llm-policy.yaml` описывает целевую политику, но лимиты ещё не все
