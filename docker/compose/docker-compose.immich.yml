@@ -1,0 +1,35 @@
+# Immich-only compose for step-by-step deployment.
+# On Jetson Nano 4GB, disable ML until load tests are complete.
+name: homecloud-immich
+services:
+  immich-db:
+    image: tensorchord/pgvecto-rs:pg16-v0.3.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${IMMICH_DB_NAME}
+      POSTGRES_USER: ${IMMICH_DB_USER}
+      POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
+    volumes:
+      - ${IMMICH_DB_DATA_LOCATION}:/var/lib/postgresql/data
+
+  immich-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - immich-db
+      - immich-redis
+    ports:
+      - "2283:2283"
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: ${IMMICH_DB_USER}
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_DATABASE_NAME: ${IMMICH_DB_NAME}
+      REDIS_HOSTNAME: immich-redis
+      TZ: ${TZ}
+    volumes:
+      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload

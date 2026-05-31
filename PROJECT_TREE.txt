@@ -1,0 +1,64 @@
+home-cloud-jetson-public/
+├── README.md
+├── PROJECT_CONTEXT.md
+├── AGENTS.md
+├── LICENSE
+├── .gitignore
+├── config/
+│   ├── .env.example
+│   └── llm-policy.yaml
+├── docker/
+│   └── compose/
+│       ├── docker-compose.stage1.yml
+│       ├── docker-compose.nextcloud.yml
+│       ├── docker-compose.immich.yml
+│       └── docker-compose.llm-gateway.yml
+├── docs/
+│   ├── 00_OVERVIEW.md
+│   ├── 01_HARDWARE_AUDIT.md
+│   ├── 02_REQUIREMENTS.md
+│   ├── 03_ARCHITECTURE.md
+│   ├── 04_STORAGE_DESIGN.md
+│   ├── 05_NETWORKING_VPN.md
+│   ├── 06_NEXTCLOUD_DESIGN.md
+│   ├── 07_IMMICH_DESIGN.md
+│   ├── 08_LLM_GATEWAY_DEEPSEEK.md
+│   ├── 09_ANDROID_STAGE2_ARCHITECTURE.md
+│   ├── 10_SECURITY_PRIVACY.md
+│   ├── 11_SECRETS_POLICY.md
+│   ├── 12_BACKUP_RESTORE.md
+│   ├── 13_MONITORING_RUNBOOK.md
+│   ├── 14_TEST_PLAN.md
+│   ├── 15_ALTERNATIVES_REVIEW.md
+│   ├── 16_GITHUB_PUBLICATION.md
+│   └── decisions/
+│       └── ADR-0001-nextcloud-immich-deepseek.md
+├── prompts/
+│   ├── CODEX_BOOTSTRAP_PROMPT.md
+│   ├── CODEX_HARDWARE_AUDIT_PROMPT.md
+│   ├── CODEX_STORAGE_PROMPT.md
+│   ├── CODEX_NEXTCLOUD_PROMPT.md
+│   ├── CODEX_IMMICH_PROMPT.md
+│   ├── CODEX_LLM_GATEWAY_PROMPT.md
+│   ├── CODEX_SECURITY_PROMPT.md
+│   └── CODEX_ANDROID_STAGE2_PROMPT.md
+├── services/
+│   ├── llm-gateway/
+│   │   ├── README.md
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   └── app/main.py
+│   └── backup-api/
+│       └── README.md
+└── scripts/
+    ├── diagnostics/
+    │   ├── hardware_audit.sh
+    │   ├── docker_health.sh
+    │   └── storage_health.sh
+    ├── backup/
+    │   ├── backup_databases.sh
+    │   └── restic_backup_example.sh
+    ├── maintenance/
+    │   └── docker_update_plan.sh
+    └── security/
+        └── check_no_secrets.sh

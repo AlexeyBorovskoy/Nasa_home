@@ -1,0 +1,47 @@
+version: 1
+policy_name: homecloud-deepseek-stage1
+provider: deepseek
+
+privacy:
+  redact_personal_data: true
+  allow_sensitive_personal_data: false
+  allow_photo_video_upload: false
+  allow_contacts_upload: false
+  allow_calendar_upload: false
+  allow_document_upload: false
+  allow_backup_manifest_upload: false
+
+allowed_context:
+  - project_documentation
+  - anonymized_diagnostics
+  - service_status
+  - anonymized_logs
+  - command_output_without_secrets
+
+forbidden_patterns:
+  - api_key
+  - bearer_token
+  - password
+  - private_key
+  - phone_number
+  - email_address
+  - precise_geolocation
+  - personal_contact_book
+
+limits:
+  daily_token_limit: 100000
+  max_prompt_chars: 12000
+  max_response_tokens: 2048
+
+logging:
+  log_prompts: false
+  log_responses: false
+  log_metadata: true
+  retention_days: 14
+
+models:
+  default: deepseek-v4-flash
+  reasoning: deepseek-v4-pro
+  compatibility_legacy:
+    - deepseek-chat
+    - deepseek-reasoner

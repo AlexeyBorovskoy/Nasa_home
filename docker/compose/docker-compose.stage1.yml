@@ -1,0 +1,116 @@
+name: homecloud
+
+services:
+  nextcloud-db:
+    image: postgres:16-alpine
+    container_name: homecloud_nextcloud_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${NEXTCLOUD_DB_NAME}
+      POSTGRES_USER: ${NEXTCLOUD_DB_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+    volumes:
+      - ${NEXTCLOUD_DB_DATA}:/var/lib/postgresql/data
+    networks:
+      - homecloud_internal
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: homecloud_nextcloud_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - homecloud_internal
+
+  nextcloud:
+    image: nextcloud:apache
+    container_name: homecloud_nextcloud
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    ports:
+      - "8080:80"
+    environment:
+      POSTGRES_HOST: nextcloud-db
+      POSTGRES_DB: ${NEXTCLOUD_DB_NAME}
+      POSTGRES_USER: ${NEXTCLOUD_DB_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS}
+      REDIS_HOST: nextcloud-redis
+      REDIS_HOST_PASSWORD: ${REDIS_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - ${NEXTCLOUD_DATA}:/var/www/html/data
+      - nextcloud_app:/var/www/html
+    networks:
+      - homecloud_internal
+
+  immich-db:
+    image: tensorchord/pgvecto-rs:pg16-v0.3.0
+    container_name: homecloud_immich_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${IMMICH_DB_NAME}
+      POSTGRES_USER: ${IMMICH_DB_USER}
+      POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
+    volumes:
+      - ${IMMICH_DB_DATA_LOCATION}:/var/lib/postgresql/data
+    networks:
+      - homecloud_internal
+
+  immich-redis:
+    image: redis:7-alpine
+    container_name: homecloud_immich_redis
+    restart: unless-stopped
+    networks:
+      - homecloud_internal
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    container_name: homecloud_immich_server
+    restart: unless-stopped
+    depends_on:
+      - immich-db
+      - immich-redis
+    ports:
+      - "2283:2283"
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: ${IMMICH_DB_USER}
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_DATABASE_NAME: ${IMMICH_DB_NAME}
+      REDIS_HOSTNAME: immich-redis
+      TZ: ${TZ}
+    volumes:
+      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+    networks:
+      - homecloud_internal
+
+  llm-gateway:
+    build:
+      context: ../../services/llm-gateway
+    container_name: homecloud_llm_gateway
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
+      DEEPSEEK_REASONER_MODEL: ${DEEPSEEK_REASONER_MODEL}
+      LLM_REDACT_PERSONAL_DATA: ${LLM_REDACT_PERSONAL_DATA}
+      LLM_LOG_PROMPTS: ${LLM_LOG_PROMPTS}
+      LLM_LOG_RESPONSES: ${LLM_LOG_RESPONSES}
+    networks:
+      - homecloud_internal
+
+volumes:
+  nextcloud_app:
+
+networks:
+  homecloud_internal:
+    driver: bridge

@@ -1,0 +1,17 @@
+name: homecloud-llm-gateway
+services:
+  llm-gateway:
+    build:
+      context: ../../services/llm-gateway
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
+      DEEPSEEK_REASONER_MODEL: ${DEEPSEEK_REASONER_MODEL}
+      LLM_REDACT_PERSONAL_DATA: ${LLM_REDACT_PERSONAL_DATA}
+      LLM_LOG_PROMPTS: ${LLM_LOG_PROMPTS}
+      LLM_LOG_RESPONSES: ${LLM_LOG_RESPONSES}
