@@ -8,7 +8,9 @@
 | Storage | `df -h /mnt/storage` | диск доступен |
 | USB errors | `dmesg` | нет I/O/reset loop |
 | SMART | `smartctl -a` | нет критичных ошибок |
-| Network | `ping 192.168.0.50` | доступен |
+| Stage 0 direct-link | `nmap -sn 192.168.1.0/24` | Jetson виден как отдельный host |
+| Stage 0 SSH | `ssh <user>@<jetson-direct-link-ip>` | вход с ноутбука работает |
+| Target LAN после переноса | `ping 192.168.0.50` | доступен после подключения к роутеру |
 
 ## 2. Samba/SFTP
 

@@ -57,8 +57,8 @@ Jetson Nano + USB HDD
 | Вычислительный узел | NVIDIA Jetson Nano Developer Kit |
 | Системный диск | microSD 64 GB или больше |
 | Диск данных | USB HDD с отдельным питанием |
-| Сеть | Ethernet для Jetson, Wi-Fi для клиентов |
-| Роутер | гигабитный роутер со static DHCP lease |
+| Сеть | Stage 0: Jetson напрямую к ноутбуку через USB/USB-Ethernet; после настройки — домашняя LAN/VPN |
+| Роутер | нужен после Stage 0 для переноса Jetson в домашнюю LAN и static DHCP lease |
 | Внешний доступ | только VPN / mesh VPN |
 
 Jetson Nano ограничен по RAM и CPU. Тяжёлый ML-анализ фото, массовое видеотранскодирование и локальный inference LLM специально вынесены за пределы Stage 1.
@@ -89,6 +89,7 @@ docs/
   12_BACKUP_RESTORE.md
   14_TEST_PLAN.md
   16_GITHUB_PUBLICATION.md
+  plans/README.md
   references/EXTERNAL_DOCS_CACHE.md
   references/JETSON_LOCAL_ASSETS.md
   references/REFERENCE_LINKS.md

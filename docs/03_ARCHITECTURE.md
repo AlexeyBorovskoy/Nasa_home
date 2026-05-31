@@ -6,7 +6,7 @@
 flowchart TB
     Android[Android phones Xiaomi/HyperOS]
     Laptop[Windows/Linux laptop]
-    Router[TP-Link EC220-G5]
+    Router[Домашний роутер]
     Jetson[Jetson Nano]
     HDD[USB HDD with external power]
     Nextcloud[Nextcloud]

@@ -279,6 +279,10 @@ NASA/
 │   ├── 14_TEST_PLAN.md
 │   ├── 15_ALTERNATIVES_REVIEW.md
 │   ├── 16_GITHUB_PUBLICATION.md
+│   ├── plans/
+│   │   ├── README.md
+│   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
+│   │   └── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
 │   ├── references/
 │   │   ├── EXTERNAL_DOCS_CACHE.md
 │   │   ├── JETSON_LOCAL_ASSETS.md
@@ -333,6 +337,7 @@ NASA/
 | `docs/14_TEST_PLAN.md` | план тестирования |
 | `docs/15_ALTERNATIVES_REVIEW.md` | обзор альтернатив |
 | `docs/16_GITHUB_PUBLICATION.md` | публикация на GitHub |
+| `docs/plans/README.md` | индекс и анализ стратегических планов продвижения |
 
 ## 14. Этапы реализации
 
