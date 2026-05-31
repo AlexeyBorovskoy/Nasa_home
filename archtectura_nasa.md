@@ -1,279 +1,361 @@
-# Архитектура проекта
+# Архитектура NASA Home Cloud
 
-Проект «Домашнее семейное облако на Jetson Nano» состоит из следующих слоёв:
+> Актуализировано: 2026-05-31.
+>
+> Этот файл является обзорной архитектурной картой проекта. Детальные
+> инструкции живут в `docs/`, compose-шаблоны — в `docker/compose/`, код
+> сервисов — в `services/`.
+
+## 1. Назначение
+
+NASA Home Cloud — домашняя семейная облачная платформа на базе **NVIDIA Jetson
+Nano + USB HDD**. Проект предназначен для приватного хранения файлов,
+документов, контактов, календарей, фото и видео с Android-устройств семьи.
+
+Ключевая идея: Jetson Nano работает как маломощный домашний сервер хранения, а
+не как узел тяжёлого ML/inference. На Stage 1 локальная LLM на Jetson не
+разворачивается.
+
+## 2. Логическая схема
 
 ```mermaid
-flowchart LR
-    subgraph LAN [Домашняя сеть]
-        Router(Роутер Wi-Fi)
-        Jetson(Jetson Nano)
-        Phone(Android-телефон)
-        Laptop(ПК/ноутбук)
-    end
-    subgraph Cloud [Интернет/VPN]
-        VPN(WireGuard/VPN)
-    end
-    Router -- Ethernet --> Jetson
-    Router -- Wi-Fi --> Phone
-    Router -- Wi-Fi --> Laptop
-    Phone -- VPN --> Jetson
-    Laptop -- VPN --> Jetson
-    Jetson -- HTTP/HTTPS --> Phone
-    Jetson -- HTTP/HTTPS --> Laptop
-    style Router fill:#f9f,stroke:#333,stroke-width:1px
-    style Jetson fill:#ff9,stroke:#333,stroke-width:1px
-    style Phone fill:#9ff,stroke:#333,stroke-width:1px
-    style Laptop fill:#9ff,stroke:#333,stroke-width:1px
-    style VPN fill:#cfc,stroke:#333,stroke-width:1px
+flowchart TB
+    Android[Android phones]
+    Laptop[Laptop / desktop]
+    Router[Home router]
+    VPN[VPN / mesh VPN]
+    Jetson[Jetson Nano]
+    HDD[USB HDD with external power]
+
+    Nextcloud[Nextcloud]
+    Immich[Immich]
+    Samba[Samba / SFTP]
+    Backup[Backup jobs]
+    LLMGateway[LLM Gateway]
+    DeepSeek[DeepSeek API]
+
+    NCDB[(Nextcloud PostgreSQL)]
+    ImmichDB[(Immich PostgreSQL / pgvecto-rs)]
+    Redis[(Redis)]
+
+    Android --> Router
+    Laptop --> Router
+    VPN --> Router
+    Router --> Jetson
+    Jetson --> HDD
+
+    Jetson --> Nextcloud
+    Jetson --> Immich
+    Jetson --> Samba
+    Jetson --> Backup
+    Jetson --> LLMGateway
+
+    Nextcloud --> NCDB
+    Nextcloud --> Redis
+    Immich --> ImmichDB
+    Immich --> Redis
+    LLMGateway --> DeepSeek
 ```
 
-- **Jetson Nano** (Ubuntu, Docker) с подключенным по USB HDD (с собственным питанием).  
-- **Роутер** (TP-Link EC220-G5): резервирует за Jetson статический локальный IP. На первом этапе внешних портов не открываем (VPN для доступа извне).  
-- **Сервисы** на Jetson в Docker Compose: Nextcloud (файлы, календарь, контакты), Immich (фото/видеоархив), СУБД (PostgreSQL/MariaDB, Redis), **LLM Gateway** (прокси-запросов к DeepSeek API), а также **Samba/SFTP** для локального NAS.  
-- **VPN (WireGuard/Tailscale)** для безопасного доступа из внешней сети.  
-- **Резервное копирование**: запланированные задачи (restic или borgbackup) для бэкапа HDD и дампов баз.  
+## 3. Основные компоненты
 
-Nextcloud обеспечивает обмен файлами, синхронизацию календаря и контактов, доступ по WebDAV, а также автозагрузку фото/видео с Android【20†L150-L158】【13†L53-L58】. Immich — это self-hosted альтернатива Google Photos для хранения фото и видео; он умеет авто-резервировать медиа с телефонов и предоставляет web-интерфейс галереи. DeepSeek API используется как внешний LLM-помощник (диагностика логов, подсказки), **локальной LLM на Jetson нет**. Архитектурно мы заранее закладываем возможности перехода на OpenAI API или локальные модели, но на первом этапе используем только DeepSeek (более дешевый API). 
+| Компонент | Роль | Stage 1 статус |
+|---|---|---|
+| Jetson Nano | Домашний сервер приложений и storage-узел | целевая платформа |
+| USB HDD | Основное хранилище `/mnt/storage` | требуется подготовка на железе |
+| Nextcloud | Файлы, документы, WebDAV, Contacts/Calendar | compose-черновик есть |
+| Immich | Фото- и видеоархив с Android | compose-черновик есть |
+| Samba/SFTP | Локальный NAS-доступ | описано в архитектуре, реализация следующим шагом |
+| PostgreSQL | Базы Nextcloud и Immich | используется в compose |
+| Redis | Кэш/очереди для сервисов | используется в compose |
+| LLM Gateway | Privacy-шлюз к DeepSeek API | FastAPI-скелет есть |
+| Backup API | Будущий Android restore API | Stage 2 placeholder |
+| restic | Резервное копирование файлов и дампов БД | script draft есть |
 
-Резюмируя: Jetson Nano выступает как NAS/облачный сервер, в котором **Nextcloud** реализует файловое облако и PIM (контакты, календарь через DAVx5 на Android), а **Immich** — фотоархив. Внешний доступ по VPN. LLM-слой (DeepSeek) подключается через отдельный сервис LLM Gateway.  
+## 4. Сетевые правила
 
-# Структура проекта
+Stage 1 строится по принципу **LAN/VPN only**:
 
+- Nextcloud доступен в LAN/VPN, порт `8080:80` в compose-шаблоне.
+- Immich доступен в LAN/VPN, порт `2283:2283`.
+- LLM Gateway доступен в LAN или локально, порт `8090:8090`.
+- SSH/SFTP доступны только из LAN/VPN.
+- Samba доступна только из LAN.
+- Прямой публичный доступ из интернета не включается.
+
+Отдельный reverse proxy с HTTPS внутри LAN/VPN возможен позже, но не является
+обязательным первым шагом.
+
+## 5. Хранилище
+
+Целевой корень данных:
+
+```text
+/mnt/storage
+├── nextcloud/data
+├── immich/library
+├── db/
+│   ├── nextcloud-postgres
+│   └── immich-postgres
+├── backups/
+│   ├── database-dumps
+│   └── restic-repo
+└── samba/
 ```
-home-cloud-jetson/
-├── README.md                     # Краткое описание проекта (основные цели, состав системы)
-├── AGENTS.md                     # Правила работы агентов Codex (инструкции и роль агентов)
-├── PROJECT_CONTEXT.md            # Контекст проекта (цели, окружение, запрос заказчика)
-├── PROJECT_TREE.txt              # Фиктивная схема структуры проекта
-├── .gitignore
+
+Актуальные переменные путей находятся в `config/.env.example`:
+
+- `STORAGE_ROOT`
+- `NEXTCLOUD_DATA`
+- `NEXTCLOUD_DB_DATA`
+- `IMMICH_UPLOAD_LOCATION`
+- `IMMICH_DB_DATA_LOCATION`
+- `BACKUP_ROOT`
+- `RESTIC_REPOSITORY`
+
+Подготовка диска, filesystem, mount и `fstab` описаны в
+`docs/04_STORAGE_DESIGN.md`. Любое форматирование или изменение таблицы
+разделов требует отдельного явного подтверждения пользователя.
+
+## 6. Docker Compose
+
+Актуальные compose-файлы:
+
+| Файл | Назначение |
+|---|---|
+| `docker/compose/docker-compose.stage1.yml` | полный Stage 1 stack draft |
+| `docker/compose/docker-compose.nextcloud.yml` | изолированный запуск Nextcloud |
+| `docker/compose/docker-compose.immich.yml` | изолированный запуск Immich |
+| `docker/compose/docker-compose.llm-gateway.yml` | изолированный запуск LLM Gateway |
+
+Compose-файлы используют современную спецификацию Docker Compose с
+верхнеуровневым ключом `name:`. Для проверки нужен Docker Compose v2:
+
+```bash
+docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config
+```
+
+Старый `docker-compose` v1 может отклонить эти файлы.
+
+## 7. Nextcloud
+
+Nextcloud отвечает за:
+
+- файлы и документы;
+- WebDAV;
+- Contacts/Calendar;
+- интеграцию с DAVx5 на Android;
+- Android-клиент Nextcloud для файловых сценариев.
+
+В текущем compose используется **PostgreSQL 16-alpine**, а не MariaDB:
+
+- `nextcloud-db`: `postgres:16-alpine`;
+- `nextcloud-redis`: `redis:7-alpine`;
+- `nextcloud`: `nextcloud:apache`.
+
+Детали: `docs/06_NEXTCLOUD_DESIGN.md`.
+
+## 8. Immich
+
+Immich отвечает за фото- и видеоархив с Android.
+
+Ограничение Jetson Nano: начинать нужно с минимальной нагрузки. Machine learning
+и тяжёлое видеотранскодирование нельзя включать до нагрузочных тестов.
+
+В текущем compose используются:
+
+- `immich-server`: `ghcr.io/immich-app/immich-server:${IMMICH_VERSION}`;
+- `immich-db`: `tensorchord/pgvecto-rs:pg16-v0.3.0`;
+- `immich-redis`: `redis:7-alpine`.
+
+Отдельный технический долг: переменная
+`IMMICH_DISABLE_MACHINE_LEARNING=true` есть в `config/.env.example`, но ещё не
+передана в compose и должна быть реализована перед первым constrained-тестом на
+Jetson.
+
+Детали: `docs/07_IMMICH_DESIGN.md`.
+
+## 9. LLM Gateway
+
+LLM Gateway — единственная точка выхода к внешнему DeepSeek API.
+
+Разрешено в Stage 1:
+
+- анализировать обезличенную диагностику;
+- объяснять ошибки Docker;
+- помогать с runbook;
+- работать с проектной документацией.
+
+Запрещено отправлять во внешний LLM:
+
+- фото и видео;
+- контакты;
+- календарь;
+- личные документы;
+- backup-архивы и backup-манифесты;
+- токены, пароли, приватные ключи;
+- полные логи с персональными данными.
+
+Актуальные модели в шаблоне:
+
+- `DEEPSEEK_MODEL=deepseek-v4-flash`
+- `DEEPSEEK_REASONER_MODEL=deepseek-v4-pro`
+
+Legacy-имена `deepseek-chat` и `deepseek-reasoner` оставлены только в
+`config/llm-policy.yaml` как compatibility-секция.
+
+Детали: `docs/08_LLM_GATEWAY_DEEPSEEK.md` и
+`services/llm-gateway/README.md`.
+
+## 10. Backup / Restore
+
+Целевой подход:
+
+1. Создать дампы БД Nextcloud и Immich.
+2. Снять restic snapshot с пользовательских данных и дампов.
+3. Проверить восстановление в отдельную тестовую директорию.
+4. Только после restore-test считать backup рабочим.
+
+Текущее состояние:
+
+- `scripts/backup/backup_databases.sh` — placeholder, требует реализации после
+  первого реального запуска контейнеров.
+- `scripts/backup/restic_backup_example.sh` — пример restic workflow.
+- `services/backup-api/` — Stage 2 placeholder для будущего Android restore,
+  не production backup-сервис.
+
+Детали: `docs/12_BACKUP_RESTORE.md`.
+
+## 11. Android Stage 2
+
+Stage 2 закладывает будущий Android-клиент восстановления. На Stage 1 он не
+разворачивается как production-компонент.
+
+Ограничение: обычное Android-приложение не заменит полностью системный backup
+Google/Xiaomi без root/system privileges. Реалистичный MVP должен начинаться с
+файлов, фото/видео, экспортируемых контактов/календаря и пользовательских
+документов.
+
+Детали: `docs/09_ANDROID_STAGE2_ARCHITECTURE.md` и
+`services/backup-api/README.md`.
+
+## 12. Актуальная структура проекта
+
+```text
+NASA/
+├── README.md
+├── AGENTS.md
+├── PROJECT_CONTEXT.md
+├── PROJECT_TREE.txt
+├── SECURITY.md
+├── CONTRIBUTING.md
+├── AUDIT_2026-05-31.md
+├── archtectura_nasa.md
 ├── config/
-│   ├── .env.example              # Шаблон .env (ключи, переменные окружения)
-│   └── llm-policy.yaml           # Политика использования DeepSeek (приватность)
+│   ├── .env.example
+│   └── llm-policy.yaml
 ├── docker/
-│   └── compose/                  # Шаблоны Docker Compose (Nextcloud, Immich, LLM Gateway)
+│   └── compose/
+│       ├── docker-compose.stage1.yml
+│       ├── docker-compose.nextcloud.yml
+│       ├── docker-compose.immich.yml
+│       └── docker-compose.llm-gateway.yml
 ├── docs/
-│   ├── 00_OVERVIEW.md            # Исполнительное резюме проекта
-│   ├── 01_REQUIREMENTS.md       # Требования (железо, ПО, сеть)
-│   ├── 02_ARCHITECTURE.md       # Детальная архитектура (диаграммы, сети, порты, env)
-│   ├── 03_STORAGE_DESIGN.md     # Дизайн хранилища (структура /mnt/storage на HDD)
-│   ├── 04_NEXTCLOUD.md          # Nextcloud: настройка, порты, БД, env-переменные
-│   ├── 05_IMMICH.md            # Immich: настройка, env-переменные, оптимизация
-│   ├── 06_ANDROID_CLIENT.md    # План Android-клиента (архитектура, manifest.json API)
-│   ├── 07_LLM_GATEWAY.md       # LLM Gateway: API-конракт, адаптеры, промты, контроль трафика
-│   ├── 08_SECURITY_PRIVACY.md  # Безопасность: Firewall, VPN, политика приватности (DeepSeek)
-│   ├── 09_SECRETS_POLICY.md    # Политика секретов: хранение ключей и паролей
-│   ├── 10_BACKUP_RESTORE.md    # План резервного копирования и восстановления (restic, дампы)
-│   ├── 11_MONITORING_RUNBOOK.md # Мониторинг и операционный регламент (SMART, tegrastats)
-│   ├── 12_TEST_PLAN.md         # План тестирования (проверки каждого компонента)
-│   └── 13_ALTERNATIVES.md      # Сравнение альтернатив (таблица решений)
-├── services/
-│   ├── llm-gateway/            # Код/скрипты LLM Gateway (DeepSeek/опции OpenAI)
-│   └── backup-api/             # Заготовка сервиса Backup API (для Android Stage2)
+│   ├── 00_OVERVIEW.md
+│   ├── 01_HARDWARE_AUDIT.md
+│   ├── 02_REQUIREMENTS.md
+│   ├── 03_ARCHITECTURE.md
+│   ├── 04_STORAGE_DESIGN.md
+│   ├── 05_NETWORKING_VPN.md
+│   ├── 06_NEXTCLOUD_DESIGN.md
+│   ├── 07_IMMICH_DESIGN.md
+│   ├── 08_LLM_GATEWAY_DEEPSEEK.md
+│   ├── 09_ANDROID_STAGE2_ARCHITECTURE.md
+│   ├── 10_SECURITY_PRIVACY.md
+│   ├── 11_SECRETS_POLICY.md
+│   ├── 12_BACKUP_RESTORE.md
+│   ├── 13_MONITORING_RUNBOOK.md
+│   ├── 14_TEST_PLAN.md
+│   ├── 15_ALTERNATIVES_REVIEW.md
+│   ├── 16_GITHUB_PUBLICATION.md
+│   └── decisions/
+│       └── ADR-0001-nextcloud-immich-deepseek.md
+├── prompts/
+│   ├── CODEX_BOOTSTRAP_PROMPT.md
+│   ├── CODEX_HARDWARE_AUDIT_PROMPT.md
+│   ├── CODEX_STORAGE_PROMPT.md
+│   ├── CODEX_NEXTCLOUD_PROMPT.md
+│   ├── CODEX_IMMICH_PROMPT.md
+│   ├── CODEX_LLM_GATEWAY_PROMPT.md
+│   ├── CODEX_SECURITY_PROMPT.md
+│   └── CODEX_ANDROID_STAGE2_PROMPT.md
 ├── scripts/
-│   ├── diagnostics/            # Скрипты диагностики (hardware check, health)
-│   ├── backup/                 # Скрипты резервного копирования
-│   └── maintenance/            # Скрипты обслуживания (cleanup, обновления)
-└── prompts/
-    ├── CODEX_BOOTSTRAP_PROMPT.md     # Prompts для первичной инициализации проекта
-    ├── CODEX_NEXTCLOUD_PROMPT.md     # Prompts для развёртывания Nextcloud
-    ├── CODEX_IMMICH_PROMPT.md        # Prompts для развёртывания Immich
-    ├── CODEX_LLM_GATEWAY_PROMPT.md   # Prompts для разработки LLM Gateway
-    ├── CODEX_SECURITY_PROMPT.md      # Prompts для аудита безопасности
-    └── CODEX_ANDROID_STAGE2_PROMPT.md# Prompts для Android Stage‑2 (backup app)
+│   ├── backup/
+│   ├── diagnostics/
+│   ├── maintenance/
+│   └── security/
+└── services/
+    ├── llm-gateway/
+    └── backup-api/
 ```
 
-# Описание файлов MD
+## 13. Карта документации
 
-- **README.md** — краткое описание проекта и общей идеи (Nextcloud+Immich+DeepSeek), инструкции по началу работы.  
-- **AGENTS.md** — свод правил для агентов (Codex), их роли и форматы вывода (не комментировать мета-инструкции).  
-- **PROJECT_CONTEXT.md** — контекст и цели проекта, профиль пользователя, ограничения (русский язык, традиционный стиль).  
-- **PROJECT_TREE.txt** — текстовая схема структуры проекта (как вышеприведённая).  
-- **docs/00_OVERVIEW.md** — **Исполнительное резюме**: цель системы (семейное облако), ключевые компоненты, выгоды, риски.  
-- **docs/01_REQUIREMENTS.md** — апаратные и программные требования: Jetson Nano 4 GB, microSD, USB HDD (с питанием), сеть; ПО (Docker, Compose, базы), приложения (Android DAVx5, Nextcloud-Client, Immich-Client).  
-- **docs/02_ARCHITECTURE.md** — архитектурная схема (сетевой и программный контекст). Указать IP-адреса, порты (Nextcloud 80/443, Immich 2283 и т.п.), VPN, прокси. Включить mermaid-диаграмму сети и потоков.  
-- **docs/03_STORAGE_DESIGN.md** — как монтировать HDD (например, `UUID=<...>  /mnt/storage  ext4  defaults  0 2` в `/etc/fstab`). Структура директорий `/mnt/storage`: `nextcloud/data`, `immich/library`, `db/`, `backups/`, `samba/` и т.д. Политика разметки (ext4 на весь диск).  
-- **docs/04_NEXTCLOUD.md** — детали установки Nextcloud: переменные окружения в `.env` (например, `NEXTCLOUD_VERSION`, `ADMIN_USER`, `ADMIN_PASSWORD`, `DB_NAME` и т.д.), связи с БД (PostgreSQL) и Redis, пример docker-compose для Nextcloud (порт 80/443, SSL через Caddy). Ссылки на официальную доку (Nextcloud) и руководство (в Nextcloud поддерживаются Calendar/Contacts через CardDAV)【20†L150-L158】. Указать, что Android-клиент Nextcloud умеет автозагрузку файлов и синхронизирует через WebDAV.  
-- **docs/05_IMMICH.md** — детали установки Immich: `.env` (как в доке Immich), директорий `UPLOAD_LOCATION`, `DB_DATA_LOCATION` и переменных (`IMMICH_VERSION`, `DB_PASSWORD`, `TZ`)【2†L80-L88】【39†L71-L75】. Привести требования по памяти/CPU: Immich при ML требует ≥6 GB RAM, без ML – 4 GB【39†L71-L75】. Рекомендации: отключить машинное обучение (чтобы Jetson не перегружать) и не включать транскодирование видео, пока система не протестирована. Небольшой пример docker-compose для Immich (подключение к сети прокси).  
-- **docs/06_ANDROID_CLIENT.md** — план собственного Android-приложения (Stage 2). Архитектура: модули авторизации (регистрация телефона), сбор данных (DCIM, Documents, SMS/CallLog), передача через HTTP API. Форматы данных: фотографии/видео загружаются напрямую, контакты экспортируются в vCard, календарь – в iCal, SMS/журналы в JSON. Структура `manifest.json` бэкапа (пример с датой, ID устройства, списком синхронизированных элементов). REST API-сервисы на сервере (FastAPI/Node.js): `/api/v1/backups/create`, `/upload`, `/list`, `/restore`. Код без учета root-пермишен: телефоны см. без системных настроек.  
-- **docs/07_LLM_GATEWAY.md** — дизайн LLM Gateway: единая точка обращения к LLM. API-конракт: клиент приложения вызывает локально развернутый сервис (напр. `POST /llm/chat` с {prompt, context, model}), он перенаправляет запрос к DeepSeek API (HTTPS). Конфигурация провайдера: DeepSeek (базовый URL, ключ API, модель), fallback – OpenAI (совместимый API). Шаблоны системных и пользовательских промтов для типовых запросов (диагностика, runbook). Механизмы контроля: лимит расходов (екземпляр параметров в `.env`, ежедневный лимит токенов), логирование запросов/ответов (без чувствительных данных). Фильтр приватности: обрезать телефоны, имена, адреса в промте, отправлять только техническую информацию и контекст (логи).  
-- **docs/08_SECURITY_PRIVACY.md** — политика безопасности и приватности: ограничение доступа (брандмауэр, VPN), принципы шифрования (HTTPS/TLS через reverse proxy). **DeepSeek Privacy**: согласно политике DeepSeek, **не следует передавать чувствительные личные данные** (включая контакты, фотографии, приватные документы)【10†L110-L114】. Нужно делать анонимизацию: e-mail, ФИО, телефон удалять из текстовых запросов. Не отправлять медиа-файлы. Ссылки на стандарты шифрования и OS-hardening.   
-- **docs/09_SECRETS_POLICY.md** — политика хранения секретов: все ключи и пароли выносить в `.env` или secrets, не коммитить в Git. Шифрование файлов `.env` в repos (Git-crypt/GPG). Права доступа: `chmod 600` на `.env`, `000` на секретные ключи. Обработка ROT13/BASE64 (неэффективно) → лучше использовать менеджер (Vault).  
-- **docs/10_BACKUP_RESTORE.md** — схема бэкапа: использовать **restic** или **borgbackup**. Регулярный бэкап раз в день (cron):  
-  1) **Бэкап Nextcloud/Immich**: дамп БД (`pg_dump` или `mysqldump`) и копия `data`-директорий.  
-  2) Репликация HDD: `restic backup /mnt/storage` на внешний диск или в облако. Настроить политику хранения (retention 7d:30d:1y).  
-  3) Проверка восстановления: `restic restore` или импорт бэкапа Nextcloud.  
-  Привести пример конфигурации restic (`export RESTIC_REPOSITORY`, `RESTIC_PASSWORD`). Иллюстрация процесса как диаграмма или командами.  
-- **docs/11_MONITORING_RUNBOOK.md** — процедуры мониторинга и реагирования:  
-  - **Техдиагностика**: SMART (smartctl: `sudo smartctl -a /dev/sda`), проверка температуры и загрузки (`tegrastats`)【30†L23-L31】, `df -h`, `docker stats`, системные логи (`journalctl`).  
-  - **Health checks**: проверка «живости» контейнеров (`docker compose ps`), здоровья `curl` на Nextcloud/Immich, проброс SMB/SFTP доступа.  
-  - **Alerts**: конфигурировать отправку сообщений (Telegram/Email) при недоступности сервиса или заполнении диска >85%.  
-  - **Runbook**: пошаговая инструкция на случай сбоя (привести пример «проверка SSH, перезапуск сервисов, восстановление из бэкапа»).  
-- **docs/12_TEST_PLAN.md** — план тестирования:  
-  1) Unit-тесты (при разработке Android-API).  
-  2) Интеграционные: запуск Nextcloud, вход в web, создание пользователя, загрузка файлов; проверка автосинхронизации с телефона.  
-  3) Immich: загрузка 20–50 фото и несколько видео, проверка что они видны в WebUI; симуляция сбоя (выключить Immich, включить обратно и убедиться, что коллекция сохранена).  
-  4) DeepSeek: тестовые запросы через LLM Gateway, например: «статус Nextcloud», «существует ли Syncthing?», убедиться в адекватных ответах.  
-  5) Security: попытка подключиться без VPN (должно блокироваться), проверка CORS.  
-- **docs/13_ALTERNATIVES.md** — сравнение альтернатив:
+| Документ | Назначение |
+|---|---|
+| `README.md` | публичный двуязычный вход в проект |
+| `PROJECT_CONTEXT.md` | назначение, решения и ограничения проекта |
+| `AGENTS.md` | правила работы Codex/агентов |
+| `AUDIT_2026-05-31.md` | аудит целостности перед первым запуском |
+| `docs/00_OVERVIEW.md` | обзор концепции |
+| `docs/01_HARDWARE_AUDIT.md` | аппаратный аудит Jetson |
+| `docs/02_REQUIREMENTS.md` | требования к железу, ПО и сети |
+| `docs/03_ARCHITECTURE.md` | компактная архитектурная схема |
+| `docs/04_STORAGE_DESIGN.md` | дизайн HDD, mount и каталогов |
+| `docs/05_NETWORKING_VPN.md` | LAN/VPN-модель |
+| `docs/06_NEXTCLOUD_DESIGN.md` | дизайн Nextcloud |
+| `docs/07_IMMICH_DESIGN.md` | дизайн Immich |
+| `docs/08_LLM_GATEWAY_DEEPSEEK.md` | дизайн LLM Gateway |
+| `docs/09_ANDROID_STAGE2_ARCHITECTURE.md` | будущий Android Stage 2 |
+| `docs/10_SECURITY_PRIVACY.md` | безопасность и приватность |
+| `docs/11_SECRETS_POLICY.md` | политика секретов |
+| `docs/12_BACKUP_RESTORE.md` | backup/restore |
+| `docs/13_MONITORING_RUNBOOK.md` | мониторинг и runbook |
+| `docs/14_TEST_PLAN.md` | план тестирования |
+| `docs/15_ALTERNATIVES_REVIEW.md` | обзор альтернатив |
+| `docs/16_GITHUB_PUBLICATION.md` | публикация на GitHub |
 
-  | Решение      | Категория         | Основное назначение                      | Преимущества                                      | Ограничения                                |
-  |--------------|-------------------|------------------------------------------|--------------------------------------------------|--------------------------------------------|
-  | **Nextcloud**| Облако (файлы)    | Самостоятельное облако (документы, календарь, контакты, файлы)【20†L150-L158】 | Множество интеграций, расширяемость, активная поддержка; календарь/контакты; шифрование E2E【13†L53-L58】 | Сложнее в установке и оптимизации; ресурсоёмкость |
-  | **Seafile**  | Облако (файлы)    | Фокус на файловой синхронизации          | Блок-синхронизация (быстро переносит большие файлы), меньше нагрузки【13†L53-L58】    | Меньше встроенных приложений; вопросы конфиденциальности (Китай)【20†L174-L178】 |
-  | **Syncthing**| P2P-синхрон.      | Синхронизация папок между устройствами   | Отсутствие центрального сервера, проста для однорангового обмена; шифрование| Нет общего облачного хранилища; нет управления правами |
-  | **Pydio**    | Облако (файлы)    | Корпоративный обмен файлами【42†L158-L160】  | Обширные возможности интеграции (LDAP, SSO, хранилище SAN); modular (Go) | Сложнее в развёртывании; коммерческая поддержка (Cells) |
-  | **Cozy**     | Облако (личный)   | Личное облако с календарём, почтой и т.д.| Интегрировано с «домашними» приложениями, ориентированно на пользователя | Меньше энтузиастов, скуднее экосистема         |
-  | **Immich**   | Фотоархив         | Резервное копирование фото/видео с телефона【39†L71-L75】 | Мобильные приложения для автоматического backup, умная организация фото, распознавание лиц| Фокус именно на фото с телефона, слабее для загрузки «старых» библиотек; требует Docker/СУБД |
-  | **PhotoPrism** | Фотоархив       | Каталогизация «зрелой» фото-библиотеки | Локальная индексация, отличная фильтрация по метаданным и ML (поиск по объектам)【22†L463-L470】 | Тяжёлый для маломощного железа (ML без GPU медленное); нет мобильных приложений |
-  | **Lychee/Piwigo** | Фотоархив    | Хостинг фото (галерея)                   | Лёгкие, веб-интерфейс для просмотра фото         | Минимум функций автоматической загрузки; без глубокой аналитики |
-  
-  (Примечание: Nextcloud уступает Seafile в скорости синхронизации, но выигрывает за счёт богатой экосистемы【13†L53-L58】. Syncthing отлично подходит для простого обмена файлами без сервера【20†L174-L178】. Immich оптимизирован для backup-фото, тогда как PhotoPrism лучше для архивов больших фотоальбомов【22†L495-L504】.)  
+## 14. Этапы реализации
 
-# Пример Docker Compose (фрагменты)
+| Этап | Содержание | Контроль результата |
+|---|---|---|
+| Stage 1A | hardware audit, storage, Samba/SFTP | отчёт аудита, mount, тест записи |
+| Stage 1B | Nextcloud | web login, файл, WebDAV, Android client |
+| Stage 1C | Immich | 20-50 фото, 2-3 видео, `docker stats` |
+| Stage 1D | LLM Gateway | `/health`, `/v1/redact`, mock/DeepSeek safe test |
+| Stage 1E | Backup/restore | snapshot и restore-test |
+| Stage 2 | Android backup/restore API/client | отдельный RFC и MVP |
+| Stage 3 | расширенная аналитика/RAG/fallback providers | после стабилизации Stage 1 |
 
-```yaml
-version: '3.8'
-services:
-  nextcloud:
-    image: nextcloud:25-fpm
-    restart: unless-stopped
-    environment:
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - REDIS_HOST=redis
-    volumes:
-      - ./nextcloud-data:/var/www/html/data
-    networks:
-      - internal
-    ports:
-      - "8080:80"
-  db:
-    image: mariadb:10.11
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    volumes:
-      - ./db:/var/lib/mysql
-    networks:
-      - internal
-  redis:
-    image: redis:7
-    restart: unless-stopped
-    networks:
-      - internal
-  immich-server:
-    image: ghcr.io/immich-app/immich:latest
-    restart: unless-stopped
-    volumes:
-      - ./immich-data:/data
-    depends_on: [immich-db, immich-redis]
-    networks:
-      - internal
-    # порты отключены (только reverse proxy)
-    # ports: ["2283:2283"]
-  immich-db:
-    image: postgres:15
-    restart: unless-stopped
-    environment:
-      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
-    volumes:
-      - ./immich-db:/var/lib/postgresql/data
-    networks:
-      - internal
-  immich-redis:
-    image: redis:7
-    restart: unless-stopped
-    networks:
-      - internal
-  llm-gateway:
-    build: ./services/llm-gateway
-    restart: unless-stopped
-    environment:
-      - LLM_PROVIDER=deepseek
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LLM_DAILY_TOKEN_LIMIT=50000
-      - LLM_LOG_QUERIES=false
-      - LLM_REDACT_PERSONAL_DATA=true
-    networks:
-      - internal
-    ports:
-      - "8090:8090"
-networks:
-  internal:
+## 15. Известные технические долги
+
+- Docker Compose требует v2; `docker-compose` v1 может не подходить.
+- `IMMICH_DISABLE_MACHINE_LEARNING` нужно связать с compose.
+- `backup_databases.sh` пока placeholder.
+- `config/llm-policy.yaml` описывает целевую политику, но лимиты ещё не все
+  реализованы в коде LLM Gateway.
+- `POSTGRES_NEXTCLOUD_PASSWORD` дублирует `NEXTCLOUD_DB_PASSWORD` и не
+  используется.
+- Reverse proxy для HTTPS внутри LAN/VPN ещё не реализован.
+
+## 16. Первый практический шаг
+
+Перед развёртыванием сервисов нужно выполнить диагностику на целевом Jetson:
+
+```bash
+./scripts/diagnostics/hardware_audit.sh
+./scripts/diagnostics/storage_health.sh /dev/sda
 ```
 
-# Шаблоны конфигурации
-
-- **.env.example** (в корне проекта или в `config/`):  
-  ```ini
-  # Network
-  NEXTCLOUD_HOST=192.168.0.50
-  NEXTCLOUD_PORT=8080
-  IMMICH_HOST=192.168.0.50
-  IMMICH_PORT=2283
-  VPN_SUBNET=10.0.0.0/24
-
-  # Nextcloud
-  MYSQL_ROOT_PASSWORD=changeme
-  MYSQL_PASSWORD=changeme
-  # Immich
-  IMMICH_DB_PASSWORD=changeme
-  IMMICH_VERSION=v2.6.1
-  UPLOAD_LOCATION=./library
-  DB_DATA_LOCATION=./postgres
-
-  # LLM Gateway
-  LLM_PROVIDER=deepseek
-  DEEPSEEK_API_KEY=ВАШ_DEEPSEEK_KEY
-  OPENAI_API_KEY=ВАШ_OPENAI_KEY  # при необходимости
-  LLM_DAILY_TOKEN_LIMIT=100000
-  LLM_REDACT_PERSONAL_DATA=true
-  ```
-- **Политика DeepSeek (llm-policy.yaml)**:  
-  ```yaml
-  redact_personal_data: true        # убирать имена, e-mail, телефоны из запросов
-  max_response_tokens: 2048
-  daily_token_limit: 100000
-  allowed_models:
-    - deepseek-chat
-    - deepseek-reasoner
-  forbidden_content:
-    - sensitive_personal_information
-    - image_files
-  ```
-  (Эти шаблоны не содержат реальных секретов; реальные ключи должны храниться в защищённом виде и нигде не выкладываться.)
-
-# Кодовые диаграммы
-
-```mermaid
-gantt
-    title Порядок развёртывания (время, дни)
-    dateFormat  YYYY-MM-DD
-    section Подготовка
-    Аппаратный аудит            :done, 2026-05-10, 1d
-    Настройка сети, IP         :done, 2026-05-11, 1d
-    section Установка сервисов
-    Монтирование USB-HDD       :active, 2026-05-12, 1d
-    Установка Docker/Compose    :done, 2026-05-13, 1d
-    Nextcloud                   :2026-05-14, 2d
-    Samba/SFTP                  :2026-05-16, 1d
-    Immich                      :2026-05-17, 2d
-    LLM Gateway                 :2026-05-19, 1d
-    section Тестирование
-    Проверка резервного копирования :2026-05-20, 1d
-    Проверка Android-синхронизации  :2026-05-21, 1d
-    Final Review & Docs         :2026-05-22, 1d
-```
-
-# Источники и ссылки
-
-- Официальная документация **Immich** (рекомендуемая установка Docker Compose)【2†L80-L88】【39†L71-L75】.  
-- Официальная документация **Nextcloud** и **Contacts/Calendar**, которые позволяют синхронизировать контакты и календари через CardDAV/CalDAV (Android-университет DAVx5).  
-- **Политика конфиденциальности DeepSeek** (глоссарий персональных данных): DeepSeek не предназначен для обработки конфиденциальных данных; **не следует** передавать туда персональную информацию【10†L110-L114】.  
-- Блог **Virtua.cloud** о самостоятельном хостинге Immich (требования к RAM, инструкции)【39†L71-L75】.  
-- Сравнение Nextcloud и Seafile【13†L53-L58】, список альтернатив Nextcloud【20†L169-L178】.  
-
-Полный проект готов к передаче агенту Codex для автоматизации развертывания и тестирования в VS Code по созданным промтам и MD-файлам.
+После аудита принимается решение по подготовке HDD, `fstab`, структуре
+`/mnt/storage` и только затем запускаются сервисы.
