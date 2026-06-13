@@ -59,6 +59,50 @@ ssh <user>@<jetson-direct-link-ip>
 или Wi-Fi параметры. Эти настройки актуальны только на этапе переноса Jetson в
 домашнюю LAN.
 
+## 1.2. USB device-mode доступ с Windows-хоста (recovery/admin, проверено 2026-06-13)
+
+Если Jetson подключён по micro-USB к **Windows-хосту** (не к Linux-VM), L4T
+device mode поднимает одновременно **4 интерфейса**:
+
+- RNDIS Ethernet (в `Get-NetAdapter` — отдельный `Ethernet N`);
+- NCM Ethernet (второй `Ethernet M`);
+- USB-serial (`COMx`, `VID_0955` NVIDIA) — консоль `ttyGS0`/`ttyACM0`;
+- USB Mass Storage (`L4T-README`, диск с инструкцией NVIDIA).
+
+На стороне Jetson все эти интерфейсы объединены в бридж `l4tbr0`
+(`192.168.55.1/24`).
+
+**IPv4 `192.168.55.1` обычно недоступен с Windows-хоста** — у Windows нет
+маршрута на `192.168.55.0/24` (IPv4 на RNDIS-адаптере не настраивается
+автоматически). Рабочий вариант — **IPv6 link-local**:
+
+```powershell
+Get-NetAdapter                                   # найти ifIndex RNDIS-адаптера
+ping -6 fe80::1%<ifIndex>
+Test-NetConnection -ComputerName "fe80::1%<ifIndex>" -Port 22
+ssh admin@fe80::1%<ifIndex>
+```
+
+`<ifIndex>` меняется между подключениями USB — каждый раз смотреть в
+`Get-NetAdapter`.
+
+Настройка ключевого SSH-доступа (на Windows нет `ssh-copy-id`):
+
+```powershell
+Get-Content ~/.ssh/id_ed25519.pub | ssh admin@fe80::1%<ifIndex> `
+  "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo DONE"
+```
+
+После этого `ssh admin@fe80::1%<ifIndex>` работает без пароля.
+
+> На Jetson `sudo` для пользователя `admin` требует пароль (NOPASSWD не
+> настроен) — для административных команд (`systemctl`, `nmcli`, правки в
+> `/etc/`) пароль нужен отдельно от SSH-ключа.
+
+Эта схема — **recovery/admin-доступ** на время, пока Jetson не в домашней LAN
+или для диагностики. Основной канал для сервисов — `nasa-lan` (eth0, см.
+§1).
+
 ## 2. Правило публикации сервисов
 
 На первом этапе запрещено публиковать наружу:
@@ -179,6 +223,12 @@ risk-документ (см. конец §3.1): какие порты откры
 добавляются и как откатить доступ.
 
 ## 3.3. Реализованная схема wg-nasa (2026-05-31, тестовый стенд)
+
+> ⚠️ Статус: откачено 2026-05-31 из-за нестабильности через CGNAT (TCP не
+> проходил), полностью удалено с VPS и Jetson — конфиги и ключи (2026-06-13)
+> убраны и из `/etc/wireguard/wg-nasa.conf` на Jetson (бэкап в
+> `/root/rollback-backup-2026-06-13/`). Раздел оставлен для истории/референса
+> конфигурации (см. `TEST_STAND_CHECKPOINT_2026-05-31.md` §4.1, §6).
 
 Поднят отдельный WireGuard-интерфейс `wg-nasa` на EU VPS — **изолированно** от
 Amnezia-туннеля `wg-yandex` (порт 51830, не затронут).
