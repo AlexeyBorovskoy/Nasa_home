@@ -1,5 +1,12 @@
 # 13. Monitoring / Runbook
 
+> Подробный анализ инструментов мониторинга и стратегия развёртывания:
+> `docs/17_MONITORING_OBSERVABILITY.md`.
+>
+> Compose-файл мониторинг-стека: `docker/compose/docker-compose.monitoring.yml`.
+>
+> Промпт агента для развёртывания: `prompts/CODEX_MONITORING_PROMPT.md`.
+
 ## 1. Ежедневные проверки
 
 ```bash
@@ -69,3 +76,60 @@ docker stats --no-stream
 3. Проверить `dmesg`.
 4. Проверить SMART.
 5. Не запускать БД до стабилизации.
+
+---
+
+## 7. Мониторинг-стек Stage 1 (Netdata + Uptime Kuma + Portainer)
+
+Мониторинг разворачивается отдельным compose-файлом. Подробный анализ
+инструментов и стратегия развёртывания: `docs/17_MONITORING_OBSERVABILITY.md`.
+
+### Запуск мониторинга
+
+```bash
+docker compose -f docker/compose/docker-compose.monitoring.yml \
+               --env-file config/.env up -d
+```
+
+### Проверка статуса мониторинга
+
+```bash
+docker compose -f docker/compose/docker-compose.monitoring.yml ps
+```
+
+### Веб-интерфейсы
+
+| Инструмент | URL | Назначение |
+|---|---|---|
+| Netdata | `http://192.168.0.50:19999` | Системный мониторинг, Docker stats, температура |
+| Uptime Kuma | `http://192.168.0.50:3001` | HTTP uptime, Telegram-уведомления |
+| Portainer | `http://192.168.0.50:9000` | Docker management UI |
+
+### Что смотреть в Netdata
+
+- **System → CPU** — общая загрузка и per-core
+- **System → RAM** — используемая память; при > 90% срочно смотреть `docker stats`
+- **Disk Space → /mnt/storage** — заполненность: алерт при > 85%
+- **Docker → Containers** — состояние всех контейнеров Stage 1
+- **Temperature** — тепловые зоны Jetson; алерт при > 85°C
+
+Если Netdata показывает алерт — см. соответствующий раздел ниже (разделы 4–6)
+или подробный runbook в `docs/17_MONITORING_OBSERVABILITY.md` (секция «Алерты»).
+
+### Что делать, если Uptime Kuma прислал уведомление
+
+| Уведомление | Действие |
+|---|---|
+| Nextcloud недоступен | Перейти к разделу 4 настоящего runbook |
+| Immich недоступен | Перейти к разделу 5 настоящего runbook |
+| LLM Gateway недоступен | `docker logs homecloud_llm_gateway --tail=50` |
+
+### Остановка мониторинга (если мешает или вызывает OOM)
+
+```bash
+docker compose -f docker/compose/docker-compose.monitoring.yml \
+               --env-file config/.env down
+```
+
+Данные Uptime Kuma (история мониторинга) и настройки Portainer сохраняются
+в именованных volumes и восстанавливаются при повторном `up -d`.
