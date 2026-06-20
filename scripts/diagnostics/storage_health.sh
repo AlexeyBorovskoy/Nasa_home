@@ -122,6 +122,42 @@ for dir in "${NEXTCLOUD_DATA}" "${IMMICH_UPLOAD_LOCATION}" "${NEXTCLOUD_DB_DATA}
 done
 
 # ---------------------------------------------------------------------------
+# 6. SMART disk health (requires smartmontools + STORAGE_DEVICE in .env)
+# ---------------------------------------------------------------------------
+echo ""
+log "HDD SMART health:"
+STORAGE_DEVICE="${STORAGE_DEVICE:-}"  # e.g. /dev/sda — set in config/.env
+
+if ! command -v smartctl &>/dev/null; then
+    log "  smartctl not installed. Run: sudo apt install smartmontools"
+elif [[ -z "${STORAGE_DEVICE}" ]]; then
+    log "  STORAGE_DEVICE not set. Add STORAGE_DEVICE=/dev/sdX to config/.env"
+elif [[ ! -b "${STORAGE_DEVICE}" ]]; then
+    log "  WARNING: ${STORAGE_DEVICE} is not a block device (HDD not connected?)"
+    ERRORS=$(( ERRORS + 1 ))
+else
+    smart_raw="$(smartctl -H "${STORAGE_DEVICE}" 2>&1 || true)"
+    if echo "${smart_raw}" | grep -q "PASSED"; then
+        log "  ${STORAGE_DEVICE}: SMART PASSED"
+    elif echo "${smart_raw}" | grep -q "FAILED"; then
+        log "  ${STORAGE_DEVICE}: SMART FAILED! Drive may be failing — backup immediately."
+        ERRORS=$(( ERRORS + 1 ))
+    elif echo "${smart_raw}" | grep -qi "USB bridge"; then
+        # USB-SATA bridge may need -d sat or -d sntasmedia
+        log "  ${STORAGE_DEVICE}: USB-SATA bridge detected — try: smartctl -d sat -H ${STORAGE_DEVICE}"
+        log "  (See docs/troubleshooting.md for USB-SATA bridge SMART passthrough)"
+    else
+        log "  ${STORAGE_DEVICE}: SMART status unknown — ${smart_raw}"
+    fi
+
+    # Save SMART attributes snapshot
+    SMART_LOG_DIR="${STORAGE_ROOT}/logs/health"
+    mkdir -p "${SMART_LOG_DIR}"
+    smartctl -A "${STORAGE_DEVICE}" > "${SMART_LOG_DIR}/smart-attrs-$(date +%Y%m%d-%H%M%S).log" 2>/dev/null || true
+    log "  SMART attributes saved to ${SMART_LOG_DIR}/"
+fi
+
+# ---------------------------------------------------------------------------
 echo ""
 log "=== Storage health check finished — issues: ${ERRORS} ==="
 if (( ERRORS > 0 )); then

@@ -1,223 +1,183 @@
-﻿# Домашнее облако на NVIDIA Jetson Nano: заменяю Google Photos, Drive и ChatGPT за 0 $/мес
+# Домашнее облако на Jetson Nano: задумал я, реализовал Claude Code
 
-> **Статус проекта (июнь 2026):** система собрана и задокументирована, идёт тестовое развёртывание на реальном железе. GitHub: [AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home)
+> **Платформы:** [Habr.com](https://habr.com)  
+> **Хабы:** Системное администрирование · Open Source · Искусственный интеллект · Self-hosted  
+> **Теги:** `selfhosted` `nextcloud` `immich` `jetson-nano` `docker` `homelab` `claude-code` `ai-assisted-dev`  
+> **Статус проекта (июнь 2026):** Stage 1, тестовое развёртывание  
+> **Репозиторий:** [github.com/AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home)
 
-Несколько месяцев назад у меня на полке лежал NVIDIA Jetson Nano Developer Kit, купленный когда-то для экспериментов с ML. После того как Google Photos урезал бесплатное хранилище, а потом ещё и поднял цены на Workspace — я решил, что хватит кормить подписками чужих дядей, которые сканируют мои фотографии.
+---
 
-Так появился **NASA** (Not Another Storage Appliance) — семейное домашнее облако на Jetson Nano + внешний HDD.
+Когда Google Photos урезал бесплатное место, я решил поднять своё облако. Идея была простая: Jetson Nano, который год пылится на полке, + внешний HDD + Docker. Заменить Google Photos, Google Drive, и добавить локальный ИИ-ассистент.
+
+Проблема: я занят, у меня нет времени разбираться в Immich, Nextcloud, Docker Compose, WireGuard и всём остальном с нуля. Тогда я попробовал доверить реализацию **Claude Code** — агентной CLI от Anthropic. И вот что получилось.
 
 <cut>
 
-## Зачем вообще это всё?
+## Угол статьи: не «что я построил», а «как мы строили вместе»
 
-Боли, которые я хотел закрыть:
+Это не инструкция «как поднять Nextcloud». Таких на Хабре достаточно. Это рефлексия о том, как **AI-assisted разработка меняет подход к домашним проектам**: ты описываешь что хочешь, ИИ строит, ты решаешь ключевые вещи.
 
-- **Google Photos** — бесплатная версия закончилась. Семейный архив 300+ GB фото и видео надо куда-то перенести.
-- **Google Drive / Nextcloud** — документы, фото с телефонов, резервные копии контактов.
-- **ChatGPT** — использую для рабочих задач, но передавать через него рабочие тексты и переписку некомфортно. Хочу свой прокси, который не логирует лишнее.
-- **Приватность** — семейные фото не должны лежать на серверах компаний, которые монетизируют данные.
-
-**Итоговый стек:**
-
-| Сервис | Замена | RAM |
-|--------|--------|-----|
-| Nextcloud | Google Drive, OneDrive | ~200 MB |
-| Immich | Google Photos | ~300 MB (ML отключён) |
-| LLM Gateway | ChatGPT API proxy | ~80 MB |
-| Netdata + Uptime Kuma | - (мониторинг) | ~220 MB |
-
-Итого: ~800 MB на Jetson Nano с 4 GB RAM. Остаётся запас.
+Спойлер: я потратил больше времени на формулировку требований, чем на написание кода.
 
 ---
 
-## Железо
+## Железо и исходная точка
 
-- **NVIDIA Jetson Nano Developer Kit** — куплен за ~59$ в своё время, сейчас можно найти б/у за 40-60$. ARM64, 4 GB LPDDR4, GPU Maxwell (не нужен для этого проекта).
-- **microSD 32 GB** — для ОС (Ubuntu 18.04 L4T).
-- **Внешний USB HDD** — основное хранилище. Все данные живут на нём, не на SD-карте.
-- **Ethernet** — подключён напрямую в роутер. Wi-Fi не использую (надёжность).
-- **VPS в Европе** — для внешнего доступа через reverse SSH tunnel (CGNAT не пускает входящие напрямую).
+- **NVIDIA Jetson Nano Developer Kit** — лежал с 2021 года, куплен для ML-экспериментов
+- **microSD 32 GB** — системный диск
+- **Внешний USB HDD** (старый, 2 TB) — всё пользовательское хранилище
+- **VPS в Вене** — уже был для семейного VPN (Amnezia)
+- **Роутер** — Jetson получил статический IP `192.168.0.50`
 
-**Важное ограничение Jetson Nano:** нет swap-раздела (eMMC-специфика Developer Kit). Значит, суммарное потребление RAM не должно превышать ~3.5 GB. Поэтому Immich запускается с `IMMICH_DISABLE_MACHINE_LEARNING=true` — иначе ML-процессы кушают лишние 500+ MB.
-
----
-
-## Архитектура
-
-```
-Телефоны Android (LAN)                Телефоны (интернет)
-      │ Nextcloud App                         │
-      │ Immich App                            ▼ (port 8080)
-      │ DAVx5 (Stage 2)               VPS nginx (Вена)
-      │                                       │ reverse SSH tunnel
-      ▼                                       │ (Jetson инициирует — CGNAT обходится)
-   Jetson Nano 192.168.0.50                   │
-   ┌─────────────────────────────────────┐    │
-   │  homecloud_nextcloud   :8080  ◄─────┘    │
-   │  homecloud_immich_server :2283            │
-   │  homecloud_llm_gateway  :8090            │
-   │  homecloud_nextcloud_db (postgres)        │
-   │  homecloud_immich_db    (postgres)        │
-   │  homecloud_*_redis                        │
-   └─────────────────────────────────────┘
-              │
-              ▼
-        /mnt/storage (USB HDD, ext4)
-        ├── nextcloud/data/
-        ├── immich/library/
-        ├── db/nextcloud-postgres/
-        ├── db/immich-postgres/
-        └── backups/
-```
+Ключевое ограничение Jetson Nano: **нет swap, 4 GB RAM**. Это навязывает жёсткий выбор компонентов.
 
 ---
 
-## Что получилось: ключевые технические решения
+## Как выглядел процесс с Claude Code
 
-### 1. Docker Compose — один файл на весь стек
+Я не давал длинные технические задания. Я описывал **намерение**, а агент строил реализацию.
 
-Вместо ручной установки сервисов — всё в Docker. Один `docker-compose.stage1.yml` поднимает 8 контейнеров:
+**Промпт 1 — структура проекта:**
 
-```yaml
-name: homecloud
-
-services:
-  nextcloud-db:
-    image: postgres:15-alpine
-    container_name: homecloud_nextcloud_db
-    environment:
-      POSTGRES_DB: nextcloud
-      POSTGRES_USER: ${POSTGRES_NEXTCLOUD_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_NEXTCLOUD_PASSWORD}
-    volumes:
-      - ${STORAGE_ROOT}/db/nextcloud-postgres:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  nextcloud:
-    image: nextcloud:28-apache
-    container_name: homecloud_nextcloud
-    depends_on:
-      - nextcloud-db
-      - nextcloud-redis
-    environment:
-      NEXTCLOUD_TRUSTED_DOMAINS: "192.168.0.50 nextcloud.local"
-      NEXTCLOUD_DATA_DIR: /mnt/nc-data
-    volumes:
-      - ${STORAGE_ROOT}/nextcloud/data:/mnt/nc-data
-    ports:
-      - "8080:80"
-    restart: unless-stopped
+```
+Приведи проект в порядок. Создай полный проект из данного,
+напиши все необходимые подпапки и т.п.
+Ориентируйся на использование субагентов
 ```
 
-Все пароли — в `config/.env` (gitignored). В репозитории только `config/.env.example` с описанием переменных.
+Claude Code запустил 4 параллельных субагента:
+- Агент A — скрипты диагностики и бэкапа
+- Агент B — Docker Compose файлы (8 сервисов)
+- Агент C — GitHub-инфраструктура (`.github/`, CI/CD)
+- Агент D — ADR-документы (Architecture Decision Records)
 
-### 2. LLM Gateway — приватный прокси для DeepSeek
+Я только отвечал на уточняющие вопросы.
 
-Не хочу, чтобы рабочие тексты уходили напрямую в API. Написал FastAPI-прокси, который:
-- Очищает запросы от email, телефонов, токенов (regex-маски)
-- Логирует только метаданные (длина, provider, latency)
-- В mock-режиме работает без реального API-ключа
-- Поддерживает суточный лимит токенов (`LLM_DAILY_TOKEN_LIMIT`)
+**Промпт 2 — мониторинг:**
 
-```python
-# services/llm-gateway/app/main.py (фрагмент)
-REDACT_PATTERNS = {
-    "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
-    "phone_ru": r"\+7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}",
-    "api_key": r"(sk-|Bearer\s)[A-Za-z0-9\-_]{20,}",
-}
+```
+Я хочу попробовать специальные инструменты по контролю типа zabbix
+или иных подобных решений. Проанализируй какие можно использовать.
 ```
 
-### 3. Обход CGNAT через reverse SSH tunnel
+Агент проанализировал 9 инструментов и объяснил, почему **Zabbix не подходит** (нужна 3-я PostgreSQL, 500+ MB RAM → OOM на Jetson без swap). Предложил Netdata + Uptime Kuma + Portainer (~220 MB суммарно). Аргументы были технически корректны.
 
-Jetson Nano за домашним роутером — входящих подключений нет из-за CGNAT. Tailscale решает это элегантно, но мы пошли другим путём: **autossh reverse tunnel через VPS**.
+**Промпт 3 — VPS:**
 
-Jetson инициирует исходящее SSH-соединение на VPS и пробрасывает порты:
-
-```bash
-autossh -N \
-  -R 18080:localhost:8080 \   # Nextcloud
-  -R 12283:localhost:2283 \   # Immich
-  -R 18090:localhost:8090 \   # LLM Gateway
-  -o ServerAliveInterval=30 \
-  root@$VPS_HOST
+```
+У меня есть внешний VPS 193.8.215.130 его можно использовать.
+Ты можешь подключиться и проверить данный сервер.
 ```
 
-На VPS nginx проксирует `port 8080 → localhost:18080` и т.д. Systemd-сервис `nasa-tunnel.service` автоматически пересоединяется при разрыве.
-
-### 4. Почему не Zabbix и не другие «промышленные» решения?
-
-Zabbix требует отдельную PostgreSQL (~500 MB RAM + процессор). На Jetson Nano без swap это означает OOM-killer. Взял минималистичный стек:
-
-- **Netdata** — real-time метрики CPU/RAM/GPU/контейнеров (~100 MB)
-- **Uptime Kuma** — статус сервисов + алерты в Telegram (~60 MB)
-- **Portainer CE** — управление контейнерами через браузер (~60 MB)
+Агент подключился через SSH, обнаружил Amnezia VPN (4 контейнера — семейный VPN ~25 клиентов), **не тронул их**, установил Docker Compose, настроен UFW, создал nginx reverse-tunnel конфигурацию и задокументировал всё — включая то, что Telegram-бот здоровья сервера на VPS продолжает работать.
 
 ---
 
-## Проблемы, которые встретил
+## Момент, когда всё чуть не сломалось
 
-### Amnezia VPN — чуть не уронил 25 клиентов
+Я сначала хотел изменить WireGuard-конфиг VPS через SSH. Агент предупредил — я не послушал и в другой раз уронил VPN у всей семьи на 40 минут.
 
-На VPS уже работает Amnezia VPN, которым пользуется вся семья. По неопытности я попытался изменить WireGuard-конфигурацию через SSH — это рестартует контейнер и кладёт всех клиентов. Потратил 40 минут на восстановление.
-
-**Урок:** задокументировал в `ADR-0003` и `AGENTS.md` жёсткое правило: Amnezia не трогать через SSH/`wg set`, только через десктоп-приложение.
-
-### exec-bit шум в Git на Windows
-
-Проект редактирую с Windows-хоста, Jetson на Linux. `git status` показывает сотни «изменённых» файлов из-за расхождения в execute-бите (100755 → 100644). Решение в `.gitconfig`:
+Теперь это жёсткое правило в `AGENTS.md`:
 
 ```
-[core]
-    fileMode = false
+Никогда не трогать Amnezia-сервер через SSH или wg set.
+Только через десктоп-приложение Amnezia.
 ```
 
-Добавил в `docs/plans/` отдельный раздел об этой ловушке.
-
-### CGNAT — полная неожиданность
-
-Думал, что WireGuard на VPS даст внешний доступ. Нет — роутер оператора сидит за CGNAT, публичного IP у Jetson нет вообще. WireGuard работает только от клиента к серверу, но не наоборот. Пришлось изучать Tailscale и reverse SSH tunnel.
+Агент теперь это знает. И напоминает при каждой попытке.
 
 ---
 
-## Текущий статус и что дальше
+## Что выяснилось про Jetson Nano + NAS (аналитика)
 
-**Сделано:**
-- ✅ Docker Compose для всех сервисов (тестировано локально)
-- ✅ Reverse SSH tunnel архитектура (VPS настроен)
-- ✅ LLM Gateway с privacy-фильтром
-- ✅ Скрипты резервного копирования (restic + pg_dump)
-- ✅ Мониторинг стек (compose готов)
-- ✅ Документация на русском и английском (17 файлов)
-- ✅ GitHub Actions: CI для проверки секретов и валидации compose
+Параллельно с разработкой был проведён анализ open-source NAS-проектов для SBC. Вывод: **не брать тяжёлый NAS-дистрибутив**, а собрать гибрид:
 
-**В работе:**
-- 🔧 Подключение USB HDD и финальный запуск на Jetson
-- 🔧 Перенос 300 GB семейного архива с Google Photos в Immich
-- 🔧 Настройка autossh systemd-сервиса
+| Проект | Что взять |
+|--------|-----------|
+| JetsonHacks bootFromUSB | Загрузка с USB по UUID/PARTUUID (надёжнее microSD) |
+| NasberryPi | Паттерн preflight-проверок и repair-flow |
+| crazy-max/docker-samba | ARM64 нативный образ, YAML-конфиг, только SMB2+ |
+| OMV / NextcloudPi | SMART + backup-дисциплина (идеология, не стек) |
 
-**Планируется (Stage 2):**
-- Tailscale для резервного внешнего доступа
-- Android-клиенты (DAVx5, Nextcloud App, Immich App)
-- Résume ollama или LLaMA-cpp для локального LLM (если RAM позволит)
+OpenMediaVault для Jetson Nano — **избыточен**. Он захватывает систему целиком и несовместим с нашим Docker-стеком.
 
 ---
 
-## Репозиторий
+## Архитектура итоговой системы
 
-Весь проект открыт на GitHub: **[AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home)**
+```
+Android / Windows / macOS (LAN)
+    ├─ Nextcloud App → :8080
+    ├─ Immich App → :2283
+    ├─ SMB \\jetson-nasa\public → :445
+    └─ SSH / SFTP
 
-Там есть:
-- 17 документов (RU+EN) по каждому этапу
-- Готовые Docker Compose файлы
-- Промпты для агентов (Claude Code / Codex) — проект изначально проектировался с расчётом на AI-assisted development
-- ADR-документы (Architecture Decision Records)
-- CI/CD для проверки секретов
+             Jetson Nano 192.168.0.50
+         ┌─────────────────────────────┐
+         │ homecloud_nextcloud   :8080 │
+         │ homecloud_immich      :2283 │
+         │ homecloud_llm_gw      :8090 │
+         │ homecloud_samba        :445 │
+         │ homecloud_*_db (postgres)   │
+         │ Netdata + Uptime Kuma       │
+         └────────────┬────────────────┘
+                      │ USB
+              /mnt/storage (HDD, ext4)
 
-Буду рад вопросам и звёздочкам — проект живой, обновляется по мере продвижения.
+Внешний доступ (CGNAT → reverse SSH tunnel):
+  Jetson → autossh → VPS nginx :8080 → интернет
+```
 
 ---
 
-**Теги:** #selfhosted #nextcloud #immich #jetson-nano #docker #homelab #privacy #deepseek #fastapi
+## Структура проекта
 
-**Хабы:** Системное администрирование, Open Source, Разработка под Linux, Хранение данных
+```
+nasa-home-cloud/
+├── AGENTS.md              ← правила для агентов (критично!)
+├── PROJECT_CONTEXT.md     ← зафиксированные решения
+├── config/.env.example    ← шаблон всех переменных
+├── docker/compose/        ← 5 Compose-файлов
+├── docs/
+│   ├── decisions/         ← ADR-0001..ADR-0004
+│   ├── plans/             ← VPS, Tailscale
+│   └── 18_NAS_RESEARCH_REPORT.md ← аналитика по NAS-проектам
+├── scripts/
+│   ├── backup/            ← restic + pg_dump
+│   ├── diagnostics/       ← docker_health, storage_health + SMART
+│   ├── network/           ← autossh tunnel
+│   └── storage/           ← setup_disk, benchmark_io
+├── systemd/               ← health timer, tunnel service
+├── tests/                 ← test_samba_config, test_mount
+└── prompts/               ← промпты агентов по этапам
+```
+
+---
+
+## Честная оценка подхода
+
+**Плюсы:**
+- **Скорость** — недели превратились в часы
+- **Документация** — ADR, CHANGELOG, двуязычные доки — агент пишет это параллельно с кодом. Я бы сам так не делал
+- **Ошибки зафиксированы** — VPN-инцидент, CGNAT-сюрприз, exec-bit на Windows — всё в ADR и постмортемах
+- **GitHub-стандарт** — `.github/`, CI, badge-линейка, CODEOWNERS — агент знает нормы
+
+**Минусы:**
+- Агент **не знает ваше железо** — нужно объяснять детали (USB-SATA мост, реальное RAM)
+- **Финальная проверка — ваша** — firewall, fstab, пароли надо читать самому
+- **Контекст сессии кончается** — решается хорошим `AGENTS.md` и `PROJECT_CONTEXT.md`
+
+---
+
+## Ключевой инсайт
+
+`AGENTS.md` — это не просто документ. Это **память агента между сессиями**. Там зафиксированы ограничения железа, жёсткие правила (Amnezia не трогать), архитектурные решения и рабочий процесс. Агент читает его при старте каждой сессии и не повторяет прошлые ошибки.
+
+Если вы строите что-то с AI-агентом — начинайте с написания этого файла.
+
+---
+
+**Текущий статус:** завтра подключаю внешний HDD и запускаю всё вживую. Следующая статья — результаты с реальным железом, скорости, скриншоты.
+
+**GitHub:** [AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home) — промпты, ADR, Docker Compose, скрипты — всё открыто.

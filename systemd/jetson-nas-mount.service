@@ -1,0 +1,14 @@
+﻿[Unit]
+Description=NASA storage mount — USB HDD via UUID
+Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/opt/nasa/config/.env
+ExecStart=/bin/mount -a
+ExecStop=/bin/umount ${STORAGE_ROOT:-/mnt/storage}
+
+[Install]
+WantedBy=multi-user.target

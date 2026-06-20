@@ -1,0 +1,41 @@
+﻿name: homecloud-samba
+
+# SMB/CIFS file sharing layer for NASA Home Cloud
+# Image: crazymax/samba — multi-arch including linux/arm64 (Jetson Nano)
+# Docs: https://github.com/crazy-max/docker-samba
+#
+# USAGE:
+#   cd docker/compose
+#   docker compose -f docker-compose.samba.yml --env-file ../../config/.env up -d
+#   docker compose exec homecloud_samba smbstatus
+#
+# Connect from Windows: \\192.168.0.50\public
+# Connect from Android: smb://192.168.0.50/nextcloud
+
+services:
+  samba:
+    image: crazymax/samba:latest
+    container_name: homecloud_samba
+    # network_mode: host for proper SMB autodiscovery and broadcast
+    network_mode: host
+    volumes:
+      - ../../configs/samba/config.yml:/data/config.yml:ro
+      # Mount storage paths (read-only where appropriate)
+      - ${STORAGE_ROOT:-/mnt/storage}/nextcloud/data:/mnt/nc-data:ro
+      - ${STORAGE_ROOT:-/mnt/storage}/immich/library:/mnt/immich-data:ro
+      - ${STORAGE_ROOT:-/mnt/storage}/samba/public:/mnt/public
+      # Samba state persistence
+      - samba_data:/data
+    environment:
+      - TZ=${TZ:-Europe/Moscow}
+      - SAMBA_LOG_LEVEL=0
+    secrets:
+      - samba_password
+    restart: unless-stopped
+
+secrets:
+  samba_password:
+    environment: SAMBA_NAS_PASSWORD
+
+volumes:
+  samba_data:

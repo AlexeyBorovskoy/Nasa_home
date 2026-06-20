@@ -1,0 +1,52 @@
+﻿# crazy-max/docker-samba YAML configuration
+# Docs: https://github.com/crazy-max/docker-samba
+# ARM64 native image — works on Jetson Nano
+#
+# Passwords: set SAMBA_NAS_PASSWORD in config/.env
+# Change /mnt/nc-data, /mnt/public paths via Docker volume mounts in docker-compose.samba.yml
+
+auth:
+  - user: nas
+    group: nas
+    uid: 1000
+    gid: 1000
+    password_file: /run/secrets/samba_password
+
+global:
+  - "server string = NASA Home Cloud NAS on %h"
+  - "netbios name = jetson-nasa"
+  - "workgroup = WORKGROUP"
+  - "security = user"
+  - "map to guest = never"
+  - "server min protocol = SMB2"
+  - "smb ports = 445"
+  - "disable spoolss = yes"
+  - "load printers = no"
+  - "log level = 0"
+
+share:
+  - name: nextcloud
+    comment: "Nextcloud files (read-only via SMB)"
+    path: /mnt/nc-data
+    browseable: yes
+    readonly: yes
+    validusers: nas
+    veto files: "/.DS_Store/Thumbs.db/@eaDir/"
+    delete veto files: no
+
+  - name: media
+    comment: "Immich library (read-only via SMB)"
+    path: /mnt/immich-data
+    browseable: yes
+    readonly: yes
+    validusers: nas
+
+  - name: public
+    comment: "Public NAS share (read-write)"
+    path: /mnt/public
+    browseable: yes
+    readonly: no
+    validusers: nas
+    create mask: "0664"
+    directory mask: "0775"
+    recycle: yes

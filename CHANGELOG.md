@@ -10,6 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added / Добавлено
 
+- NAS research report (`docs/18_NAS_RESEARCH_REPORT.md`): analysis of 6 open-source NAS projects
+  (JetsonHacks bootFromUSB, OMV, NextcloudPi, RetroNAS, NasberryPi, docker-samba)
+- Samba SMB layer: `docker/compose/docker-compose.samba.yml` (crazymax/samba, ARM64 native)
+  + `configs/samba/config.yml` (YAML config) + `configs/samba/smb.conf` (native reference)
+- `systemd/` directory: `jetson-nas-health.service`, `jetson-nas-health.timer` (6h),
+  `nasa-tunnel.service` (autossh), `jetson-nas-mount.service`
+- `tests/` directory: `test_samba_config.sh`, `test_mount.sh`, `test_healthcheck.sh`
+- `scripts/storage/setup_disk.sh` — USB HDD mount setup with UUID/fstab (NasberryPi pattern)
+- `scripts/storage/benchmark_io.sh` — sequential I/O benchmark (JetsonHacks reference speeds)
 - VPS integration: reverse SSH tunnel architecture (`docs/plans/VPS_INTEGRATION_PLAN.md`)
   - autossh tunnel script for Jetson Nano (`scripts/network/setup_vps_tunnel.sh`)
   - nginx reverse proxy compose for VPS (`docker/vps/docker-compose.yml`)
@@ -26,6 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed / Изменено
 
+- `README.md`: added "Old hardware should live" tagline, AI-Assisted badge, updated Samba stack entry
+- `scripts/diagnostics/storage_health.sh`: added SMART monitoring section (smartctl, USB-SATA bridge handling)
+- `docs/articles/habr_draft.md`: rewritten with "human vision + AI implementation" angle
 - `README.md` переписан по стандартам GitHub open-source проектов: badges, двуязычные секции, ASCII-диаграмма, таблицы стека и документации, Quick Start / README.md rewritten to GitHub open-source standards
 - `AGENTS.md` дополнен разделом сетевых ограничений (Amnezia, nasa-lan, Tailscale)
 - `docs/13_MONITORING_RUNBOOK.md` расширен: ссылки на мониторинг-стек, таблица алертов

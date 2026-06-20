@@ -1,0 +1,12 @@
+﻿[Unit]
+Description=NASA Home Cloud — storage & SMART health check
+Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
+After=local-fs.target
+Requires=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/opt/nasa/scripts/diagnostics/storage_health.sh
+StandardOutput=journal
+StandardError=journal

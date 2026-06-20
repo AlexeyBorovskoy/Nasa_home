@@ -1,14 +1,18 @@
 # NASA Home Cloud
+### _Old hardware should live_ · _Старое железо должно жить_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Stage](https://img.shields.io/badge/Stage-1%20In%20Progress-orange)](docs/14_TEST_PLAN.md)
 [![Platform](https://img.shields.io/badge/Platform-Jetson%20Nano-76b900)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-v2-2496ED)](docker/compose/)
+[![AI-Assisted](https://img.shields.io/badge/Built%20with-Claude%20Code-blueviolet)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> RU: Инженерный шаблон приватного семейного облака для Jetson Nano / ARM / SBC.
+> 🇷🇺 Воспроизводимый шаблон приватного семейного облака на **NVIDIA Jetson Nano + старый HDD**.  
+> Придумал человек — реализовал [Claude Code](https://claude.ai/code). Вся история в промптах и ADR.
 >
-> EN: A Codex-ready self-hosted family cloud blueprint for ARM/SBC devices.
+> 🇬🇧 A reproducible private family cloud blueprint for **NVIDIA Jetson Nano + old HDD**.  
+> Human vision, AI-assisted implementation. Every decision documented in ADRs and agent prompts.
 
 ---
 
@@ -70,7 +74,7 @@ Principles:
 | Контакты/Календарь / Contacts | DAVx5 (Android client) | — | Sync Nextcloud Contacts & Calendar to Android |
 | Базы данных / Databases | PostgreSQL | 16-alpine | Nextcloud DB + Immich DB (pgvecto-rs for Immich) |
 | Кэш/Очереди / Cache | Redis | 7-alpine | Nextcloud cache + Immich job queue |
-| Локальный NAS / Local NAS | Samba + SFTP | — | LAN file access (запланировано / planned Stage 1A) |
+| Локальный NAS / Local NAS | Samba (docker-samba) | crazymax/samba | SMB/CIFS for Windows/Android file managers |
 | Бэкапы / Backups | restic + pg\_dump | — | DB dumps and file snapshots |
 | LLM-помощник / LLM assistant | DeepSeek API | deepseek-chat | Admin assistant via privacy filter |
 | LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Privacy shim, redaction, mock mode |

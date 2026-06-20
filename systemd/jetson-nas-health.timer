@@ -1,0 +1,11 @@
+﻿[Unit]
+Description=Run NASA storage health check every 6 hours
+Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
