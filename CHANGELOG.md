@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added / Добавлено
 
+- VPS integration: reverse SSH tunnel architecture (`docs/plans/VPS_INTEGRATION_PLAN.md`)
+  - autossh tunnel script for Jetson Nano (`scripts/network/setup_vps_tunnel.sh`)
+  - nginx reverse proxy compose for VPS (`docker/vps/docker-compose.yml`)
+  - VPS UFW rules configured (SSH, Amnezia ports, NASA tunnel ports 8080/2283/8090)
+  - Docker Compose v5.1.4 installed on VPS
+- `config/.env.example`: added VPS_HOST, VPS_USER, VPS_SSH_KEY section
 - Monitoring stack analysis and documentation (`docs/17_MONITORING_OBSERVABILITY.md`)
 - Docker Compose for monitoring stack (`docker/compose/docker-compose.monitoring.yml`): Netdata + Uptime Kuma + Portainer, ARM64-native
 - `prompts/CODEX_MONITORING_PROMPT.md` — bilingual agent prompt for monitoring deployment
