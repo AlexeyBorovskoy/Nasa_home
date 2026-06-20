@@ -8,7 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../config/.env"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
 
-VPS_HOST="${VPS_HOST:-193.8.215.130}"
+if [[ -z "${VPS_HOST:-}" ]]; then
+    log "ERROR: VPS_HOST is not set. Add VPS_HOST=<ip> to config/.env"
+    exit 1
+fi
 VPS_USER="${VPS_USER:-root}"
 VPS_SSH_KEY="${VPS_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
 

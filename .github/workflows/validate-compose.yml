@@ -28,3 +28,12 @@ jobs:
 
       - name: Validate llm-gateway compose
         run: docker compose -f docker/compose/docker-compose.llm-gateway.yml --env-file config/.env config --quiet
+
+      - name: Validate samba compose
+        run: docker compose -f docker/compose/docker-compose.samba.yml --env-file config/.env config --quiet
+
+      - name: Validate monitoring compose
+        run: docker compose -f docker/compose/docker-compose.monitoring.yml --env-file config/.env config --quiet
+
+      - name: Validate VPS nginx compose
+        run: docker compose -f docker/vps/docker-compose.yml --env-file config/.env config --quiet

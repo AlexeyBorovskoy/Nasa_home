@@ -74,11 +74,12 @@ Principles:
 | Контакты/Календарь / Contacts | DAVx5 (Android client) | — | Sync Nextcloud Contacts & Calendar to Android |
 | Базы данных / Databases | PostgreSQL | 16-alpine | Nextcloud DB + Immich DB (pgvecto-rs for Immich) |
 | Кэш/Очереди / Cache | Redis | 7-alpine | Nextcloud cache + Immich job queue |
-| Локальный NAS / Local NAS | Samba (docker-samba) | crazymax/samba | SMB/CIFS for Windows/Android file managers |
-| Бэкапы / Backups | restic + pg\_dump | — | DB dumps and file snapshots |
-| LLM-помощник / LLM assistant | DeepSeek API | deepseek-chat | Admin assistant via privacy filter |
-| LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Privacy shim, redaction, mock mode |
-| Мониторинг / Monitoring | Netdata + Uptime Kuma + Portainer | — | Observability stack (запланировано / planned) |
+| Локальный NAS / Local NAS | Samba (crazymax/samba) | latest ARM64 | SMB2+ для Windows/Android / SMB2+ for Windows/Android |
+| Бэкапы / Backups | restic + pg\_dump | — | Дампы БД и файловые снимки / DB dumps + file snapshots |
+| LLM-помощник / LLM assistant | DeepSeek API | deepseek-chat | Помощник администратора / Admin assistant via privacy filter |
+| LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Редакция персданных, mock-режим / Privacy shim + redaction |
+| Мониторинг / Monitoring | Netdata + Uptime Kuma + Portainer | — | Observability stack (Stage 1 опция / option) |
+| Здоровье системы / System health | systemd timers + SMART | — | Планировщик диагностики 6ч / Diagnostics scheduler 6h |
 | Android backup API | services/backup-api | — | Stage 2 placeholder |
 
 ---
@@ -139,8 +140,8 @@ Principles:
 
 ```bash
 # 1. Клонировать репозиторий
-git clone https://github.com/AlexeyBorovskoy/nasa-home-cloud.git
-cd nasa-home-cloud
+git clone https://github.com/AlexeyBorovskoy/Nasa_home.git
+cd Nasa_home
 
 # 2. Создать локальный env-файл из шаблона
 cp config/.env.example config/.env
@@ -172,8 +173,8 @@ docker compose -f docker/compose/docker-compose.nextcloud.yml logs --tail 50
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/AlexeyBorovskoy/nasa-home-cloud.git
-cd nasa-home-cloud
+git clone https://github.com/AlexeyBorovskoy/Nasa_home.git
+cd Nasa_home
 
 # 2. Create a local env file from the template
 cp config/.env.example config/.env
@@ -294,7 +295,8 @@ Android-телефоны / Android phones
         +-- LLM Gateway / FastAPI (port 8090)
         |     +-- [ DeepSeek API ] (external, privacy-filtered)
         |
-        +-- Samba / SFTP  [запланировано / planned — Stage 1A]
+        +-- Samba (crazymax/samba, port 445)
+        |     SMB2+ — Windows/Android/macOS file access
         |
         +-- Backup jobs
               +-- pg_dump  -->  /mnt/storage/backups/database-dumps
@@ -322,10 +324,13 @@ Docker Compose файлы:
 
 | Файл / File | Назначение / Purpose |
 |---|---|
-| `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack / Full Stage 1 stack |
+| `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack (7 сервисов, mem_limit) / Full Stage 1 stack |
 | `docker/compose/docker-compose.nextcloud.yml` | Изолированный Nextcloud / Nextcloud standalone |
 | `docker/compose/docker-compose.immich.yml` | Изолированный Immich / Immich standalone |
 | `docker/compose/docker-compose.llm-gateway.yml` | Изолированный LLM Gateway / LLM Gateway standalone |
+| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) |
+| `docker/compose/docker-compose.monitoring.yml` | Netdata + Uptime Kuma + Portainer |
+| `docker/vps/docker-compose.yml` | nginx reverse proxy на VPS / on VPS |
 
 ---
 
@@ -334,13 +339,14 @@ Docker Compose файлы:
 | Этап / Stage | Содержание / Content | Статус / Status |
 |---|---|---|
 | Stage 0 | Подготовка microSD, первый boot, SSH / microSD prep, first boot, SSH | описано / documented |
-| Stage 1A | Hardware audit, storage, Samba/SFTP | спроектировано / designed |
-| Stage 1B | Nextcloud | compose-черновик / compose draft |
-| Stage 1C | Immich (Jetson-safe mode) | compose-черновик / compose draft |
-| Stage 1D | DeepSeek LLM Gateway | FastAPI skeleton ready |
-| Stage 1E | Backup / restore (restic + pg\_dump) | scripts draft ready |
-| Stage 2 | Android backup/restore client API | архитектура / architecture only |
-| Stage 3 | Analytics, RAG, fallback LLM providers | будущее / future |
+| Stage 1A | Hardware audit, USB HDD setup, Samba NAS | Compose + systemd готовы / Compose + systemd ready |
+| Stage 1B | Nextcloud | Compose готов / Compose ready |
+| Stage 1C | Immich (Jetson-safe, ML disabled) | Compose готов / Compose ready |
+| Stage 1D | DeepSeek LLM Gateway | FastAPI + redaction реализованы / implemented |
+| Stage 1E | Backup / restore (restic + pg\_dump) | Скрипты готовы / Scripts ready |
+| Stage 1F | Мониторинг / Monitoring | Compose готов / Compose ready |
+| Stage 2 | Android backup/restore client API | Архитектура / Architecture only |
+| Stage 3 | Analytics, RAG, fallback LLM providers | Будущее / Future |
 
 Подробный план тестирования: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).
 
@@ -385,6 +391,7 @@ Current runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
 | [docs/03_ARCHITECTURE.md](docs/03_ARCHITECTURE.md) | Архитектурная схема / Architecture overview |
 | [docs/04_STORAGE_DESIGN.md](docs/04_STORAGE_DESIGN.md) | Дизайн хранилища (USB HDD, mount, fstab) / Storage design |
 | [docs/05_NETWORKING_VPN.md](docs/05_NETWORKING_VPN.md) | LAN/VPN-модель, WireGuard, порты / Networking and VPN |
+| [docs/19_NETWORK_INVENTORY.md](docs/19_NETWORK_INVENTORY.md) | Сетевой паспорт стенда / Network inventory |
 | [docs/06_NEXTCLOUD_DESIGN.md](docs/06_NEXTCLOUD_DESIGN.md) | Дизайн Nextcloud / Nextcloud deployment design |
 | [docs/07_IMMICH_DESIGN.md](docs/07_IMMICH_DESIGN.md) | Дизайн Immich (Jetson-safe) / Immich deployment design |
 | [docs/08_LLM_GATEWAY_DEEPSEEK.md](docs/08_LLM_GATEWAY_DEEPSEEK.md) | LLM Gateway и DeepSeek API / LLM Gateway and DeepSeek API |
@@ -396,6 +403,7 @@ Current runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
 | [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md) | План тестирования по этапам / Staged test plan |
 | [docs/15_ALTERNATIVES_REVIEW.md](docs/15_ALTERNATIVES_REVIEW.md) | Обзор альтернативных решений / Alternatives review |
 | [docs/16_GITHUB_PUBLICATION.md](docs/16_GITHUB_PUBLICATION.md) | Публикация на GitHub / GitHub publication guide |
+| [docs/20_AGENT_OPERATING_MODEL.md](docs/20_AGENT_OPERATING_MODEL.md) | Операционная модель субагентов / Agent operating model |
 | [docs/decisions/ADR-0001-nextcloud-immich-deepseek.md](docs/decisions/ADR-0001-nextcloud-immich-deepseek.md) | ADR-0001: выбор стека / ADR-0001: stack selection |
 | [docs/plans/README.md](docs/plans/README.md) | Индекс стратегических планов / Strategic plans index |
 | [AGENTS.md](AGENTS.md) | Правила для Codex/агентов / Codex and agent onboarding |
@@ -446,22 +454,20 @@ Full policy: [SECURITY.md](SECURITY.md) | [docs/10_SECURITY_PRIVACY.md](docs/10_
 
 > 🇷🇺 Русский
 
-- Проект ещё не проверен на реальном Jetson Nano в production.
-- `backup_databases.sh` — placeholder; реализуется после первого реального запуска контейнеров.
-- `IMMICH_DISABLE_MACHINE_LEARNING=true` задана в `.env.example`, но ещё не передана в compose — нужно сделать перед первым запуском Immich на Jetson.
+- Развёртывание на реальном Jetson Nano с внешним HDD ещё не завершено (в процессе / in progress).
+- `backup_databases.sh` — skeleton; реализуется после первого реального запуска контейнеров.
 - `config/llm-policy.yaml` описывает целевую политику; часть лимитов ещё не enforced в коде LLM Gateway.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
-- Samba и reverse proxy (HTTPS) — запланированы на Stage 1A, ещё не развёрнуты.
+- Reverse SSH tunnel (VPS nginx → Jetson) требует установки `autossh` на Jetson и добавления pub-ключа в VPS.
 - Локальные Jetson-материалы хранятся в `external_docs/jatson` и не коммитятся; см. [docs/references/JETSON_LOCAL_ASSETS.md](docs/references/JETSON_LOCAL_ASSETS.md).
 
 > 🇬🇧 English
 
-- The project has not been tested on a real Jetson Nano in production yet.
-- `backup_databases.sh` is a placeholder; it will be implemented after the first real container run.
-- `IMMICH_DISABLE_MACHINE_LEARNING=true` is defined in `.env.example` but not yet wired into the compose file — this must be done before the first Immich run on Jetson.
+- Full deployment on a real Jetson Nano with an external HDD is in progress (not yet verified end-to-end).
+- `backup_databases.sh` is a skeleton; it will be finalized after the first real container run.
 - `config/llm-policy.yaml` describes the target policy; some limits are not yet enforced in LLM Gateway code.
 - `services/backup-api` is a Stage 2 placeholder, not a production backup service.
-- Samba and reverse proxy (HTTPS) are planned for Stage 1A and not yet deployed.
+- Reverse SSH tunnel (VPS nginx → Jetson) requires installing `autossh` on Jetson and adding the Jetson pub key to VPS.
 - Local Jetson assets are stored in `external_docs/jatson` and are not committed; see [docs/references/JETSON_LOCAL_ASSETS.md](docs/references/JETSON_LOCAL_ASSETS.md).
 
 ---

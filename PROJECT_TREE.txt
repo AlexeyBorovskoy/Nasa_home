@@ -1,14 +1,15 @@
-﻿home-cloud-jetson-public/              # NASA Home Cloud project root
-├── README.md                          # двуязычная документация (RU+EN)
-├── PROJECT_CONTEXT.md                 # scope, решения, ограничения
-├── AGENTS.md                          # правила для Codex/агентов
-├── archtectura_nasa.md                # полная архитектурная карта (актуальна 2026-05-31)
-├── AUDIT_2026-05-31.md                # аудит целостности
+nasa-home-cloud/                       # NASA Home Cloud project root
+├── README.md                          # двуязычная документация (RU+EN) с badges
+├── PROJECT_CONTEXT.md                 # scope, зафиксированные решения, ограничения
+├── AGENTS.md                          # правила для Codex/агентов + сетевые ограничения
+├── archtectura_nasa.md                # архитектурная карта (актуальна 2026-05-31)
+├── AUDIT_2026-05-31.md                # аудит целостности (2026-05-31)
 ├── SECURITY.md                        # политика безопасности (RU+EN)
 ├── CONTRIBUTING.md                    # правила для контрибьюторов
 ├── CHANGELOG.md                       # история версий (Keep a Changelog)
+├── CODE_OF_CONDUCT.md                 # Contributor Covenant v2.1 (RU+EN)
 ├── LICENSE                            # MIT
-├── .gitignore                         # secrets + runtime исключения
+├── .gitignore                         # secrets, runtime, external_docs исключения
 │
 ├── .github/                           # GitHub-инфраструктура
 │   ├── CODEOWNERS
@@ -19,27 +20,37 @@
 │   │   └── config.yml
 │   └── workflows/
 │       ├── secrets-check.yml          # CI: check_no_secrets.sh на push/PR
-│       └── validate-compose.yml       # CI: валидация всех 4 compose-файлов
+│       └── validate-compose.yml       # CI: валидация всех 7 compose-файлов
 │
 ├── config/
 │   ├── .env                           # ⚠️ GITIGNORED — реальные значения
 │   ├── .env.example                   # шаблон (все переменные задокументированы)
 │   └── llm-policy.yaml                # privacy-политика для LLM Gateway
 │
-├── docker/compose/
-│   ├── docker-compose.stage1.yml      # полный стек Stage 1 (8 сервисов)
-│   ├── docker-compose.nextcloud.yml   # изолированный Nextcloud
-│   ├── docker-compose.immich.yml      # изолированный Immich (+ microservices)
-│   └── docker-compose.llm-gateway.yml # изолированный LLM Gateway
+├── configs/                           # Конфиги сервисов (не Docker-специфичные)
+│   └── samba/
+│       ├── config.yml                 # crazymax/samba YAML-конфиг (Docker-вариант)
+│       └── smb.conf                   # нативный smb.conf (альтернатива без Docker)
+│
+├── docker/
+│   ├── compose/
+│   │   ├── docker-compose.stage1.yml      # полный стек Stage 1 (7 сервисов + profiles)
+│   │   ├── docker-compose.nextcloud.yml   # изолированный Nextcloud
+│   │   ├── docker-compose.immich.yml      # изолированный Immich
+│   │   ├── docker-compose.llm-gateway.yml # изолированный LLM Gateway
+│   │   ├── docker-compose.samba.yml       # Samba NAS (crazymax/samba, ARM64)
+│   │   └── docker-compose.monitoring.yml  # Netdata + Uptime Kuma + Portainer
+│   └── vps/
+│       └── docker-compose.yml             # nginx reverse proxy на VPS
 │
 ├── docs/
 │   ├── 00_OVERVIEW.md
-│   ├── 01A_JETSON_SD_BOOTSTRAP.md
 │   ├── 01_HARDWARE_AUDIT.md
+│   ├── 01A_JETSON_SD_BOOTSTRAP.md
 │   ├── 02_REQUIREMENTS.md
 │   ├── 03_ARCHITECTURE.md
 │   ├── 04_STORAGE_DESIGN.md
-│   ├── 05_NETWORKING_VPN.md
+│   ├── 05_NETWORKING_VPN.md           # §3.3 помечен "откачено 2026-05-31"
 │   ├── 06_NEXTCLOUD_DESIGN.md
 │   ├── 07_IMMICH_DESIGN.md
 │   ├── 08_LLM_GATEWAY_DEEPSEEK.md
@@ -51,64 +62,79 @@
 │   ├── 14_TEST_PLAN.md
 │   ├── 15_ALTERNATIVES_REVIEW.md
 │   ├── 16_GITHUB_PUBLICATION.md
+│   ├── 17_MONITORING_OBSERVABILITY.md # Netdata/Zabbix/Uptime Kuma выбор
+│   ├── 18_NAS_RESEARCH_REPORT.md      # аналитика по 6 NAS-проектам (JetsonHacks, OMV, ...)
+│   ├── 19_NETWORK_INVENTORY.md        # инвентарь сети
+│   ├── 20_AGENT_OPERATING_MODEL.md    # операционная модель субагентов
+│   ├── articles/
+│   │   └── habr_draft.md              # заготовка статьи для Habr.com
 │   ├── decisions/
 │   │   ├── ADR-0001-nextcloud-immich-deepseek.md
 │   │   ├── ADR-0002-storage-design.md
 │   │   ├── ADR-0003-networking-lan-only.md
 │   │   └── ADR-0004-tailscale-external-access.md
 │   ├── plans/
-│   │   ├── README.md
-│   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
-│   │   ├── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
+│   │   ├── README.md                  # навигация по планам
 │   │   ├── TEST_STAND_CHECKPOINT_2026-05-31.md
-│   │   └── TAILSCALE_ACCESS_PLAN.md
+│   │   ├── TAILSCALE_ACCESS_PLAN.md   # внешний доступ через Tailscale
+│   │   ├── VPS_INTEGRATION_PLAN.md    # reverse SSH tunnel через VPS
+│   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
+│   │   └── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
 │   └── references/
 │       ├── EXTERNAL_DOCS_CACHE.md
 │       ├── JETSON_LOCAL_ASSETS.md
 │       └── REFERENCE_LINKS.md
 │
-├── prompts/
+├── prompts/                           # Промпты агентов по этапам
 │   ├── CODEX_BOOTSTRAP_PROMPT.md
 │   ├── CODEX_HARDWARE_AUDIT_PROMPT.md
-│   ├── CODEX_STORAGE_PROMPT.md
 │   ├── CODEX_NEXTCLOUD_PROMPT.md
 │   ├── CODEX_IMMICH_PROMPT.md
 │   ├── CODEX_LLM_GATEWAY_PROMPT.md
+│   ├── CODEX_STORAGE_PROMPT.md
 │   ├── CODEX_SECURITY_PROMPT.md
+│   ├── CODEX_MONITORING_PROMPT.md
 │   └── CODEX_ANDROID_STAGE2_PROMPT.md
 │
 ├── scripts/
-│   ├── fetch_external_docs.sh
 │   ├── backup/
-│   │   ├── backup_databases.sh        # pg_dump Nextcloud+Immich, gzip, ротация
+│   │   ├── backup_databases.sh        # pg_dump из homecloud_nextcloud_db + immich_db
 │   │   └── restic_backup_example.sh   # полный restic workflow
 │   ├── diagnostics/
-│   │   ├── hardware_audit.sh
-│   │   ├── docker_health.sh           # 7 контейнеров, порты, exit 1 при сбое
-│   │   └── storage_health.sh          # mount, df, alert >85%, last dump
+│   │   ├── hardware_audit.sh          # Jetson Nano hardware audit
+│   │   ├── docker_health.sh           # Docker + контейнеры + порты
+│   │   └── storage_health.sh          # mount, df, SMART (§6, требует STORAGE_DEVICE)
 │   ├── maintenance/
-│   │   └── docker_update_plan.sh      # pull + restart + health check
+│   │   └── docker_update_plan.sh      # обновление стека
 │   ├── network/
-│   │   └── network_health.sh          # eth0, gateway, DNS, ports
-│   └── security/
-│       └── check_no_secrets.sh
+│   │   ├── network_health.sh          # eth0, gateway, DNS, listening ports
+│   │   └── setup_vps_tunnel.sh        # autossh reverse tunnel на Jetson → VPS
+│   ├── security/
+│   │   └── check_no_secrets.sh        # pre-publish secret scanner (git-tracked files)
+│   ├── storage/
+│   │   ├── setup_disk.sh              # монтирование USB HDD с UUID/fstab (JetsonHacks+NasberryPi)
+│   │   └── benchmark_io.sh            # sequential I/O benchmark
+│   └── fetch_external_docs.sh         # загрузка внешней документации
 │
 ├── services/
-│   ├── llm-gateway/
+│   ├── llm-gateway/                   # FastAPI privacy shim для DeepSeek API
 │   │   ├── Dockerfile
 │   │   ├── README.md
-│   │   ├── requirements.txt
-│   │   └── app/main.py
-│   └── backup-api/
+│   │   ├── app/main.py                # redact + /v1/chat + /v1/diagnostics/explain
+│   │   └── requirements.txt
+│   └── backup-api/                    # Stage 2: Android backup/restore API (mock в Stage 1)
 │       ├── Dockerfile
 │       ├── README.md
-│       ├── requirements.txt
-│       └── app/main.py
+│       ├── app/main.py
+│       └── requirements.txt
 │
-├── external_docs/                     # ⚠️ GITIGNORED — 6.3 GB кеш документации
-│   └── SHA256SUMS.local
+├── systemd/                           # systemd units для Jetson Nano
+│   ├── jetson-nas-health.service      # запускает storage_health.sh
+│   ├── jetson-nas-health.timer        # OnBootSec=5min, OnUnitActiveSec=6h, Persistent
+│   ├── jetson-nas-mount.service       # монтирование STORAGE_ROOT
+│   └── nasa-tunnel.service            # autossh reverse SSH tunnel → VPS
 │
-└── runtime/                           # ⚠️ GITIGNORED — runtime артефакты
-    └── audit/HARDWARE_AUDIT_REPORT.md
-
-# Снимок: 2026-06-20
+└── tests/                             # smoke-тесты (запускать на Jetson вручную)
+    ├── test_samba_config.sh           # проверка Samba конфига (testparm или docker)
+    ├── test_mount.sh                  # проверка монтирования STORAGE_ROOT
+    └── test_healthcheck.sh            # запуск storage_health.sh + проверка SMART-логов

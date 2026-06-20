@@ -1,13 +1,16 @@
-﻿[Unit]
+[Unit]
 Description=NASA storage mount — USB HDD via UUID
 Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
 After=local-fs.target
+# Ensure mount happens before Docker volumes are expected
+Before=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/opt/nasa/config/.env
-ExecStart=/bin/mount -a
+# Mount only the storage HDD, not all fstab entries
+ExecStart=/bin/mount ${STORAGE_ROOT:-/mnt/storage}
 ExecStop=/bin/umount ${STORAGE_ROOT:-/mnt/storage}
 
 [Install]

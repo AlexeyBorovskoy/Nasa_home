@@ -8,6 +8,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Добавлено (deep audit 2026-06-20)
+
+- `config/.env.example`: `STORAGE_DEVICE` variable for SMART monitoring; `SAMBA_NAS_PASSWORD`
+  for Samba secrets; `VPS_HOST` changed from real IP to placeholder `your.vps.ip.here`
+- `docker/compose/docker-compose.stage1.yml`: `mem_limit` on all services (protect 4 GB / no-swap Jetson);
+  `immich-microservices` moved to `profiles: [microservices]` (off by default); `immich-redis`
+  now password-protected; removed incorrect `depends_on: nextcloud` from `llm-gateway`;
+  added `REDIS_PASSWORD` env to `immich-server`
+- `.github/workflows/validate-compose.yml`: added CI validation for 3 new compose files
+  (`docker-compose.samba.yml`, `docker-compose.monitoring.yml`, `docker/vps/docker-compose.yml`)
+- `systemd/jetson-nas-mount.service`: replaced `mount -a` (all fstab) with targeted
+  `mount ${STORAGE_ROOT}` + added `Before=docker.service`
+
+### Changed / Изменено (deep audit 2026-06-20)
+
+- `CHANGELOG.md`: fixed repo URL in footer links (`Nasa_home` not `nasa-home-cloud`)
+- `README.md`: fixed clone URL; Samba marked as implemented (not "planned"); updated
+  Stack, Architecture, Stages, Known Limitations tables; added all new compose files to table;
+  removed stale `IMMICH_DISABLE_MACHINE_LEARNING` limitation note
+- `PROJECT_TREE.txt`: fully regenerated — now reflects all directories added since v0.1.0
+  (`systemd/`, `tests/`, `configs/samba/`, `scripts/storage/`, `scripts/network/`,
+  `docker/vps/`, `docs/articles/`, `docs/17-20_*.md`, `docs/decisions/ADR-0002..0004`, etc.)
+- `scripts/network/setup_vps_tunnel.sh`: removed hardcoded fallback `193.8.215.130`;
+  script now exits with error if `VPS_HOST` is not set in `.env`
+
 ### Added / Добавлено
 
 - NAS research report (`docs/18_NAS_RESEARCH_REPORT.md`): analysis of 6 open-source NAS projects
@@ -32,10 +57,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/plans/TAILSCALE_ACCESS_PLAN.md` — step-by-step Tailscale setup on Jetson Nano
 - Full operational bash scripts: `backup_databases.sh`, `restic_backup_example.sh`, `docker_health.sh`, `storage_health.sh`, `docker_update_plan.sh`, `network_health.sh` (in `scripts/network/`)
 - `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1, bilingual RU/EN)
+- Existing-data HDD intake documentation: read-only NTFS check flow before using
+  `/mnt/storage` or `scripts/storage/setup_disk.sh`
+- `docs/19_NETWORK_INVENTORY.md` — sanitized home LAN/router/Jetson/HDD/VPS
+  inventory table with secret values kept in `config/.env`
+- `docs/20_AGENT_OPERATING_MODEL.md` — standard subagent roles, safety gates,
+  report format, and workflow integration
 
 ### Changed / Изменено
 
 - `README.md`: added "Old hardware should live" tagline, AI-Assisted badge, updated Samba stack entry
+- `AGENTS.md`: added the mandatory subagent operating model pointer and report
+  requirements
 - `scripts/diagnostics/storage_health.sh`: added SMART monitoring section (smartctl, USB-SATA bridge handling)
 - `docs/articles/habr_draft.md`: rewritten with "human vision + AI implementation" angle
 - `README.md` переписан по стандартам GitHub open-source проектов: badges, двуязычные секции, ASCII-диаграмма, таблицы стека и документации, Quick Start / README.md rewritten to GitHub open-source standards
@@ -105,5 +138,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `.github/workflows/secrets-check.yml` — CI secret scanner on push/PR
   - `.github/workflows/validate-compose.yml` — CI Docker Compose validation
 
-[Unreleased]: https://github.com/AlexeyBorovskoy/nasa-home-cloud/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/AlexeyBorovskoy/nasa-home-cloud/releases/tag/v0.1.0
+[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v0.1.0
