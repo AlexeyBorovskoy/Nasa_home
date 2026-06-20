@@ -1,0 +1,164 @@
+# NASA Home Cloud — Monitoring Stack (Stage 1)
+#
+# Инструменты:
+#   - Netdata    : системный мониторинг, Docker stats, температура (порт 19999)
+#   - Uptime Kuma: HTTP uptime мониторинг + Telegram/Email уведомления (порт 3001)
+#   - Portainer  : Docker management UI (порт 9000)
+#
+# Запуск:
+#   docker compose -f docker/compose/docker-compose.monitoring.yml \
+#                  --env-file config/.env up -d
+#
+# Суммарный расход RAM: ~220 MB (Netdata ~100MB + Uptime Kuma ~60MB + Portainer ~60MB)
+#
+# Требования:
+#   - Сеть homecloud_internal уже создана (docker-compose.stage1.yml)
+#   - Docker socket доступен: /var/run/docker.sock
+#   - ARM64 (aarch64): все образы поддерживают архитектуру Jetson Nano
+
+name: homecloud-monitoring
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Netdata — реального времени мониторинг системы и Docker контейнеров
+  #
+  # Что мониторит автоматически:
+  #   - CPU, RAM, Disk I/O, Network per interface
+  #   - Все mount points (включая /mnt/storage)
+  #   - Docker контейнеры (CPU%, RAM%, state) через docker.sock
+  #   - PostgreSQL, Redis (плагины автоопределяются)
+  #   - Температуру Jetson (thermal zones из /sys/class/thermal)
+  #   - Встроенные алерты + уведомления (Telegram, email и др.)
+  #
+  # Доступ: http://<jetson-ip>:19999
+  # ---------------------------------------------------------------------------
+  netdata:
+    image: netdata/netdata:latest
+    container_name: homecloud_netdata
+    hostname: jetson-nano
+    restart: unless-stopped
+    pid: host
+    # Доступ к системным ресурсам хоста
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    ports:
+      - "19999:19999"
+    volumes:
+      # Чтение метрик хост-системы (только чтение)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      # Доступ к Docker для мониторинга контейнеров
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Персистентные данные Netdata
+      - netdata_config:/etc/netdata
+      - netdata_lib:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+    environment:
+      # Имя хоста в UI Netdata
+      - NETDATA_CLAIM_TOKEN=
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TZ=${TZ:-Europe/Berlin}
+    networks:
+      - homecloud_internal
+    labels:
+      - "com.homecloud.service=monitoring"
+      - "com.homecloud.tier=monitoring"
+
+  # ---------------------------------------------------------------------------
+  # Uptime Kuma — HTTP/TCP uptime мониторинг с уведомлениями
+  #
+  # Что проверяет (настраивается через UI):
+  #   - Nextcloud:    http://192.168.0.50:8080        → HTTP 200
+  #   - Immich:       http://192.168.0.50:2283        → HTTP 200
+  #   - LLM Gateway:  http://192.168.0.50:8090/health → HTTP 200
+  #
+  # Уведомления: Telegram, Email (SMTP), Slack, Discord, Webhook и др.
+  # Авторизация: встроена (создаётся при первом запуске через UI)
+  #
+  # Доступ: http://<jetson-ip>:3001
+  # ---------------------------------------------------------------------------
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: homecloud_uptime_kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      # Персистентные данные: мониторы, история, настройки (SQLite)
+      - uptime_kuma_data:/app/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    networks:
+      - homecloud_internal
+    labels:
+      - "com.homecloud.service=uptime-kuma"
+      - "com.homecloud.tier=monitoring"
+
+  # ---------------------------------------------------------------------------
+  # Portainer CE — Docker management UI
+  #
+  # Возможности:
+  #   - Просмотр всех контейнеров, образов, volumes, сетей
+  #   - Логи контейнеров в реальном времени
+  #   - CPU% и RAM% статистика по каждому контейнеру
+  #   - Запуск/остановка/перезапуск контейнеров через браузер
+  #   - Просмотр и управление compose-стеками
+  #
+  # Авторизация: создаётся при первом запуске (5 минут на настройку)
+  # HTTP доступ: http://<jetson-ip>:9000
+  # HTTPS доступ: https://<jetson-ip>:9443 (самоподписанный сертификат)
+  # ---------------------------------------------------------------------------
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: homecloud_portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      # Docker socket — обязателен для управления контейнерами
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Персистентные данные Portainer (пользователи, настройки, стеки)
+      - portainer_data:/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    networks:
+      - homecloud_internal
+    labels:
+      - "com.homecloud.service=portainer"
+      - "com.homecloud.tier=monitoring"
+
+# ---------------------------------------------------------------------------
+# Volumes — персистентное хранение данных мониторинга
+# ---------------------------------------------------------------------------
+volumes:
+  # Netdata: конфигурация (health.d/, netdata.conf, alarm_notify.conf)
+  netdata_config:
+    name: homecloud_netdata_config
+  # Netdata: данные (метрики rolling buffer, плагины)
+  netdata_lib:
+    name: homecloud_netdata_lib
+  # Netdata: кэш (временные данные)
+  netdata_cache:
+    name: homecloud_netdata_cache
+  # Uptime Kuma: SQLite база данных с мониторами и историей
+  uptime_kuma_data:
+    name: homecloud_uptime_kuma_data
+  # Portainer: данные (пользователи, настройки, стеки)
+  portainer_data:
+    name: homecloud_portainer_data
+
+# ---------------------------------------------------------------------------
+# Network — подключение к существующей сети homecloud_internal
+#
+# Сеть создаётся docker-compose.stage1.yml.
+# Мониторинг-контейнеры подключаются к ней для доступа к метрикам сервисов.
+# ---------------------------------------------------------------------------
+networks:
+  homecloud_internal:
+    external: true
