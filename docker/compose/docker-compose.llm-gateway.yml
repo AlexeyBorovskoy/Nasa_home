@@ -3,6 +3,7 @@ services:
   llm-gateway:
     build:
       context: ../../services/llm-gateway
+    container_name: homecloud_llm_gateway
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -12,6 +13,13 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
       DEEPSEEK_REASONER_MODEL: ${DEEPSEEK_REASONER_MODEL}
+      LLM_DAILY_TOKEN_LIMIT: ${LLM_DAILY_TOKEN_LIMIT}
       LLM_REDACT_PERSONAL_DATA: ${LLM_REDACT_PERSONAL_DATA}
       LLM_LOG_PROMPTS: ${LLM_LOG_PROMPTS}
       LLM_LOG_RESPONSES: ${LLM_LOG_RESPONSES}
+    networks:
+      - homecloud_internal
+
+networks:
+  homecloud_internal:
+    driver: bridge

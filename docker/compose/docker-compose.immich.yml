@@ -4,6 +4,7 @@ name: homecloud-immich
 services:
   immich-db:
     image: tensorchord/pgvecto-rs:pg16-v0.3.0
+    container_name: homecloud_immich_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${IMMICH_DB_NAME}
@@ -11,13 +12,19 @@ services:
       POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
     volumes:
       - ${IMMICH_DB_DATA_LOCATION}:/var/lib/postgresql/data
+    networks:
+      - homecloud_internal
 
   immich-redis:
     image: redis:7-alpine
+    container_name: homecloud_immich_redis
     restart: unless-stopped
+    networks:
+      - homecloud_internal
 
   immich-server:
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: homecloud_immich_server
     restart: unless-stopped
     depends_on:
       - immich-db
@@ -30,6 +37,34 @@ services:
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       DB_DATABASE_NAME: ${IMMICH_DB_NAME}
       REDIS_HOSTNAME: immich-redis
+      IMMICH_DISABLE_MACHINE_LEARNING: ${IMMICH_DISABLE_MACHINE_LEARNING:-true}
       TZ: ${TZ}
     volumes:
       - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+    networks:
+      - homecloud_internal
+
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: homecloud_immich_microservices
+    command: ['start.sh', 'microservices']
+    restart: unless-stopped
+    depends_on:
+      - immich-db
+      - immich-redis
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: ${IMMICH_DB_USER}
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_DATABASE_NAME: ${IMMICH_DB_NAME}
+      REDIS_HOSTNAME: immich-redis
+      IMMICH_DISABLE_MACHINE_LEARNING: ${IMMICH_DISABLE_MACHINE_LEARNING:-true}
+      TZ: ${TZ}
+    volumes:
+      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+    networks:
+      - homecloud_internal
+
+networks:
+  homecloud_internal:
+    driver: bridge
