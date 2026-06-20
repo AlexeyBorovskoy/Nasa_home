@@ -236,3 +236,36 @@ the safety check is mandatory.
 | Documentation | Documentation Subagent | write set, doc links, consistency notes |
 | Service work | Service Implementation Subagent | bounded patch and verification |
 | Post-change checks | Verification Subagent | command results and residual risk |
+
+## 9. Domain-Specific Role Agents (Prompt A model)
+
+Five domain agents cover all project work. Each agent has a dedicated prompt file
+with scope, hard rules, architecture facts, and report format.
+
+| Agent | Prompt file | Primary zone |
+|---|---|---|
+| **Code Agent** | `prompts/CODEX_CODE_AGENT.md` | `services/`, Dockerfiles, CI `.github/` |
+| **Hardware Agent** | `prompts/CODEX_HARDWARE_AGENT.md` | `scripts/diagnostics/`, `systemd/`, Jetson SSH |
+| **Docs Agent** | `prompts/CODEX_DOCS_AGENT.md` | `docs/`, `README.md`, `CHANGELOG.md`, ADR |
+| **Network Agent** | `prompts/CODEX_NETWORK_AGENT.md` | `scripts/network/`, `docker/vps/`, VPS nginx |
+| **SysApps Agent** | `prompts/CODEX_SYSAPPS_AGENT.md` | `docker/compose/`, `configs/`, `.env.example` |
+
+### How to invoke
+
+In a new session, tell the coordinator which agent role to apply:
+```
+Apply the Hardware Agent role (prompts/CODEX_HARDWARE_AGENT.md).
+Task: <one bounded task here>
+```
+
+The coordinator reads the prompt file, applies the scope and hard rules, and
+operates within that domain only. For cross-domain tasks, run agents sequentially
+and integrate outputs.
+
+### Cross-agent boundaries
+
+When a task touches multiple domains, the order is:
+1. **Docs Agent** first — check existing documentation constraints.
+2. **Network/Hardware Agent** — safety check if network or storage is involved.
+3. **SysApps or Code Agent** — implementation within bounded write set.
+4. **Docs Agent** again — update CHANGELOG, PROJECT_TREE, affected docs.
