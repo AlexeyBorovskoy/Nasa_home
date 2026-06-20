@@ -69,7 +69,7 @@ services:
       - homecloud_internal
 
   immich-server:
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     container_name: homecloud_immich_server
     restart: unless-stopped
     depends_on:
@@ -83,6 +83,28 @@ services:
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       DB_DATABASE_NAME: ${IMMICH_DB_NAME}
       REDIS_HOSTNAME: immich-redis
+      IMMICH_DISABLE_MACHINE_LEARNING: ${IMMICH_DISABLE_MACHINE_LEARNING:-true}
+      TZ: ${TZ}
+    volumes:
+      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+    networks:
+      - homecloud_internal
+
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: homecloud_immich_microservices
+    command: ['start.sh', 'microservices']
+    restart: unless-stopped
+    depends_on:
+      - immich-db
+      - immich-redis
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: ${IMMICH_DB_USER}
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_DATABASE_NAME: ${IMMICH_DB_NAME}
+      REDIS_HOSTNAME: immich-redis
+      IMMICH_DISABLE_MACHINE_LEARNING: ${IMMICH_DISABLE_MACHINE_LEARNING:-true}
       TZ: ${TZ}
     volumes:
       - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
@@ -94,6 +116,8 @@ services:
       context: ../../services/llm-gateway
     container_name: homecloud_llm_gateway
     restart: unless-stopped
+    depends_on:
+      - nextcloud
     ports:
       - "8090:8090"
     environment:
@@ -102,6 +126,7 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
       DEEPSEEK_REASONER_MODEL: ${DEEPSEEK_REASONER_MODEL}
+      LLM_DAILY_TOKEN_LIMIT: ${LLM_DAILY_TOKEN_LIMIT}
       LLM_REDACT_PERSONAL_DATA: ${LLM_REDACT_PERSONAL_DATA}
       LLM_LOG_PROMPTS: ${LLM_LOG_PROMPTS}
       LLM_LOG_RESPONSES: ${LLM_LOG_RESPONSES}
