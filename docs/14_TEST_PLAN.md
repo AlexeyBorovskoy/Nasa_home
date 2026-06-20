@@ -12,6 +12,23 @@
 | Stage 0 SSH | `ssh <user>@<jetson-direct-link-ip>` | вход с ноутбука работает |
 | Target LAN после переноса | `ping 192.168.0.50` | доступен после подключения к роутеру |
 
+### 1.1. Existing data HDD intake
+
+Если пользователь подключает HDD с уже существующими данными, особенно NTFS-диск
+после Windows, сначала выполняется только read-only проверка. Такой диск не
+форматируется, не добавляется в `/etc/fstab` и не монтируется сразу в
+`/mnt/storage`.
+
+| Тест | Команда | Критерий |
+|---|---|---|
+| Services stopped before storage check | `docker ps` + `docker compose ... stop` | Nextcloud/Immich не пишут в `/mnt/storage` |
+| No false `/mnt/storage` mount | `mountpoint /mnt/storage` | понятно, смонтирован ли внешний диск или это каталог на microSD |
+| Existing HDD detected | `lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,TRAN,RO` | виден ожидаемый USB HDD и раздел |
+| Read-only mount | `sudo mount -t ntfs-3g -o ro /dev/sdXN /mnt/hdd-check` | диск смонтирован отдельно от `/mnt/storage` |
+| Data presence without leaking names | `df -hT /mnt/hdd-check && find /mnt/hdd-check -mindepth 1 -maxdepth 1 | wc -l` | размер корректный, данные видны, имена файлов не публикуются |
+| No forced repair | manual check | не использовались `force`, форматирование, repartition, `setup_disk.sh` |
+| Compression feasibility | metadata-only extension/category scan | если данные в основном фото/видео/архивы, lossless-архивирование не считается заменой носителя нужного объёма |
+
 ## 2. Samba/SFTP
 
 | Тест | Критерий |

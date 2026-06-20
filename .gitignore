@@ -13,6 +13,7 @@
 secrets/
 config/*.local.yaml
 config/*.local.yml
+ethernet_home/
 
 # Runtime data
 external_docs/

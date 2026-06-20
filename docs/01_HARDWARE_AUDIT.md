@@ -71,11 +71,30 @@ lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT,MODEL,SERIAL
 sudo smartctl -a /dev/sda || sudo smartctl -a -d sat /dev/sda || true
 ```
 
+Если HDD уже содержит нужные данные, аудит выполняется как intake существующего
+диска:
+
+```bash
+lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,TRAN,RO
+mountpoint /mnt/storage || echo "/mnt/storage is not mounted"
+command -v ntfs-3g || sudo apt install -y ntfs-3g
+sudo mkdir -p /mnt/hdd-check
+sudo mount -t ntfs-3g -o ro /dev/sdXN /mnt/hdd-check
+findmnt /mnt/hdd-check
+df -hT /mnt/hdd-check
+find /mnt/hdd-check -mindepth 1 -maxdepth 1 | wc -l
+```
+
+Не запускать `scripts/storage/setup_disk.sh` для такого диска до отдельного
+плана миграции. Скрипт предназначен для подготовки рабочего storage и может
+добавить постоянное монтирование в `/etc/fstab`.
+
 ## 6. Критерии допуска к следующему этапу
 
 | Критерий | Норма |
 |---|---|
 | HDD виден в `lsblk` | Да |
+| HDD с существующими данными проверен read-only | Да, через отдельный mountpoint, например `/mnt/hdd-check` |
 | В `dmesg` нет повторяющихся USB reset/I/O error | Да |
 | RAM свободна после старта | Не менее 1 GB желательно |
 | Температура Jetson без нагрузки | Стабильная, без throttling |
