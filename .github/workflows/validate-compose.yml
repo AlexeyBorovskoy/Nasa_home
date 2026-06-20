@@ -1,0 +1,30 @@
+name: Validate Docker Compose
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    name: Validate compose files / Проверка Compose-файлов
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Docker Compose (verify)
+        run: docker compose version
+
+      # Compose files require an .env with variable values.
+      # In CI we use the public example file as a stub — values are placeholders only.
+      - name: Prepare stub .env for CI
+        run: cp config/.env.example config/.env
+
+      - name: Validate stage1 compose
+        run: docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config --quiet
+
+      - name: Validate nextcloud compose
+        run: docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env config --quiet
+
+      - name: Validate immich compose
+        run: docker compose -f docker/compose/docker-compose.immich.yml --env-file config/.env config --quiet
+
+      - name: Validate llm-gateway compose
+        run: docker compose -f docker/compose/docker-compose.llm-gateway.yml --env-file config/.env config --quiet
