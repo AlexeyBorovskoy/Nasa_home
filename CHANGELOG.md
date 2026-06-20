@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Добавлено
+
+- Monitoring stack analysis and documentation (`docs/17_MONITORING_OBSERVABILITY.md`)
+- Docker Compose for monitoring stack (`docker/compose/docker-compose.monitoring.yml`): Netdata + Uptime Kuma + Portainer, ARM64-native
+- `prompts/CODEX_MONITORING_PROMPT.md` — bilingual agent prompt for monitoring deployment
+- ADR-0002 (storage design), ADR-0003 (networking LAN-only), ADR-0004 (Tailscale external access)
+- `docs/plans/TAILSCALE_ACCESS_PLAN.md` — step-by-step Tailscale setup on Jetson Nano
+- Full operational bash scripts: `backup_databases.sh`, `restic_backup_example.sh`, `docker_health.sh`, `storage_health.sh`, `docker_update_plan.sh`, `network_health.sh` (in `scripts/network/`)
+- `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1, bilingual RU/EN)
+
+### Changed / Изменено
+
+- `README.md` переписан по стандартам GitHub open-source проектов: badges, двуязычные секции, ASCII-диаграмма, таблицы стека и документации, Quick Start / README.md rewritten to GitHub open-source standards
+- `AGENTS.md` дополнен разделом сетевых ограничений (Amnezia, nasa-lan, Tailscale)
+- `docs/13_MONITORING_RUNBOOK.md` расширен: ссылки на мониторинг-стек, таблица алертов
+- `docs/16_GITHUB_PUBLICATION.md` дополнен: GitHub Actions, Issue templates, pre-release checklist
+- `docker/compose/docker-compose.stage1.yml`: добавлен `immich-microservices`, `IMMICH_DISABLE_MACHINE_LEARNING`, `container_name` для всех сервисов
+
+---
+
 ## [0.1.0] - 2026-06-20
 
 ### Added / Добавлено
@@ -50,7 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Agent and Codex prompts:
   - 8 prompt templates in `prompts/CODEX_*` covering Stage 0–2 tasks
 - Architecture decision records:
-  - `docs/ADR-0001` — selected stack: Nextcloud + Immich + DeepSeek (rationale documented)
+  - `docs/decisions/ADR-0001-nextcloud-immich-deepseek.md` — selected stack rationale
 - Project meta files:
   - `README.md` — bilingual project overview (RU/EN)
   - `CONTRIBUTING.md` — contribution rules and good first issues

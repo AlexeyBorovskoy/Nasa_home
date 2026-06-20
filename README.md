@@ -1,318 +1,516 @@
 # NASA Home Cloud
 
-> RU: инженерный шаблон приватного семейного облака для Jetson Nano / ARM / SBC.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Stage](https://img.shields.io/badge/Stage-1%20In%20Progress-orange)](docs/14_TEST_PLAN.md)
+[![Platform](https://img.shields.io/badge/Platform-Jetson%20Nano-76b900)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
+[![Docker](https://img.shields.io/badge/Docker%20Compose-v2-2496ED)](docker/compose/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+> RU: Инженерный шаблон приватного семейного облака для Jetson Nano / ARM / SBC.
 >
-> EN: Codex-ready blueprint for a private family cloud on low-power home hardware.
+> EN: A Codex-ready self-hosted family cloud blueprint for ARM/SBC devices.
 
-## Русская версия
+---
 
-### Что это
+## Содержание / Table of Contents
 
-**NASA Home Cloud** — проект домашней семейной облачной платформы на базе **NVIDIA Jetson Nano + USB HDD**. Его цель — заменить часть функций Google/Xiaomi Cloud на собственную инфраструктуру: файлы, документы, контакты, календарь, фотоархив, локальный NAS, резервное копирование и безопасный LLM-помощник администратора.
+- [О проекте / About](#о-проекте--about)
+- [Стек / Stack](#стек--stack)
+- [Требования / Prerequisites](#требования--prerequisites)
+- [Быстрый старт / Quick Start](#быстрый-старт--quick-start)
+- [Конфигурация / Configuration](#конфигурация--configuration)
+- [Архитектура / Architecture](#архитектура--architecture)
+- [Этапы / Stages](#этапы--stages)
+- [Мониторинг / Monitoring](#мониторинг--monitoring)
+- [Документация / Documentation](#документация--documentation)
+- [Безопасность / Security](#безопасность--security)
+- [Вклад / Contributing](#вклад--contributing)
+- [Лицензия / License](#лицензия--license)
 
-Проект пока не является production-инсталлятором в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, API-заготовки и промпты для Codex/агентов, чтобы разворачивать платформу малыми проверяемыми шагами.
+---
 
-### Что разворачивается
+## О проекте / About
 
-```text
-Android-телефоны и ноутбуки
-        |
-        | только LAN / VPN
-        v
-Jetson Nano + USB HDD
-        |
-        +-- Nextcloud: файлы, документы, контакты, календарь, WebDAV
-        +-- Immich: фото- и видеоархив
-        +-- Samba/SFTP: локальный NAS-доступ
-        +-- Backup/Restore: дампы БД и restic-снапшоты
-        +-- LLM Gateway: DeepSeek API через privacy-фильтр
-        +-- Backup API: заготовка Stage 2 для будущего Android restore
-```
+> 🇷🇺 Русский
 
-### Принципы проекта
+**NASA Home Cloud** — проект домашней семейной облачной платформы на базе **NVIDIA Jetson Nano + USB HDD**. Цель — заменить часть функций Google/Xiaomi Cloud на собственную инфраструктуру: файлы, документы, контакты, календарь, фотоархив, локальный NAS, резервное копирование и безопасный LLM-помощник администратора.
 
-- **Приватность прежде всего:** фото, видео, контакты, календарь, документы и backup-манифесты не отправляются во внешний LLM.
-- **Только LAN/VPN:** Nextcloud, Immich, LLM Gateway и SSH не публикуются напрямую в интернет.
-- **Малые шаги:** каждый технический блок разворачивается отдельно и проверяется перед следующим.
-- **Без секретов в git:** реальные `.env`, токены, API-ключи, приватные ключи, дампы, логи и персональные данные не попадают в репозиторий.
-- **Без локальной LLM на Jetson Nano в Stage 1:** Jetson используется как домашний сервер, а не как inference-нода.
+Это не production-инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, API-заготовки и промпты для Codex/агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
-### Стек
+Принципы:
 
-| Область | Компонент |
-|---|---|
-| Файлы и документы | Nextcloud |
-| Контакты и календарь | Nextcloud Contacts/Calendar + DAVx5 |
-| Фото и видео | Immich |
-| Локальный NAS | Samba + SFTP |
-| Базы данных | PostgreSQL + Redis |
-| Резервное копирование | DB dumps + restic |
-| LLM-помощник | DeepSeek API через `services/llm-gateway` |
-| Будущее восстановление Android | Android Stage 2 + `services/backup-api` |
+- **Приватность прежде всего** — фото, видео, контакты, календарь, документы и backup-манифесты не отправляются во внешний LLM.
+- **Только LAN/VPN** — Nextcloud, Immich, LLM Gateway и SSH не публикуются напрямую в интернет.
+- **Малые шаги** — каждый блок разворачивается отдельно и проверяется перед следующим.
+- **Без секретов в git** — реальные `.env`, токены, ключи, дампы и персональные данные не попадают в репозиторий.
+- **Без локальной LLM на Jetson Nano в Stage 1** — Jetson используется как домашний сервер, а не как inference-нода.
 
-### Целевое железо
+> 🇬🇧 English
+
+**NASA Home Cloud** is a Codex-ready blueprint for a private family cloud on **NVIDIA Jetson Nano + USB HDD**. It is designed to replace part of Google/Xiaomi Cloud with self-hosted files, documents, contacts, calendar, photo archive, local NAS access, backups, and a privacy-controlled LLM admin assistant.
+
+This repository is not a one-command production installer. It is an engineering template with documentation, Docker Compose files, diagnostics, API skeletons, and agent prompts for safe step-by-step deployment.
+
+Principles:
+
+- **Privacy first** — personal photos, videos, contacts, calendars, documents, and backup manifests must not be sent to an external LLM.
+- **LAN/VPN only** — Nextcloud, Immich, LLM Gateway, and SSH are not exposed directly to the public internet.
+- **Small steps** — every deployment block is verified before moving to the next.
+- **No real secrets in git** — `.env`, tokens, API keys, private keys, dumps, and personal data are excluded from the repository.
+- **No local LLM on Jetson Nano in Stage 1** — Jetson Nano is a home server, not an LLM inference node.
+
+---
+
+## Стек / Stack
+
+| Область / Area | Компонент / Component | Версия / Version | Роль / Role |
+|---|---|---|---|
+| Файлы и документы / Files | Nextcloud | latest (apache) | File cloud, WebDAV, CalDAV, CardDAV |
+| Фото и видео / Photos | Immich | latest | Photo/video archive with Android sync |
+| Контакты/Календарь / Contacts | DAVx5 (Android client) | — | Sync Nextcloud Contacts & Calendar to Android |
+| Базы данных / Databases | PostgreSQL | 16-alpine | Nextcloud DB + Immich DB (pgvecto-rs for Immich) |
+| Кэш/Очереди / Cache | Redis | 7-alpine | Nextcloud cache + Immich job queue |
+| Локальный NAS / Local NAS | Samba + SFTP | — | LAN file access (запланировано / planned Stage 1A) |
+| Бэкапы / Backups | restic + pg\_dump | — | DB dumps and file snapshots |
+| LLM-помощник / LLM assistant | DeepSeek API | deepseek-chat | Admin assistant via privacy filter |
+| LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Privacy shim, redaction, mock mode |
+| Мониторинг / Monitoring | Netdata + Uptime Kuma + Portainer | — | Observability stack (запланировано / planned) |
+| Android backup API | services/backup-api | — | Stage 2 placeholder |
+
+---
+
+## Требования / Prerequisites
+
+> 🇷🇺 Русский
+
+**Железо:**
 
 | Компонент | Рекомендация |
 |---|---|
-| Вычислительный узел | NVIDIA Jetson Nano Developer Kit |
-| Системный диск | microSD 64 GB или больше |
+| Вычислительный узел | NVIDIA Jetson Nano Developer Kit (2 GB или 4 GB) |
+| Системный диск | microSD 64 GB или больше (Class 10 / A2) |
 | Диск данных | USB HDD с отдельным питанием |
-| Сеть | Stage 0: Jetson напрямую к ноутбуку через USB/USB-Ethernet; после настройки — домашняя LAN/VPN |
-| Роутер | нужен после Stage 0 для переноса Jetson в домашнюю LAN и static DHCP lease |
-| Внешний доступ | только VPN / mesh VPN |
+| Сеть | Домашняя LAN; роутер со статическим DHCP lease для Jetson |
+| Внешний доступ | VPN / mesh VPN (WireGuard или Tailscale) |
 
-Jetson Nano ограничен по RAM и CPU. Тяжёлый ML-анализ фото, массовое видеотранскодирование и локальный inference LLM специально вынесены за пределы Stage 1.
+**Программное обеспечение на Jetson:**
 
-### Структура репозитория
+- L4T / JetPack 4.x (Ubuntu 18.04 на Jetson)
+- Docker Engine 20.10+
+- Docker Compose v2 (`docker compose version` — без дефиса)
 
-```text
-config/
-  .env.example              публичный шаблон переменных окружения
-  llm-policy.yaml           черновик privacy-policy для LLM Stage 1
+**На рабочей машине:**
 
-docker/compose/
-  docker-compose.stage1.yml полный черновик Stage 1
-  docker-compose.nextcloud.yml
-  docker-compose.immich.yml
-  docker-compose.llm-gateway.yml
+- Git
+- SSH-клиент
 
-docs/
-  00_OVERVIEW.md
-  01_HARDWARE_AUDIT.md
-  01A_JETSON_SD_BOOTSTRAP.md
-  03_ARCHITECTURE.md
-  04_STORAGE_DESIGN.md
-  05_NETWORKING_VPN.md
-  06_NEXTCLOUD_DESIGN.md
-  07_IMMICH_DESIGN.md
-  08_LLM_GATEWAY_DEEPSEEK.md
-  12_BACKUP_RESTORE.md
-  14_TEST_PLAN.md
-  16_GITHUB_PUBLICATION.md
-  plans/README.md
-  references/EXTERNAL_DOCS_CACHE.md
-  references/JETSON_LOCAL_ASSETS.md
-  references/REFERENCE_LINKS.md
+> 🇬🇧 English
 
-services/
-  llm-gateway/              FastAPI-шлюз с redaction и mock-режимом
-  backup-api/               Stage 2 placeholder для Android backup/restore
+**Hardware:**
 
-scripts/
-  diagnostics/              проверки железа, Docker и storage
-  backup/                   примеры backup и заготовка DB dump
-  security/                 проверки перед публикацией
+| Component | Recommendation |
+|---|---|
+| Compute node | NVIDIA Jetson Nano Developer Kit (2 GB or 4 GB) |
+| System drive | microSD 64 GB or larger (Class 10 / A2) |
+| Data drive | USB HDD with external power supply |
+| Network | Home LAN; router with static DHCP lease for Jetson |
+| External access | VPN / mesh VPN (WireGuard or Tailscale) |
 
-prompts/
-  CODEX_*                   промпты для поэтапной работы агентов
-```
+**Software on Jetson:**
 
-### Этапы
+- L4T / JetPack 4.x (Ubuntu 18.04 on Jetson)
+- Docker Engine 20.10+
+- Docker Compose v2 (`docker compose version` — no hyphen)
 
-| Этап | Содержание | Статус |
-|---|---|---|
-| Stage 0 | Подготовка microSD и первый boot Jetson | описано |
-| Stage 1A | Hardware audit, storage, Samba/SFTP | спроектировано |
-| Stage 1B | Nextcloud | compose-черновик |
-| Stage 1C | Immich в ограниченном режиме | compose-черновик |
-| Stage 1D | DeepSeek LLM Gateway | FastAPI-скелет есть |
-| Stage 1E | Backup/restore | документация и черновики скриптов |
-| Stage 2 | Android backup/restore client | только архитектура |
-| Stage 3 | аналитика, RAG, fallback-провайдеры | будущее |
+**On your workstation:**
 
-### Быстрый старт для Codex/агентов
+- Git
+- SSH client
 
-1. Прочитать `AGENTS.md`.
-2. Прочитать `PROJECT_CONTEXT.md`.
-3. Если готовой стартовой microSD нет, выполнить `docs/01A_JETSON_SD_BOOTSTRAP.md`.
-4. После первого boot и SSH выполнить hardware audit на целевом хосте:
+---
+
+## Быстрый старт / Quick Start
+
+> 🇷🇺 Русский
 
 ```bash
-./scripts/diagnostics/hardware_audit.sh
-```
+# 1. Клонировать репозиторий
+git clone https://github.com/AlexeyBorovskoy/nasa-home-cloud.git
+cd nasa-home-cloud
 
-5. Подготовить хранилище по `docs/04_STORAGE_DESIGN.md`, когда HDD будет доступен.
-6. Создать локальный env-файл:
-
-```bash
+# 2. Создать локальный env-файл из шаблона
 cp config/.env.example config/.env
 chmod 600 config/.env
-```
 
-7. Локально заменить все placeholder-значения в `config/.env`. Не коммитить этот файл.
-8. Разворачивать блоки по очереди: storage, NAS-доступ, Nextcloud, Immich, LLM Gateway, backups.
+# 3. Заполнить все placeholder-значения
+#    (пароли, пути к дискам, ключи DeepSeek и т.д.)
+nano config/.env
 
-### Docker Compose
-
-Compose-файлы используют современную спецификацию Compose, включая верхнеуровневый ключ `name:`. Нужен Docker Compose v2:
-
-```bash
-docker compose version
+# 4. Проверить синтаксис Compose перед первым запуском
 docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config
+
+# 5. Запустить аппаратный аудит на целевом Jetson Nano
+./scripts/diagnostics/hardware_audit.sh
+
+# 6. Развернуть Nextcloud (после подготовки хранилища)
+docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env up -d
+
+# 7. Проверить состояние контейнеров
+docker compose -f docker/compose/docker-compose.nextcloud.yml ps
+docker compose -f docker/compose/docker-compose.nextcloud.yml logs --tail 50
 ```
 
-Старый `docker-compose` v1 может отклонить эти файлы.
+Полный порядок развёртывания по этапам: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).
 
-### LLM Gateway
+Если Jetson ещё не загружен — сначала подготовьте microSD: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).
 
-`services/llm-gateway` — небольшой FastAPI-сервис, который:
-
-- принимает безопасные административные промпты;
-- редактирует очевидные e-mail, телефоны, токены, пароли и приватные ключи;
-- работает в mock-режиме, если `DEEPSEEK_API_KEY` не настроен;
-- блокирует raw-mode в Stage 1.
-
-Разрешено в Stage 1:
-
-- объяснять обезличенные Docker-ошибки;
-- суммировать состояние сервисов;
-- генерировать runbook по диагностике без персональных данных;
-- работать с проектной документацией.
-
-Запрещено в Stage 1:
-
-- анализировать личные фото и видео;
-- отправлять контакты, календарь, документы, дампы БД, backup-манифесты, токены и приватные ключи;
-- открывать LLM Gateway напрямую в интернет.
-
-### Проверка перед публикацией
+> 🇬🇧 English
 
 ```bash
-./scripts/security/check_no_secrets.sh
-find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12' -o -name '*.pfx'
+# 1. Clone the repository
+git clone https://github.com/AlexeyBorovskoy/nasa-home-cloud.git
+cd nasa-home-cloud
+
+# 2. Create a local env file from the template
+cp config/.env.example config/.env
+chmod 600 config/.env
+
+# 3. Fill in all placeholder values
+#    (passwords, storage paths, DeepSeek API key, etc.)
+nano config/.env
+
+# 4. Validate Compose syntax before the first run
+docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config
+
+# 5. Run hardware audit on the target Jetson Nano
+./scripts/diagnostics/hardware_audit.sh
+
+# 6. Deploy Nextcloud (after preparing storage)
+docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env up -d
+
+# 7. Check container status
+docker compose -f docker/compose/docker-compose.nextcloud.yml ps
+docker compose -f docker/compose/docker-compose.nextcloud.yml logs --tail 50
 ```
 
-Вывод нужно просмотреть вручную перед push. Репозиторий должен содержать только шаблоны, документацию и исходный код.
+Full staged deployment order: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).
 
-### Текущие ограничения
+If Jetson has not booted yet — prepare the microSD card first: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).
 
-- Проект ещё не проверен на реальном Jetson.
-- `backup_databases.sh` пока placeholder.
-- Отключение Immich machine learning нужно явно довести в compose перед тестом на Jetson.
-- `config/llm-policy.yaml` описывает целевую политику, но не все лимиты уже enforced в коде.
-- `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
-- Локальные Jetson-материалы лежат в `external_docs/jatson` и не коммитятся; manifest см. в `docs/references/JETSON_LOCAL_ASSETS.md`.
-- Локальный cache внешней документации лежит в `external_docs/`; manifest см. в `docs/references/EXTERNAL_DOCS_CACHE.md`.
+---
 
-### Roadmap
+## Конфигурация / Configuration
 
-- `v0.1`: публичная документация и безопасный bootstrap репозитория.
-- `v0.2`: hardware audit и storage scripts.
-- `v0.3`: проверенный Nextcloud deployment.
-- `v0.4`: проверенный Immich deployment с Jetson-safe настройками.
-- `v0.5`: backup/restore workflow.
-- `v0.6`: enforcement политики LLM Gateway.
-- `v0.7`: Android Stage 2 API draft.
-- `v1.0`: проверенная установка на Jetson Nano и одном дополнительном low-power устройстве.
+> 🇷🇺 Русский
 
-## English Version
+Все переменные окружения хранятся в `config/.env` (не коммитится). Шаблон со всеми ключами — `config/.env.example`.
 
-### What This Is
+Ключевые переменные:
 
-**NASA Home Cloud** is a Codex-ready blueprint for a private family cloud on **NVIDIA Jetson Nano + USB HDD**. It is intended to replace part of Google/Xiaomi Cloud with self-hosted files, documents, contacts, calendar, photo archive, local NAS access, backups, and a privacy-controlled LLM admin assistant.
+```bash
+# Хранилище
+STORAGE_ROOT=/mnt/storage
+NEXTCLOUD_DATA=/mnt/storage/nextcloud/data
+IMMICH_UPLOAD_LOCATION=/mnt/storage/immich/library
+BACKUP_ROOT=/mnt/storage/backups
 
-This repository is not a one-command production installer yet. It is an engineering template with documentation, Docker Compose files, diagnostics, API skeletons, and agent prompts for safe step-by-step deployment.
+# Базы данных
+POSTGRES_NEXTCLOUD_PASSWORD=changeme
+IMMICH_DB_PASSWORD=changeme
 
-### What This Project Builds
+# LLM Gateway
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_REASONER_MODEL=deepseek-reasoner
 
-```text
-Android phones and laptops
+# Immich — отключить ML до нагрузочных тестов на Jetson
+IMMICH_DISABLE_MACHINE_LEARNING=true
+```
+
+Политика конфиденциальности для LLM: `config/llm-policy.yaml`.
+
+Никогда не коммитьте реальный `config/.env`. Он добавлен в `.gitignore`.
+
+> 🇬🇧 English
+
+All environment variables live in `config/.env` (not committed). The public template with all keys is `config/.env.example`.
+
+Key variables:
+
+```bash
+# Storage
+STORAGE_ROOT=/mnt/storage
+NEXTCLOUD_DATA=/mnt/storage/nextcloud/data
+IMMICH_UPLOAD_LOCATION=/mnt/storage/immich/library
+BACKUP_ROOT=/mnt/storage/backups
+
+# Databases
+POSTGRES_NEXTCLOUD_PASSWORD=changeme
+IMMICH_DB_PASSWORD=changeme
+
+# LLM Gateway
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_REASONER_MODEL=deepseek-reasoner
+
+# Immich — disable ML until Jetson load tests pass
+IMMICH_DISABLE_MACHINE_LEARNING=true
+```
+
+LLM privacy policy: `config/llm-policy.yaml`.
+
+Never commit your real `config/.env`. It is listed in `.gitignore`.
+
+---
+
+## Архитектура / Architecture
+
+> 🇷🇺 Русский / 🇬🇧 English
+
+```
+Android-телефоны / Android phones
+Ноутбуки / Laptops
         |
-        | LAN / VPN only
+        |  Только LAN / VPN  —  LAN / VPN only
+        |
         v
-Jetson Nano + USB HDD
+  [ Домашний роутер / Home router ]
         |
-        +-- Nextcloud: files, documents, contacts, calendar, WebDAV
-        +-- Immich: photo and video archive
-        +-- Samba/SFTP: local NAS access
-        +-- Backup/Restore: database dumps and restic snapshots
-        +-- LLM Gateway: DeepSeek API through a privacy filter
-        +-- Backup API: Stage 2 placeholder for future Android restore flows
+        v
+  [ Jetson Nano + USB HDD ]
+        |
+        +-- Nextcloud (port 8080)
+        |     +-- PostgreSQL 16
+        |     +-- Redis 7
+        |
+        +-- Immich (port 2283)
+        |     +-- PostgreSQL 16 + pgvecto-rs
+        |     +-- Redis 7
+        |
+        +-- LLM Gateway / FastAPI (port 8090)
+        |     +-- [ DeepSeek API ] (external, privacy-filtered)
+        |
+        +-- Samba / SFTP  [запланировано / planned — Stage 1A]
+        |
+        +-- Backup jobs
+              +-- pg_dump  -->  /mnt/storage/backups/database-dumps
+              +-- restic   -->  /mnt/storage/backups/restic-repo
+
+/mnt/storage  (USB HDD с отдельным питанием / USB HDD with external power)
+  ├── nextcloud/data
+  ├── immich/library
+  ├── db/
+  │   ├── nextcloud-postgres
+  │   └── immich-postgres
+  ├── backups/
+  │   ├── database-dumps
+  │   └── restic-repo
+  └── samba/
 ```
 
-### Core Principles
+Mermaid-диаграмма: [archtectura_nasa.md](archtectura_nasa.md).
 
-- **Privacy first:** personal photos, videos, contacts, calendars, documents, and backup manifests must not be sent to an external LLM.
-- **LAN/VPN only:** Nextcloud, Immich, LLM Gateway, and SSH are not meant to be opened directly to the public internet.
-- **Small steps:** every deployment block should be checked before moving to the next one.
-- **No real secrets in git:** `.env`, tokens, API keys, private keys, dumps, logs, and personal data are excluded from the repository.
-- **No local LLM on Jetson Nano in Stage 1:** Jetson Nano is used as a home server, not as an LLM inference node.
+Сетевые правила, порты, VPN: [docs/05_NETWORKING_VPN.md](docs/05_NETWORKING_VPN.md).
 
-### Planned Stack
+Архитектурные решения (ADR): [docs/decisions/](docs/decisions/).
 
-| Area | Component |
+Docker Compose файлы:
+
+| Файл / File | Назначение / Purpose |
 |---|---|
-| Files and documents | Nextcloud |
-| Contacts and calendar | Nextcloud Contacts/Calendar + DAVx5 |
-| Photos and videos | Immich |
-| Local NAS | Samba + SFTP |
-| Databases | PostgreSQL + Redis |
-| Backups | DB dumps + restic |
-| LLM assistant | DeepSeek API through `services/llm-gateway` |
-| Future mobile recovery | Android Stage 2 + `services/backup-api` |
+| `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack / Full Stage 1 stack |
+| `docker/compose/docker-compose.nextcloud.yml` | Изолированный Nextcloud / Nextcloud standalone |
+| `docker/compose/docker-compose.immich.yml` | Изолированный Immich / Immich standalone |
+| `docker/compose/docker-compose.llm-gateway.yml` | Изолированный LLM Gateway / LLM Gateway standalone |
 
-### Target Hardware
+---
 
-| Component | Recommended value |
+## Этапы / Stages
+
+| Этап / Stage | Содержание / Content | Статус / Status |
+|---|---|---|
+| Stage 0 | Подготовка microSD, первый boot, SSH / microSD prep, first boot, SSH | описано / documented |
+| Stage 1A | Hardware audit, storage, Samba/SFTP | спроектировано / designed |
+| Stage 1B | Nextcloud | compose-черновик / compose draft |
+| Stage 1C | Immich (Jetson-safe mode) | compose-черновик / compose draft |
+| Stage 1D | DeepSeek LLM Gateway | FastAPI skeleton ready |
+| Stage 1E | Backup / restore (restic + pg\_dump) | scripts draft ready |
+| Stage 2 | Android backup/restore client API | архитектура / architecture only |
+| Stage 3 | Analytics, RAG, fallback LLM providers | будущее / future |
+
+Подробный план тестирования: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).
+
+---
+
+## Мониторинг / Monitoring
+
+> 🇷🇺 Русский
+
+Стек мониторинга задокументирован и подготовлен к развёртыванию:
+
+- **Netdata** — real-time метрики хоста и контейнеров.
+- **Uptime Kuma** — мониторинг доступности сервисов.
+- **Portainer** — управление Docker-контейнерами через web UI.
+
+Документация: [docs/17_MONITORING_OBSERVABILITY.md](docs/17_MONITORING_OBSERVABILITY.md) _(планируется / planned)_.
+
+Текущий runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
+
+> 🇬🇧 English
+
+A monitoring stack is documented and ready for deployment:
+
+- **Netdata** — real-time host and container metrics.
+- **Uptime Kuma** — service availability monitoring.
+- **Portainer** — Docker container management via web UI.
+
+Documentation: [docs/17_MONITORING_OBSERVABILITY.md](docs/17_MONITORING_OBSERVABILITY.md) _(planned)_.
+
+Current runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
+
+---
+
+## Документация / Documentation
+
+| Файл / File | Описание / Description |
 |---|---|
-| Compute node | NVIDIA Jetson Nano Developer Kit |
-| System drive | microSD 64 GB or larger |
-| Data drive | USB HDD with external power |
-| Network | Ethernet for Jetson, Wi-Fi for clients |
-| Router | Gigabit router with static DHCP lease support |
-| External access | VPN / mesh VPN only |
+| [docs/00_OVERVIEW.md](docs/00_OVERVIEW.md) | Обзор концепции / Project concept overview |
+| [docs/01_HARDWARE_AUDIT.md](docs/01_HARDWARE_AUDIT.md) | Аппаратный аудит Jetson Nano / Hardware audit guide |
+| [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md) | Подготовка microSD, первый boot / microSD bootstrap recipe |
+| [docs/02_REQUIREMENTS.md](docs/02_REQUIREMENTS.md) | Требования к железу, ПО, сети / Hardware and software requirements |
+| [docs/03_ARCHITECTURE.md](docs/03_ARCHITECTURE.md) | Архитектурная схема / Architecture overview |
+| [docs/04_STORAGE_DESIGN.md](docs/04_STORAGE_DESIGN.md) | Дизайн хранилища (USB HDD, mount, fstab) / Storage design |
+| [docs/05_NETWORKING_VPN.md](docs/05_NETWORKING_VPN.md) | LAN/VPN-модель, WireGuard, порты / Networking and VPN |
+| [docs/06_NEXTCLOUD_DESIGN.md](docs/06_NEXTCLOUD_DESIGN.md) | Дизайн Nextcloud / Nextcloud deployment design |
+| [docs/07_IMMICH_DESIGN.md](docs/07_IMMICH_DESIGN.md) | Дизайн Immich (Jetson-safe) / Immich deployment design |
+| [docs/08_LLM_GATEWAY_DEEPSEEK.md](docs/08_LLM_GATEWAY_DEEPSEEK.md) | LLM Gateway и DeepSeek API / LLM Gateway and DeepSeek API |
+| [docs/09_ANDROID_STAGE2_ARCHITECTURE.md](docs/09_ANDROID_STAGE2_ARCHITECTURE.md) | Android Stage 2 архитектура / Android backup client architecture |
+| [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) | Безопасность и приватность / Security and privacy |
+| [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md) | Политика секретов / Secrets management policy |
+| [docs/12_BACKUP_RESTORE.md](docs/12_BACKUP_RESTORE.md) | Backup и restore workflow / Backup and restore |
+| [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md) | Runbook и мониторинг / Monitoring runbook |
+| [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md) | План тестирования по этапам / Staged test plan |
+| [docs/15_ALTERNATIVES_REVIEW.md](docs/15_ALTERNATIVES_REVIEW.md) | Обзор альтернативных решений / Alternatives review |
+| [docs/16_GITHUB_PUBLICATION.md](docs/16_GITHUB_PUBLICATION.md) | Публикация на GitHub / GitHub publication guide |
+| [docs/decisions/ADR-0001-nextcloud-immich-deepseek.md](docs/decisions/ADR-0001-nextcloud-immich-deepseek.md) | ADR-0001: выбор стека / ADR-0001: stack selection |
+| [docs/plans/README.md](docs/plans/README.md) | Индекс стратегических планов / Strategic plans index |
+| [AGENTS.md](AGENTS.md) | Правила для Codex/агентов / Codex and agent onboarding |
+| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | Зафиксированные решения и ограничения / Fixed decisions and constraints |
+| [archtectura_nasa.md](archtectura_nasa.md) | Полная архитектурная карта (Mermaid) / Full architecture map with Mermaid |
 
-Jetson Nano has limited RAM and CPU headroom. Heavy ML photo analysis, large video transcoding jobs, and local LLM inference are intentionally out of scope for Stage 1.
+---
 
-### Quick Start For Agents
+## Безопасность / Security
 
-1. Read `AGENTS.md`.
-2. Read `PROJECT_CONTEXT.md`.
-3. If there is no prepared boot microSD card, follow `docs/01A_JETSON_SD_BOOTSTRAP.md`.
-4. After first boot and SSH access, run the hardware audit on the target host:
+> 🇷🇺 Русский
 
-```bash
-./scripts/diagnostics/hardware_audit.sh
-```
+- Сообщить об уязвимости: откройте private security advisory на GitHub или свяжитесь с владельцем репозитория напрямую.
+- Никогда не коммитьте реальные `.env`, ключи, токены, дампы и персональные данные.
+- LLM Gateway в Stage 1 блокирует отправку фото, видео, контактов, ключей и личных документов во внешний API.
 
-5. Prepare storage according to `docs/04_STORAGE_DESIGN.md` when the HDD is available.
-6. Create a local environment file:
-
-```bash
-cp config/.env.example config/.env
-chmod 600 config/.env
-```
-
-7. Replace all placeholder values in `config/.env` locally. Do not commit it.
-8. Deploy one block at a time: storage, NAS access, Nextcloud, Immich, LLM Gateway, backups.
-
-### Compose Compatibility Note
-
-The compose files use the modern Compose specification, including the top-level `name:` key. Use Docker Compose v2:
-
-```bash
-docker compose version
-docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config
-```
-
-Older `docker-compose` v1 may reject the files.
-
-### Security Checklist Before Publishing
+Проверка репозитория перед push:
 
 ```bash
 ./scripts/security/check_no_secrets.sh
-find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12' -o -name '*.pfx'
+find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12'
 ```
 
-Review the output manually before pushing. The repository is intended to contain only templates, documentation, and source code.
+CI проверяет секреты автоматически: `.github/workflows/secrets-check.yml`.
 
-Local Jetson assets are stored in `external_docs/jatson` and are not committed.
-See `docs/references/JETSON_LOCAL_ASSETS.md` for the local inventory,
-checksums, and Stage 0 usage notes.
+Полная политика: [SECURITY.md](SECURITY.md) | [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) | [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md).
 
-The broader external documentation cache is stored in `external_docs/` and is
-not committed. See `docs/references/EXTERNAL_DOCS_CACHE.md`.
+> 🇬🇧 English
 
-## License
+- To report a vulnerability: open a private security advisory on GitHub or contact the repository owner directly.
+- Never commit real `.env` files, keys, tokens, database dumps, or personal data.
+- LLM Gateway in Stage 1 blocks sending photos, videos, contacts, keys, and personal documents to the external API.
 
-MIT. See `LICENSE`.
+Check the repository before pushing:
+
+```bash
+./scripts/security/check_no_secrets.sh
+find . -name '.env' -o -name '*.key' -o -name '*.pem' -o -name '*.p12'
+```
+
+CI runs the secrets check automatically: `.github/workflows/secrets-check.yml`.
+
+Full policy: [SECURITY.md](SECURITY.md) | [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) | [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md).
+
+---
+
+## Текущие ограничения / Known Limitations
+
+> 🇷🇺 Русский
+
+- Проект ещё не проверен на реальном Jetson Nano в production.
+- `backup_databases.sh` — placeholder; реализуется после первого реального запуска контейнеров.
+- `IMMICH_DISABLE_MACHINE_LEARNING=true` задана в `.env.example`, но ещё не передана в compose — нужно сделать перед первым запуском Immich на Jetson.
+- `config/llm-policy.yaml` описывает целевую политику; часть лимитов ещё не enforced в коде LLM Gateway.
+- `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
+- Samba и reverse proxy (HTTPS) — запланированы на Stage 1A, ещё не развёрнуты.
+- Локальные Jetson-материалы хранятся в `external_docs/jatson` и не коммитятся; см. [docs/references/JETSON_LOCAL_ASSETS.md](docs/references/JETSON_LOCAL_ASSETS.md).
+
+> 🇬🇧 English
+
+- The project has not been tested on a real Jetson Nano in production yet.
+- `backup_databases.sh` is a placeholder; it will be implemented after the first real container run.
+- `IMMICH_DISABLE_MACHINE_LEARNING=true` is defined in `.env.example` but not yet wired into the compose file — this must be done before the first Immich run on Jetson.
+- `config/llm-policy.yaml` describes the target policy; some limits are not yet enforced in LLM Gateway code.
+- `services/backup-api` is a Stage 2 placeholder, not a production backup service.
+- Samba and reverse proxy (HTTPS) are planned for Stage 1A and not yet deployed.
+- Local Jetson assets are stored in `external_docs/jatson` and are not committed; see [docs/references/JETSON_LOCAL_ASSETS.md](docs/references/JETSON_LOCAL_ASSETS.md).
+
+---
+
+## Roadmap
+
+| Версия / Version | Содержание / Content |
+|---|---|
+| v0.1 | Документация и безопасный bootstrap / Documentation and secure bootstrap |
+| v0.2 | Hardware audit и storage scripts / Hardware audit and storage scripts |
+| v0.3 | Проверенный Nextcloud deployment / Verified Nextcloud deployment |
+| v0.4 | Проверенный Immich с Jetson-safe настройками / Verified Immich Jetson-safe config |
+| v0.5 | Backup/restore workflow |
+| v0.6 | LLM Gateway policy enforcement |
+| v0.7 | Android Stage 2 API draft |
+| v1.0 | Проверенная установка на Jetson Nano / Verified install on Jetson Nano |
+
+---
+
+## Вклад / Contributing
+
+> 🇷🇺 Русский
+
+Вклад приветствуется. Прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) и [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) перед тем, как открывать pull request.
+
+Правила:
+- Не коммитьте секреты и персональные данные.
+- Предпочитайте небольшие pull request с документацией.
+- Сохраняйте Stage 1 безопасным: нет прямого публичного доступа к сервисам.
+
+Хорошие первые задачи:
+- Улучшить hardware audit script.
+- Добавить заметки для Raspberry Pi 4/5.
+- Добавить CI-валидацию shell-скриптов (shellcheck).
+- Синхронизировать архитектурные документы с текущим деревом проекта.
+
+> 🇬🇧 English
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a pull request.
+
+Rules:
+- Do not commit secrets or personal data.
+- Prefer small pull requests with documentation.
+- Keep Stage 1 safe: no direct public port exposure by default.
+
+Good first issues:
+- Improve the hardware audit script.
+- Add Raspberry Pi 4/5 notes.
+- Add CI shellcheck validation.
+- Synchronize architecture documents with the current project tree.
+
+---
+
+## Лицензия / License
+
+MIT — см. [LICENSE](LICENSE) / see [LICENSE](LICENSE).
