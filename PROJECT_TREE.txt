@@ -1,20 +1,40 @@
-home-cloud-jetson-public/
-├── README.md
-├── PROJECT_CONTEXT.md
-├── AGENTS.md
-├── LICENSE
-├── .gitignore
+﻿home-cloud-jetson-public/              # NASA Home Cloud project root
+├── README.md                          # двуязычная документация (RU+EN)
+├── PROJECT_CONTEXT.md                 # scope, решения, ограничения
+├── AGENTS.md                          # правила для Codex/агентов
+├── archtectura_nasa.md                # полная архитектурная карта (актуальна 2026-05-31)
+├── AUDIT_2026-05-31.md                # аудит целостности
+├── SECURITY.md                        # политика безопасности (RU+EN)
+├── CONTRIBUTING.md                    # правила для контрибьюторов
+├── CHANGELOG.md                       # история версий (Keep a Changelog)
+├── LICENSE                            # MIT
+├── .gitignore                         # secrets + runtime исключения
+│
+├── .github/                           # GitHub-инфраструктура
+│   ├── CODEOWNERS
+│   ├── pull_request_template.md
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   ├── feature_request.md
+│   │   └── config.yml
+│   └── workflows/
+│       ├── secrets-check.yml          # CI: check_no_secrets.sh на push/PR
+│       └── validate-compose.yml       # CI: валидация всех 4 compose-файлов
+│
 ├── config/
-│   ├── .env.example
-│   └── llm-policy.yaml
-├── docker/
-│   └── compose/
-│       ├── docker-compose.stage1.yml
-│       ├── docker-compose.nextcloud.yml
-│       ├── docker-compose.immich.yml
-│       └── docker-compose.llm-gateway.yml
+│   ├── .env                           # ⚠️ GITIGNORED — реальные значения
+│   ├── .env.example                   # шаблон (все переменные задокументированы)
+│   └── llm-policy.yaml                # privacy-политика для LLM Gateway
+│
+├── docker/compose/
+│   ├── docker-compose.stage1.yml      # полный стек Stage 1 (8 сервисов)
+│   ├── docker-compose.nextcloud.yml   # изолированный Nextcloud
+│   ├── docker-compose.immich.yml      # изолированный Immich (+ microservices)
+│   └── docker-compose.llm-gateway.yml # изолированный LLM Gateway
+│
 ├── docs/
 │   ├── 00_OVERVIEW.md
+│   ├── 01A_JETSON_SD_BOOTSTRAP.md
 │   ├── 01_HARDWARE_AUDIT.md
 │   ├── 02_REQUIREMENTS.md
 │   ├── 03_ARCHITECTURE.md
@@ -31,8 +51,22 @@ home-cloud-jetson-public/
 │   ├── 14_TEST_PLAN.md
 │   ├── 15_ALTERNATIVES_REVIEW.md
 │   ├── 16_GITHUB_PUBLICATION.md
-│   └── decisions/
-│       └── ADR-0001-nextcloud-immich-deepseek.md
+│   ├── decisions/
+│   │   ├── ADR-0001-nextcloud-immich-deepseek.md
+│   │   ├── ADR-0002-storage-design.md
+│   │   ├── ADR-0003-networking-lan-only.md
+│   │   └── ADR-0004-tailscale-external-access.md
+│   ├── plans/
+│   │   ├── README.md
+│   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
+│   │   ├── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
+│   │   ├── TEST_STAND_CHECKPOINT_2026-05-31.md
+│   │   └── TAILSCALE_ACCESS_PLAN.md
+│   └── references/
+│       ├── EXTERNAL_DOCS_CACHE.md
+│       ├── JETSON_LOCAL_ASSETS.md
+│       └── REFERENCE_LINKS.md
+│
 ├── prompts/
 │   ├── CODEX_BOOTSTRAP_PROMPT.md
 │   ├── CODEX_HARDWARE_AUDIT_PROMPT.md
@@ -42,23 +76,39 @@ home-cloud-jetson-public/
 │   ├── CODEX_LLM_GATEWAY_PROMPT.md
 │   ├── CODEX_SECURITY_PROMPT.md
 │   └── CODEX_ANDROID_STAGE2_PROMPT.md
+│
+├── scripts/
+│   ├── fetch_external_docs.sh
+│   ├── backup/
+│   │   ├── backup_databases.sh        # pg_dump Nextcloud+Immich, gzip, ротация
+│   │   └── restic_backup_example.sh   # полный restic workflow
+│   ├── diagnostics/
+│   │   ├── hardware_audit.sh
+│   │   ├── docker_health.sh           # 7 контейнеров, порты, exit 1 при сбое
+│   │   └── storage_health.sh          # mount, df, alert >85%, last dump
+│   ├── maintenance/
+│   │   └── docker_update_plan.sh      # pull + restart + health check
+│   ├── network/
+│   │   └── network_health.sh          # eth0, gateway, DNS, ports
+│   └── security/
+│       └── check_no_secrets.sh
+│
 ├── services/
 │   ├── llm-gateway/
-│   │   ├── README.md
 │   │   ├── Dockerfile
+│   │   ├── README.md
 │   │   ├── requirements.txt
 │   │   └── app/main.py
 │   └── backup-api/
-│       └── README.md
-└── scripts/
-    ├── diagnostics/
-    │   ├── hardware_audit.sh
-    │   ├── docker_health.sh
-    │   └── storage_health.sh
-    ├── backup/
-    │   ├── backup_databases.sh
-    │   └── restic_backup_example.sh
-    ├── maintenance/
-    │   └── docker_update_plan.sh
-    └── security/
-        └── check_no_secrets.sh
+│       ├── Dockerfile
+│       ├── README.md
+│       ├── requirements.txt
+│       └── app/main.py
+│
+├── external_docs/                     # ⚠️ GITIGNORED — 6.3 GB кеш документации
+│   └── SHA256SUMS.local
+│
+└── runtime/                           # ⚠️ GITIGNORED — runtime артефакты
+    └── audit/HARDWARE_AUDIT_REPORT.md
+
+# Снимок: 2026-06-20
