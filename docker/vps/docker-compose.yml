@@ -1,0 +1,29 @@
+﻿name: nasa-vps
+
+# Run on VPS, not on Jetson.
+# Start: cd /opt/nasa && docker compose up -d
+# Nginx listens on public ports and proxies to Jetson via SSH reverse tunnels.
+# Jetson must run: scripts/network/setup_vps_tunnel.sh (or nasa-tunnel.service)
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nasa_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:8080"     # Nextcloud (tunnel: localhost:18080 → Jetson:8080)
+      - "2283:2283"     # Immich    (tunnel: localhost:12283 → Jetson:2283)
+      - "8090:8090"     # LLM GW   (tunnel: localhost:18090 → Jetson:8090)
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - nasa_vps_net
+
+volumes:
+  nginx_logs:
+
+networks:
+  nasa_vps_net:
+    driver: bridge
