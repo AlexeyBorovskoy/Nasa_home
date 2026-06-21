@@ -12,6 +12,7 @@ ExecStart=/usr/bin/autossh -N \
     -R 18080:localhost:8080 \
     -R 12283:localhost:2283 \
     -R 18090:localhost:8090 \
+    -R 10022:localhost:22 \
     -o ServerAliveInterval=30 \
     -o ServerAliveCountMax=3 \
     -o ExitOnForwardFailure=yes \
