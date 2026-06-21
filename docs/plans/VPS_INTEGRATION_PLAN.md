@@ -1,13 +1,29 @@
 ﻿# План: интеграция VPS в NASA Home Cloud
 
-**Статус:** Частично выполнено (2026-06-20)
-**VPS:** 193.8.215.130 (hostname: borovskoy-new.ptr.network)
-**Расположение:** Вена, Австрия (AEZA GROUP)
-**Важно:** IP-адрес VPS может измениться — всегда проверять актуальный адрес
+**Статус:** ✅ **Завершено (2026-06-21)**  
+**VPS:** 193.8.215.130 (hostname: borovskoy-new.ptr.network)  
+**Расположение:** Вена, Австрия (AEZA GROUP)  
+**Важно:** IP-адрес VPS может измениться — при смене обновить `VPS_HOST` в `/opt/nasa/config/.env` на Jetson и перезапустить `nasa-tunnel.service`.
+
+Архитектурное решение: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](../decisions/ADR-0005-vps-autossh-reverse-tunnel.md)
 
 ---
 
-## Что уже есть на VPS (2026-06-20)
+## Что работает на VPS (2026-06-21)
+
+- `nasa_nginx` контейнер: `network_mode: host`, порты 8080/2283/8090 публичные
+- Nextcloud: `http://193.8.215.130:8080/` → HTTP 302 ✅
+- Immich: `http://193.8.215.130:2283/` → HTTP 200 ✅
+- LLM Gateway: `http://193.8.215.130:8090/health` → HTTP 200 ✅
+- SSH управление Jetson: `ssh -p 10022 admin@127.0.0.1` с VPS ✅
+
+**Критичный параметр nginx:** `network_mode: host` обязателен.
+В bridge-режиме `127.0.0.1:18080` — это loopback контейнера, а не хоста,
+и proxy_pass до туннеля не работает.
+
+---
+
+## Что уже есть на VPS (история, 2026-06-20)
 
 - Ubuntu 24.04.4 LTS, 1 vCPU (AMD Ryzen 9 7950X3D), 2GB RAM, 30GB диск
 - Docker 29.1.3 + Docker Compose v5.1.4 (установлен)

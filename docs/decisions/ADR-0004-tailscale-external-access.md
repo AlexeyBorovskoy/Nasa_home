@@ -2,7 +2,9 @@
 
 ## Статус
 
-Предложено (не реализовано).
+**Заменено** ADR-0005 (2026-06-21). Tailscale не реализован — выбран VPS + autossh reverse SSH tunnel.
+Причина: данные Tailscale проходят через DERP-серверы третьей стороны; VPS уже есть в проекте.
+См. [ADR-0005-vps-autossh-reverse-tunnel.md](ADR-0005-vps-autossh-reverse-tunnel.md).
 
 ## Контекст
 

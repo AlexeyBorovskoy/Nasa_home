@@ -106,26 +106,53 @@ Get-Content ~/.ssh/id_ed25519.pub | ssh admin@fe80::1%<ifIndex> `
 
 ## 2. Правило публикации сервисов
 
-На первом этапе запрещено публиковать наружу:
+Прямой публичный port forwarding на домашнем роутере отсутствует. Внешний
+доступ реализован через обратный SSH-тоннель от Jetson к VPS (см. §3.4).
 
-- 22/SSH;
-- 80/443 Nextcloud;
-- 2283 Immich;
-- 445 Samba;
-- 8090 LLM Gateway.
+| Сервис | Jetson порт | Внешний доступ |
+|---|---|---|
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` (VPS nginx) |
+| Immich | 2283 | `http://193.8.215.130:2283/` (VPS nginx) |
+| LLM Gateway | 8090 | `http://193.8.215.130:8090/` (VPS nginx) |
+| SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS |
+| Samba | 445/139 | **LAN only** — iptables 192.168.0.0/24 |
 
-Доступ извне только через VPN.
-
-## 3. VPN-варианты
+## 3. VPN-варианты (обзор)
 
 | Вариант | Назначение | Оценка |
 |---|---|---|
-| Tailscale | быстрый старт без белого IP | удобно |
-| ZeroTier | mesh-сеть | удобно |
-| WireGuard через VPS | контролируемая инженерная схема | предпочтительно для продакшн |
-| AmneziaVPN | если уже используется | возможно |
+| **Reverse SSH + autossh** | CGNAT-proof, свой VPS | ✅ **Реализовано (ADR-0005)** |
+| Tailscale | быстрый старт без белого IP | ❌ Заменён ADR-0005 |
+| ZeroTier | mesh-сеть | не рассматривался |
+| WireGuard через VPS | контролируемая схема | ❌ DKMS проблемы на L4T 4.9 (ADR-0003) |
+| AmneziaVPN | уже используется для семейного VPN | НЕ ТРОГАТЬ |
 
-## 3.1. Доступный VPS/VPN контур
+## 3.4. Реализованная схема: VPS + autossh reverse tunnel (2026-06-21)
+
+Выбранное и работающее решение. Описание и обоснование:
+[docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
+
+```
+Jetson (CGNAT) ──────────────────────────────→ VPS 193.8.215.130
+autossh -R 18080:localhost:8080                  sshd: 127.0.0.1:18080
+        -R 12283:localhost:2283                       127.0.0.1:12283
+        -R 18090:localhost:8090                       127.0.0.1:18090
+        -R 10022:localhost:22                         127.0.0.1:10022
+                                                nginx (host network):
+                                                  :8080 → 127.0.0.1:18080
+                                                  :2283 → 127.0.0.1:12283
+                                                  :8090 → 127.0.0.1:18090
+```
+
+Статус (2026-06-21): `nasa-tunnel.service` — active (running), enabled.
+
+Проверка: `systemctl status nasa-tunnel.service`
+
+Что нельзя менять:
+- **Amnezia-контейнеры на VPS** — не трогать (семейный VPN ~25 клиентов).
+- **`nasa-lan` профиль** на Jetson (eth0, 192.168.0.50/24) — не удалять.
+
+## 3.1. Доступный VPS/VPN контур (исторический референс)
 
 В `/home/alexey/work/Amnezia` уже есть рабочий WireGuard-контур:
 

@@ -1,36 +1,41 @@
 # 03. Архитектура
 
+> Актуализировано: 2026-06-21. Полная карта — [archtectura_nasa.md](../archtectura_nasa.md).
+
 ## 1. Логическая схема
 
 ```mermaid
 flowchart TB
-    Android[Android phones Xiaomi/HyperOS]
-    Laptop[Windows/Linux laptop]
-    Router[Домашний роутер]
-    Jetson[Jetson Nano]
-    HDD[USB HDD with external power]
-    Nextcloud[Nextcloud]
-    Immich[Immich]
-    DB[(PostgreSQL/MariaDB)]
-    Redis[(Redis)]
-    Samba[Samba/SFTP]
-    LLM[LLM Gateway]
-    DeepSeek[DeepSeek API]
-    Backup[Backup jobs]
+    Client[Android / браузер]
+    VPS["VPS 193.8.215.130\nnginx :8080/:2283/:8090"]
+    Tunnel["SSH reverse tunnel\nnasa-tunnel.service (autossh)"]
+    Jetson[Jetson Nano 4GB\n192.168.0.50]
+    HDD[USB HDD]
 
-    Android --> Router
-    Laptop --> Router
-    Router --> Jetson
+    Nextcloud[Nextcloud :8080]
+    Immich[Immich :2283]
+    LLM[LLM Gateway :8090]
+    Samba[Samba :445]
+    Backup[Backup jobs]
+    DeepSeek[DeepSeek API]
+
+    NCDB[(PostgreSQL\nnextcloud)]
+    ImmichDB[(PostgreSQL/pgvecto-rs\nimmich)]
+    Redis[(Redis)]
+
+    Client -->|internet| VPS
+    VPS -->|18080/12283/18090| Tunnel
+    Tunnel -->|autossh| Jetson
     Jetson --> HDD
     Jetson --> Nextcloud
     Jetson --> Immich
-    Nextcloud --> DB
-    Immich --> DB
-    Nextcloud --> Redis
-    Immich --> Redis
     Jetson --> Samba
     Jetson --> Backup
     Jetson --> LLM
+    Nextcloud --> NCDB
+    Nextcloud --> Redis
+    Immich --> ImmichDB
+    Immich --> Redis
     LLM --> DeepSeek
 ```
 
@@ -38,52 +43,64 @@ flowchart TB
 
 | Слой | Назначение |
 |---|---|
+| External relay | VPS nginx (host network) + SSH reverse tunnel через CGNAT |
 | Storage | USB HDD, ext4, `/mnt/storage` |
-| NAS | Samba/SFTP |
+| NAS | Samba/SMB2+ (LAN only) |
 | Cloud | Nextcloud |
 | Photo archive | Immich |
-| Databases | PostgreSQL/MariaDB, Redis |
-| AI | LLM Gateway → DeepSeek API |
-| Backup | DB dumps + restic/borg |
-| Future Android | Backup API + Android client |
+| Databases | PostgreSQL 16 (Nextcloud + Immich/pgvecto-rs), Redis 7 |
+| AI | LLM Gateway → DeepSeek API (privacy-filtered) |
+| Backup | pg_dump + restic |
+| Future Android | Backup API + Android client (Stage 2) |
 
 ## 3. Порты
 
-| Сервис | Внутренний порт | Внешний доступ |
-|---|---:|---|
-| Nextcloud | 8080/80 | LAN/VPN only |
-| Immich | 2283 | LAN/VPN only |
-| LLM Gateway | 8090 | LAN only, опционально localhost |
-| SSH/SFTP | 22 | LAN/VPN only |
-| Samba | 445 | LAN only |
+| Сервис | Порт Jetson | Внешний доступ | Статус |
+|---|---|---|---|
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ✅ Live |
+| Immich | 2283 | `http://193.8.215.130:2283/` | ✅ Live |
+| LLM Gateway | 8090 | `http://193.8.215.130:8090/` | ✅ Live |
+| SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | ✅ tunnel |
+| Samba | 445/139 | LAN only (192.168.0.0/24) | ✅ iptables |
 
-## 4. Принцип изоляции LLM
+Прямого проброса портов на домашнем роутере нет.
+
+## 4. VPS + reverse SSH tunnel
+
+Обход CGNAT через исходящий SSH от Jetson:
+
+```
+Jetson → autossh -R 18080:localhost:8080
+                 -R 12283:localhost:2283
+                 -R 18090:localhost:8090
+                 -R 10022:localhost:22
+                 root@193.8.215.130
+```
+
+VPS nginx (`network_mode: host`) проксирует публичные порты на `127.0.0.1:18xxx`.  
+Подробнее: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
+
+## 5. Принцип изоляции LLM
 
 LLM Gateway получает только:
+- обезличенные логи и статусы сервисов
+- фрагменты проектной документации
+- результаты диагностики без секретов
 
-- обезличенные логи;
-- статусы сервисов;
-- фрагменты проектной документации;
-- результаты диагностики без секретов.
+LLM Gateway **не получает**:
+фото, видео, контакты, календарь, личные документы, ключи, backup-архивы.
 
-LLM Gateway не получает:
+## 6. Этапы
 
-- фото;
-- видео;
-- контакты;
-- календарь;
-- личные документы;
-- ключи;
-- полные backup-архивы.
-
-## 5. Этапы
-
-| Этап | Содержание |
-|---|---|
-| Stage 1A | Hardware audit, storage, Samba/SFTP |
-| Stage 1B | Nextcloud |
-| Stage 1C | Immich в ограниченном режиме |
-| Stage 1D | DeepSeek LLM Gateway |
-| Stage 1E | Backup/restore |
-| Stage 2 | Android-клиент восстановления |
-| Stage 3 | Расширенная аналитика, RAG, альтернативные LLM-провайдеры |
+| Этап | Содержание | Статус |
+|---|---|---|
+| Stage 0 | microSD, first boot, SSH | ✅ |
+| Stage 1A | Hardware audit, storage, Samba | ✅ |
+| Stage 1B | Nextcloud | ✅ Live |
+| Stage 1C | Immich (ML disabled) | ✅ Live |
+| Stage 1D | LLM Gateway + DeepSeek | ✅ Live |
+| Stage 1E | VPS + reverse SSH tunnel | ✅ Live |
+| Stage 1F | Monitoring | 🔜 |
+| Stage 1G | Backup/restore | 🔜 |
+| Stage 2 | Android backup API | 📋 |
+| Stage 3 | RAG, fallback LLM | 📋 |

@@ -64,7 +64,20 @@
 4. Проверка лимитов.
 5. Проверка redaction.
 
-## 6. Backup/Restore
+## 6. VPS + Reverse SSH Tunnel
+
+| Тест | Команда | Критерий |
+|---|---|---|
+| Tunnel service active | `systemctl status nasa-tunnel.service` | active (running) |
+| Tunnel ports on VPS | `ss -tlnp \| grep -E '18080\|12283\|18090\|10022'` | 4 порта на 127.0.0.1 |
+| nginx container | `docker ps --filter name=nasa_nginx` | Up, network_mode host |
+| Nextcloud via VPS | `wget -q -O /dev/null -S http://193.8.215.130:8080/` | HTTP 302 |
+| Immich via VPS | `wget -q -O /dev/null -S http://193.8.215.130:2283/` | HTTP 200 |
+| LLM GW via VPS | `wget -q -O /dev/null -S http://193.8.215.130:8090/health` | HTTP 200 |
+| SSH via tunnel | `ssh -p 10022 admin@127.0.0.1` (с VPS) | prompt |
+| Tunnel restart | `systemctl restart nasa-tunnel.service` | re-establishes within 30s |
+
+## 7. Backup/Restore
 
 1. Создать тестовый backup.
 2. Проверить список snapshots.

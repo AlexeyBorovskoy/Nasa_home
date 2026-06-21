@@ -1,6 +1,6 @@
 # Архитектура NASA Home Cloud
 
-> Актуализировано: 2026-05-31.
+> Актуализировано: 2026-06-21.
 >
 > Этот файл является обзорной архитектурной картой проекта. Детальные
 > инструкции живут в `docs/`, compose-шаблоны — в `docker/compose/`, код
@@ -9,46 +9,52 @@
 ## 1. Назначение
 
 NASA Home Cloud — домашняя семейная облачная платформа на базе **NVIDIA Jetson
-Nano + USB HDD**. Проект предназначен для приватного хранения файлов,
-документов, контактов, календарей, фото и видео с Android-устройств семьи.
+Nano 4 GB + USB HDD**. Проект предназначен для приватного хранения файлов,
+документов, фото и видео с Android-устройств семьи без зависимости от
+Google/Xiaomi Cloud.
 
 Ключевая идея: Jetson Nano работает как маломощный домашний сервер хранения, а
-не как узел тяжёлого ML/inference. На Stage 1 локальная LLM на Jetson не
-разворачивается.
+не как узел тяжёлого ML/inference. Локальная LLM на Jetson не разворачивается —
+вместо неё используется privacy-шлюз к DeepSeek API. Доступ снаружи без белого
+IP обеспечивается через обратный SSH-тоннель к VPS (обход CGNAT).
 
 ## 2. Логическая схема
 
 ```mermaid
 flowchart TB
-    Android[Android phones]
-    Laptop[Laptop / desktop]
-    Router[Home router]
-    VPN[VPN / mesh VPN]
-    Jetson[Jetson Nano]
-    HDD[USB HDD with external power]
+    Phone[Android / браузер]
+    Internet[Интернет / CGNAT]
+    VPS["VPS 193.8.215.130\n(Вена, AEZA)"]
+    NginxVPS["nginx :8080/:2283/:8090\n(network_mode: host)"]
+    Tunnel["SSH reverse tunnel\nautossh → nasa-tunnel.service"]
+    Router[Домашний роутер\n192.168.0.1]
+    Jetson["Jetson Nano 4GB\n192.168.0.50"]
+    HDD[USB HDD\nexternal power]
 
-    Nextcloud[Nextcloud]
-    Immich[Immich]
-    Samba[Samba / SFTP]
+    Nextcloud[Nextcloud :8080]
+    Immich[Immich :2283]
+    LLMGateway[LLM Gateway :8090]
+    Samba[Samba :445]
     Backup[Backup jobs]
-    LLMGateway[LLM Gateway]
     DeepSeek[DeepSeek API]
 
-    NCDB[(Nextcloud PostgreSQL)]
-    ImmichDB[(Immich PostgreSQL / pgvecto-rs)]
+    NCDB[(PostgreSQL\nnextcloud)]
+    ImmichDB[(PostgreSQL/pgvecto-rs\nimmich)]
     Redis[(Redis)]
 
-    Android --> Router
-    Laptop --> Router
-    VPN --> Router
+    Phone --> Internet
+    Internet --> VPS
+    VPS --> NginxVPS
+    NginxVPS -->|18080/12283/18090| Tunnel
+    Tunnel -->|autossh| Jetson
     Router --> Jetson
     Jetson --> HDD
 
     Jetson --> Nextcloud
     Jetson --> Immich
+    Jetson --> LLMGateway
     Jetson --> Samba
     Jetson --> Backup
-    Jetson --> LLMGateway
 
     Nextcloud --> NCDB
     Nextcloud --> Redis
@@ -59,326 +65,214 @@ flowchart TB
 
 ## 3. Основные компоненты
 
-| Компонент | Роль | Stage 1 статус |
+| Компонент | Роль | Статус (2026-06-21) |
 |---|---|---|
-| Jetson Nano | Домашний сервер приложений и storage-узел | целевая платформа |
-| USB HDD | Основное хранилище `/mnt/storage` | требуется подготовка на железе |
-| Nextcloud | Файлы, документы, WebDAV, Contacts/Calendar | compose-черновик есть |
-| Immich | Фото- и видеоархив с Android | compose-черновик есть |
-| Samba/SFTP | Локальный NAS-доступ | описано в архитектуре, реализация следующим шагом |
-| PostgreSQL | Базы Nextcloud и Immich | используется в compose |
-| Redis | Кэш/очереди для сервисов | используется в compose |
-| LLM Gateway | Privacy-шлюз к DeepSeek API | FastAPI-скелет есть |
-| Backup API | Будущий Android restore API | Stage 2 placeholder |
-| restic | Резервное копирование файлов и дампов БД | script draft есть |
+| Jetson Nano 4 GB | Домашний сервер, storage-узел | ✅ Работает в LAN |
+| USB HDD | Основное хранилище `/mnt/storage` | ⚠️ Смонтирован, нужна разбивка ext4 |
+| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ✅ Live, HTTP 200 |
+| Immich | Фото- и видеоархив | ✅ Live, HTTP 200 |
+| Samba | Локальный NAS (SMB2+) | ✅ Compose + iptables готовы |
+| PostgreSQL | БД Nextcloud и Immich | ✅ Running |
+| Redis | Кэш/очереди для Nextcloud и Immich | ✅ Running |
+| LLM Gateway | Privacy-шлюз к DeepSeek API | ✅ Live, /health 200 |
+| VPS + nginx | Reverse proxy через тоннель | ✅ Live |
+| autossh tunnel | Обход CGNAT, Jetson → VPS | ✅ nasa-tunnel.service active |
+| Backup API | Будущий Android restore API | 📋 Stage 2 placeholder |
+| restic | Резервное копирование | 🔜 Scripts draft, не активен |
+| Monitoring | Netdata + Uptime Kuma + Portainer | 🔜 Stage 1F, Compose готов |
 
 ## 4. Сетевые правила
 
-Stage 1 строится по принципу **LAN/VPN only**:
+| Сервис | Порт Jetson | Внешний доступ | Механизм |
+|---|---|---|---|
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel |
+| Immich | 2283 | `http://193.8.215.130:2283/` | VPS nginx → SSH tunnel |
+| LLM Gateway | 8090 | `http://193.8.215.130:8090/` | VPS nginx → SSH tunnel |
+| SSH (управление) | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | SSH tunnel -R 10022 |
+| Samba | 445/139 | LAN only (192.168.0.0/24) | iptables + netfilter-persistent |
 
-- Nextcloud доступен в LAN/VPN, порт `8080:80` в compose-шаблоне.
-- Immich доступен в LAN/VPN, порт `2283:2283`.
-- LLM Gateway доступен в LAN или локально, порт `8090:8090`.
-- SSH/SFTP доступны только из LAN/VPN.
-- Samba доступна только из LAN.
-- Прямой публичный доступ из интернета не включается.
-
-Отдельный reverse proxy с HTTPS внутри LAN/VPN возможен позже, но не является
-обязательным первым шагом.
+Прямого проброса портов на роутере нет. Jetson не получает белый IP (CGNAT).
 
 ## 5. Хранилище
 
-Целевой корень данных:
-
 ```text
-/mnt/storage
-├── nextcloud/data
-├── immich/library
+/mnt/storage                     ← USB HDD, ext4 (нужна разбивка)
+├── nextcloud/data                ← bind mount → /var/www/html/data
+├── immich/library                ← Immich photo uploads
 ├── db/
-│   ├── nextcloud-postgres
-│   └── immich-postgres
+│   ├── nextcloud-postgres        ← bind mount → postgres container
+│   └── immich-postgres           ← bind mount → postgres container
 ├── backups/
-│   ├── database-dumps
-│   └── restic-repo
-└── samba/
+│   ├── database-dumps            ← pg_dump output
+│   └── restic-repo               ← restic snapshots
+└── samba/public                  ← Samba public share
 ```
 
-Актуальные переменные путей находятся в `config/.env.example`:
+Актуальные переменные путей — в `config/.env.example`:
+`STORAGE_ROOT`, `NEXTCLOUD_DATA`, `NEXTCLOUD_DB_DATA`,
+`IMMICH_UPLOAD_LOCATION`, `IMMICH_DB_DATA_LOCATION`, `BACKUP_ROOT`.
 
-- `STORAGE_ROOT`
-- `NEXTCLOUD_DATA`
-- `NEXTCLOUD_DB_DATA`
-- `IMMICH_UPLOAD_LOCATION`
-- `IMMICH_DB_DATA_LOCATION`
-- `BACKUP_ROOT`
-- `RESTIC_REPOSITORY`
+## 6. Docker Compose файлы
 
-Подготовка диска, filesystem, mount и `fstab` описаны в
-`docs/04_STORAGE_DESIGN.md`. Любое форматирование или изменение таблицы
-разделов требует отдельного явного подтверждения пользователя.
+| Файл | Назначение | Статус |
+|---|---|---|
+| `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ✅ Running |
+| `docker/compose/docker-compose.immich.yml` | Immich + PostgreSQL + Redis | ✅ Running |
+| `docker/compose/docker-compose.llm-gateway.yml` | LLM Gateway (FastAPI) | ✅ Running |
+| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ✅ Ready |
+| `docker/compose/docker-compose.monitoring.yml` | Netdata + Uptime Kuma + Portainer | 🔜 Stage 1F |
+| `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack draft | draft |
+| `docker/vps/docker-compose.yml` | nginx на VPS (`network_mode: host`) | ✅ Running on VPS |
 
-## 6. Docker Compose
-
-Актуальные compose-файлы:
-
-| Файл | Назначение |
-|---|---|
-| `docker/compose/docker-compose.stage1.yml` | полный Stage 1 stack draft |
-| `docker/compose/docker-compose.nextcloud.yml` | изолированный запуск Nextcloud |
-| `docker/compose/docker-compose.immich.yml` | изолированный запуск Immich |
-| `docker/compose/docker-compose.llm-gateway.yml` | изолированный запуск LLM Gateway |
-
-Compose-файлы используют современную спецификацию Docker Compose с
-верхнеуровневым ключом `name:`. Для проверки нужен Docker Compose v2:
-
-```bash
-docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config
-```
-
-Старый `docker-compose` v1 может отклонить эти файлы.
+> **Важно:** `docker-compose.nextcloud.yml` и `docker-compose.stage1.yml` используют
+> одинаковые имена контейнеров — запускать только один из них.
 
 ## 7. Nextcloud
 
-Nextcloud отвечает за:
+- PostgreSQL 16-alpine (`nextcloud-db`)
+- Redis 7-alpine (`nextcloud-redis`)
+- `nextcloud:apache` (latest)
+- Установлен через `occ maintenance:install` (не через веб-форму)
+- trusted_domains: `192.168.0.50`, `localhost`, `127.0.0.1`, `193.8.215.130`
+- data dir: `/mnt/storage/nextcloud/data` (bind mount → `/var/www/html/data`)
 
-- файлы и документы;
-- WebDAV;
-- Contacts/Calendar;
-- интеграцию с DAVx5 на Android;
-- Android-клиент Nextcloud для файловых сценариев.
-
-В текущем compose используется **PostgreSQL 16-alpine**, а не MariaDB:
-
-- `nextcloud-db`: `postgres:16-alpine`;
-- `nextcloud-redis`: `redis:7-alpine`;
-- `nextcloud`: `nextcloud:apache`.
-
-Детали: `docs/06_NEXTCLOUD_DESIGN.md`.
+Детали: [docs/06_NEXTCLOUD_DESIGN.md](docs/06_NEXTCLOUD_DESIGN.md).
 
 ## 8. Immich
 
-Immich отвечает за фото- и видеоархив с Android.
+- `ghcr.io/immich-app/immich-server:release`
+- `tensorchord/pgvecto-rs:pg16-v0.3.0` (Immich DB)
+- Redis 7-alpine
+- `IMMICH_DISABLE_MACHINE_LEARNING=true` — обязательно для Jetson Nano 4 GB
 
-Ограничение Jetson Nano: начинать нужно с минимальной нагрузки. Machine learning
-и тяжёлое видеотранскодирование нельзя включать до нагрузочных тестов.
-
-В текущем compose используются:
-
-- `immich-server`: `ghcr.io/immich-app/immich-server:${IMMICH_VERSION}`;
-- `immich-db`: `tensorchord/pgvecto-rs:pg16-v0.3.0`;
-- `immich-redis`: `redis:7-alpine`.
-
-Отдельный технический долг: переменная
-`IMMICH_DISABLE_MACHINE_LEARNING=true` есть в `config/.env.example`, но ещё не
-передана в compose и должна быть реализована перед первым constrained-тестом на
-Jetson.
-
-Детали: `docs/07_IMMICH_DESIGN.md`.
+Детали: [docs/07_IMMICH_DESIGN.md](docs/07_IMMICH_DESIGN.md).
 
 ## 9. LLM Gateway
 
-LLM Gateway — единственная точка выхода к внешнему DeepSeek API.
+FastAPI-сервис — единственная точка выхода к DeepSeek API.
 
 Разрешено в Stage 1:
+- анализировать обезличенную диагностику
+- объяснять ошибки Docker
+- работать с проектной документацией
 
-- анализировать обезличенную диагностику;
-- объяснять ошибки Docker;
-- помогать с runbook;
-- работать с проектной документацией.
+Запрещено отправлять:
+- фото, видео, контакты, календарь
+- личные документы и backup-архивы
+- токены, пароли, приватные ключи
 
-Запрещено отправлять во внешний LLM:
+Endpoints: `GET /health`, `POST /v1/chat`, `POST /v1/redact`, `POST /v1/diagnostics/explain`.  
+Swagger UI: `http://192.168.0.50:8090/docs`.
 
-- фото и видео;
-- контакты;
-- календарь;
-- личные документы;
-- backup-архивы и backup-манифесты;
-- токены, пароли, приватные ключи;
-- полные логи с персональными данными.
+Модели: `DEEPSEEK_MODEL=deepseek-chat`, `DEEPSEEK_REASONER_MODEL=deepseek-reasoner`.
 
-Актуальные модели в шаблоне (рабочие имена DeepSeek API, подтверждено живым
-вызовом 2026-05-31):
+Детали: [docs/08_LLM_GATEWAY_DEEPSEEK.md](docs/08_LLM_GATEWAY_DEEPSEEK.md).
 
-- `DEEPSEEK_MODEL=deepseek-chat`
-- `DEEPSEEK_REASONER_MODEL=deepseek-reasoner`
+## 10. VPS + autossh тоннель
 
-Имена `deepseek-v4-flash` / `deepseek-v4-pro` зарезервированы на будущее
-(`config/llm-policy.yaml` → `reserved_future`) и сейчас API не принимаются.
+Обратный SSH-тоннель обходит CGNAT:
 
-Детали: `docs/08_LLM_GATEWAY_DEEPSEEK.md` и
-`services/llm-gateway/README.md`.
+```
+Jetson:        autossh -R 18080:localhost:8080 -R 12283:localhost:2283
+                        -R 18090:localhost:8090 -R 10022:localhost:22
+                        root@193.8.215.130
+VPS sshd:      127.0.0.1:18080 → tunnel → Jetson:8080
+VPS nginx:     :8080 → 127.0.0.1:18080   (network_mode: host!)
+```
 
-## 10. Backup / Restore
+Критичный параметр: nginx запущен с `network_mode: host` — в bridge-режиме
+`127.0.0.1:18080` внутри контейнера не совпадает с loopback хоста, где сидит тоннель.
+
+systemd: `nasa-tunnel.service` (enabled, автозапуск при загрузке Jetson).
+
+ADR: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
+
+## 11. Backup / Restore
 
 Целевой подход:
+1. `pg_dump` → `/mnt/storage/backups/database-dumps/`
+2. restic snapshot с данными и дампами
+3. Restore-test в `/tmp/restore-test`
 
-1. Создать дампы БД Nextcloud и Immich.
-2. Снять restic snapshot с пользовательских данных и дампов.
-3. Проверить восстановление в отдельную тестовую директорию.
-4. Только после restore-test считать backup рабочим.
+Текущее состояние: `scripts/backup/backup_databases.sh` — placeholder.
 
-Текущее состояние:
+Детали: [docs/12_BACKUP_RESTORE.md](docs/12_BACKUP_RESTORE.md).
 
-- `scripts/backup/backup_databases.sh` — placeholder, требует реализации после
-  первого реального запуска контейнеров.
-- `scripts/backup/restic_backup_example.sh` — пример restic workflow.
-- `services/backup-api/` — Stage 2 placeholder для будущего Android restore,
-  не production backup-сервис.
+## 12. Android Stage 2
 
-Детали: `docs/12_BACKUP_RESTORE.md`.
+Future: Android-клиент восстановления через `services/backup-api/`.  
+На Stage 1 не разворачивается.
 
-## 11. Android Stage 2
+## 13. Этапы реализации
 
-Stage 2 закладывает будущий Android-клиент восстановления. На Stage 1 он не
-разворачивается как production-компонент.
+| Этап | Содержание | Статус |
+|---|---|---|
+| Stage 0 | microSD, first boot, SSH | ✅ Задокументировано |
+| Stage 1A | Hardware audit, storage, Samba | ✅ Compose + systemd готовы |
+| Stage 1B | Nextcloud | ✅ **Live** |
+| Stage 1C | Immich (ML disabled) | ✅ **Live** |
+| Stage 1D | LLM Gateway + DeepSeek | ✅ **Live** |
+| Stage 1E | VPS + reverse SSH tunnel | ✅ **Live** |
+| Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | 🔜 Compose готов |
+| Stage 1G | Backup/restore | 🔜 Scripts draft |
+| Stage 2 | Android backup/restore API | 📋 Архитектура |
+| Stage 3 | RAG, fallback LLM providers | 📋 Будущее |
 
-Ограничение: обычное Android-приложение не заменит полностью системный backup
-Google/Xiaomi без root/system privileges. Реалистичный MVP должен начинаться с
-файлов, фото/видео, экспортируемых контактов/календаря и пользовательских
-документов.
-
-Детали: `docs/09_ANDROID_STAGE2_ARCHITECTURE.md` и
-`services/backup-api/README.md`.
-
-## 12. Актуальная структура проекта
+## 14. Структура проекта
 
 ```text
 NASA/
 ├── README.md
 ├── AGENTS.md
 ├── PROJECT_CONTEXT.md
-├── PROJECT_TREE.txt
-├── SECURITY.md
-├── CONTRIBUTING.md
-├── AUDIT_2026-05-31.md
 ├── archtectura_nasa.md
 ├── config/
 │   ├── .env.example
 │   └── llm-policy.yaml
 ├── docker/
-│   └── compose/
-│       ├── docker-compose.stage1.yml
-│       ├── docker-compose.nextcloud.yml
-│       ├── docker-compose.immich.yml
-│       └── docker-compose.llm-gateway.yml
+│   ├── compose/
+│   │   ├── docker-compose.stage1.yml
+│   │   ├── docker-compose.nextcloud.yml
+│   │   ├── docker-compose.immich.yml
+│   │   ├── docker-compose.llm-gateway.yml
+│   │   ├── docker-compose.samba.yml
+│   │   └── docker-compose.monitoring.yml
+│   └── vps/
+│       ├── docker-compose.yml          ← nginx (network_mode: host)
+│       └── nginx/conf.d/
 ├── docs/
-│   ├── 00_OVERVIEW.md
-│   ├── 01_HARDWARE_AUDIT.md
-│   ├── 01A_JETSON_SD_BOOTSTRAP.md
-│   ├── 02_REQUIREMENTS.md
 │   ├── 03_ARCHITECTURE.md
-│   ├── 04_STORAGE_DESIGN.md
 │   ├── 05_NETWORKING_VPN.md
-│   ├── 06_NEXTCLOUD_DESIGN.md
-│   ├── 07_IMMICH_DESIGN.md
-│   ├── 08_LLM_GATEWAY_DEEPSEEK.md
-│   ├── 09_ANDROID_STAGE2_ARCHITECTURE.md
-│   ├── 10_SECURITY_PRIVACY.md
-│   ├── 11_SECRETS_POLICY.md
-│   ├── 12_BACKUP_RESTORE.md
-│   ├── 13_MONITORING_RUNBOOK.md
-│   ├── 14_TEST_PLAN.md
-│   ├── 15_ALTERNATIVES_REVIEW.md
-│   ├── 16_GITHUB_PUBLICATION.md
-│   ├── plans/
-│   │   ├── README.md
-│   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
-│   │   └── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
-│   ├── references/
-│   │   ├── EXTERNAL_DOCS_CACHE.md
-│   │   ├── JETSON_LOCAL_ASSETS.md
-│   │   └── REFERENCE_LINKS.md
-│   └── decisions/
-│       └── ADR-0001-nextcloud-immich-deepseek.md
+│   ├── decisions/
+│   │   ├── ADR-0004-tailscale-external-access.md   ← Superseded
+│   │   └── ADR-0005-vps-autossh-reverse-tunnel.md  ← Implemented
+│   └── plans/
+│       └── VPS_INTEGRATION_PLAN.md                 ← Завершено
 ├── prompts/
-│   ├── CODEX_BOOTSTRAP_PROMPT.md
-│   ├── CODEX_HARDWARE_AUDIT_PROMPT.md
-│   ├── CODEX_STORAGE_PROMPT.md
-│   ├── CODEX_NEXTCLOUD_PROMPT.md
-│   ├── CODEX_IMMICH_PROMPT.md
-│   ├── CODEX_LLM_GATEWAY_PROMPT.md
-│   ├── CODEX_SECURITY_PROMPT.md
-│   └── CODEX_ANDROID_STAGE2_PROMPT.md
+│   ├── CODEX_CODE_AGENT.md
+│   ├── CODEX_HARDWARE_AGENT.md
+│   ├── CODEX_DOCS_AGENT.md
+│   ├── CODEX_NETWORK_AGENT.md
+│   └── CODEX_SYSAPPS_AGENT.md
 ├── scripts/
 │   ├── backup/
 │   ├── diagnostics/
+│   ├── network/
+│   │   └── setup_vps_tunnel.sh
 │   ├── maintenance/
 │   └── security/
-└── services/
-    ├── llm-gateway/
-    └── backup-api/
+├── services/
+│   ├── llm-gateway/app/main.py
+│   └── backup-api/
+└── systemd/
+    ├── nasa-tunnel.service             ← autossh, enabled
+    └── jetson-nas-health.service
 ```
-
-## 13. Карта документации
-
-| Документ | Назначение |
-|---|---|
-| `README.md` | публичный двуязычный вход в проект |
-| `PROJECT_CONTEXT.md` | назначение, решения и ограничения проекта |
-| `AGENTS.md` | правила работы Codex/агентов |
-| `AUDIT_2026-05-31.md` | аудит целостности перед первым запуском |
-| `docs/00_OVERVIEW.md` | обзор концепции |
-| `docs/01A_JETSON_SD_BOOTSTRAP.md` | подготовка microSD, первый boot и SSH без HDD |
-| `docs/references/EXTERNAL_DOCS_CACHE.md` | manifest локального cache внешней документации |
-| `docs/references/JETSON_LOCAL_ASSETS.md` | локальный manifest Jetson-образа, Etcher и NVIDIA PDF |
-| `docs/references/REFERENCE_LINKS.md` | чистый список официальных reference-ссылок |
-| `docs/01_HARDWARE_AUDIT.md` | аппаратный аудит Jetson |
-| `docs/02_REQUIREMENTS.md` | требования к железу, ПО и сети |
-| `docs/03_ARCHITECTURE.md` | компактная архитектурная схема |
-| `docs/04_STORAGE_DESIGN.md` | дизайн HDD, mount и каталогов |
-| `docs/05_NETWORKING_VPN.md` | LAN/VPN-модель |
-| `docs/06_NEXTCLOUD_DESIGN.md` | дизайн Nextcloud |
-| `docs/07_IMMICH_DESIGN.md` | дизайн Immich |
-| `docs/08_LLM_GATEWAY_DEEPSEEK.md` | дизайн LLM Gateway |
-| `docs/09_ANDROID_STAGE2_ARCHITECTURE.md` | будущий Android Stage 2 |
-| `docs/10_SECURITY_PRIVACY.md` | безопасность и приватность |
-| `docs/11_SECRETS_POLICY.md` | политика секретов |
-| `docs/12_BACKUP_RESTORE.md` | backup/restore |
-| `docs/13_MONITORING_RUNBOOK.md` | мониторинг и runbook |
-| `docs/14_TEST_PLAN.md` | план тестирования |
-| `docs/15_ALTERNATIVES_REVIEW.md` | обзор альтернатив |
-| `docs/16_GITHUB_PUBLICATION.md` | публикация на GitHub |
-| `docs/plans/README.md` | индекс и анализ стратегических планов продвижения |
-
-## 14. Этапы реализации
-
-| Этап | Содержание | Контроль результата |
-|---|---|---|
-| Stage 0 | microSD image, first boot, SSH | Jetson загружается, есть LAN IP и SSH |
-| Stage 1A | hardware audit, storage, Samba/SFTP | отчёт аудита, mount, тест записи |
-| Stage 1B | Nextcloud | web login, файл, WebDAV, Android client |
-| Stage 1C | Immich | 20-50 фото, 2-3 видео, `docker stats` |
-| Stage 1D | LLM Gateway | `/health`, `/v1/redact`, mock/DeepSeek safe test |
-| Stage 1E | Backup/restore | snapshot и restore-test |
-| Stage 2 | Android backup/restore API/client | отдельный RFC и MVP |
-| Stage 3 | расширенная аналитика/RAG/fallback providers | после стабилизации Stage 1 |
 
 ## 15. Известные технические долги
 
-- Docker Compose требует v2; `docker-compose` v1 может не подходить.
-- Локальные внешние материалы Jetson находятся в `external_docs/jatson` и
-  исключены из Git.
-- Внешняя документация скачана в `external_docs/` для локальной работы; в Git
-  хранится только manifest.
-- `IMMICH_DISABLE_MACHINE_LEARNING` нужно связать с compose.
-- `backup_databases.sh` пока placeholder.
-- `config/llm-policy.yaml` описывает целевую политику, но лимиты ещё не все
-  реализованы в коде LLM Gateway.
-- `POSTGRES_NEXTCLOUD_PASSWORD` дублирует `NEXTCLOUD_DB_PASSWORD` и не
-  используется.
-- Reverse proxy для HTTPS внутри LAN/VPN ещё не реализован.
-
-## 16. Первый практический шаг
-
-Если готовой стартовой microSD нет, первый практический шаг — подготовить
-загрузочную карту по `docs/01A_JETSON_SD_BOOTSTRAP.md`.
-
-После первого boot и SSH нужно выполнить диагностику на целевом Jetson:
-
-```bash
-./scripts/diagnostics/hardware_audit.sh
-```
-
-`storage_health.sh` запускается позже, когда USB HDD будет физически доступен.
-После аудита принимается решение по подготовке HDD, `fstab`, структуре
-`/mnt/storage` и только затем запускаются сервисы.
+- HDD пока на одном NTFS-разделе — нужен ext4 раздел для NAS (`scripts/storage/setup_disk.sh`).
+- `backup_databases.sh` — placeholder, требует реализации.
+- Monitoring stack не развёрнут (Stage 1F).
+- HTTPS для VPS nginx не настроен (Let's Encrypt — будущее улучшение).
+- `services/backup-api` — Stage 2, не production.

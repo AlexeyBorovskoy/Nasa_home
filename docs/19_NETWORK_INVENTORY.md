@@ -19,10 +19,10 @@ Scope of this step:
 - Do not change router DHCP, firewall, port forwarding, VPN, Wi-Fi, or ISP
   settings during inventory.
 - Do not expose Nextcloud, Immich, LLM Gateway, Samba, or SSH directly to the
-  internet.
-- Do not touch the Amnezia server on the EU VPS through SSH or `wg set`.
-- Use Tailscale for future external access unless a separate risk document
-  explicitly approves another path.
+  internet via port forwarding on the home router.
+- Do not touch the Amnezia VPN containers on VPS 193.8.215.130 through SSH or
+  `wg set` — serves ~25 clients.
+- External access implemented via VPS reverse SSH tunnel (ADR-0005). No Tailscale.
 - Treat router photos, SSIDs, passwords, MAC addresses, serial numbers, and
   admin credentials as secrets.
 
@@ -48,19 +48,23 @@ Gateway: 192.168.0.1
                   data disk attached directly to Jetson over USB
                   not a network device
 
-Future external admin access:
+External access (implemented 2026-06-21):
 
-Admin client
+Internet / mobile client
     |
-    v
-Tailscale mesh / approved VPN path
+    v (HTTP)
+VPS 193.8.215.130 — nginx (network_mode: host)
+    :8080 Nextcloud, :2283 Immich, :8090 LLM GW
     |
-    v
-Jetson Nano services on LAN
+    v (SSH reverse tunnel, autossh)
+Jetson Nano 192.168.0.50
+    Tunnel: nasa-tunnel.service (enabled, autostart)
+    SSH management from VPS: ssh -p 10022 admin@127.0.0.1
 
 VPS:
-    Stored as VPS_HOST in local secrets.
-    Not an active public ingress path for home services without a separate risk doc.
+    IP: 193.8.215.130 (Vienna, AEZA GROUP)
+    SSH: ssh -i ~/.ssh/borovskoy_new_ed25519 root@193.8.215.130
+    Caution: Amnezia VPN containers — DO NOT TOUCH.
 ```
 
 ## 4. Network Settings Table
@@ -99,7 +103,10 @@ VPS:
 | VPS | Host | `VPS_HOST` | `config/.env` | Secret/local operational value |
 | VPS | User | `VPS_USER` | `config/.env` | Secret/local operational value |
 | VPS | SSH key | `VPS_SSH_KEY` | `config/.env` | Secret/local operational value |
-| External access | Preferred path | Tailscale | ADR-0004 | Planned |
+| External access | Implemented path | VPS 193.8.215.130 + autossh | ADR-0005 | ✅ Live |
+| VPS | Host | 193.8.215.130 (Vienna, AEZA) | observed | ✅ Active |
+| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active |
+| SSH tunnel | nasa-tunnel.service | -R 18080/12283/18090/10022 | systemd/nasa-tunnel.service | ✅ Active |
 | Public port forwarding | Home router | none for Stage 1 | ADR-0003 | Required safe default |
 
 ## 5. Router UI Status
@@ -171,11 +178,11 @@ mountpoint /mnt/storage || echo "/mnt/storage is not mounted"
 
 | Item | Why it matters | Next safe action |
 |---|---|---|
-| Router admin password missing | DHCP range and static lease cannot be verified from UI | User provides/admin enters password; inspect only |
-| Jetson LAN not verified in this pass | Jetson target path is LAN, not USB | Connect Jetson to router LAN and test `192.168.0.50:22` |
-| HDD currently being sorted by user | Storage migration depends on final retained data size | Re-scan HDD after cleanup |
-| 250 GB resource unavailable | Cannot plan final copy destination yet | Connect 250 GB resource and inventory it |
-| External access not active | CGNAT and Amnezia constraints | Follow Tailscale plan, no router port forwarding |
+| Router admin password missing | DHCP range and static lease cannot be verified from UI | User provides password; inspect only |
+| Jetson LAN SSH | ✅ Verified: `admin@192.168.0.50:22` works | — |
+| VPS external access | ✅ Live: nginx+tunnel, ports 8080/2283/8090 | — |
+| HDD partition | One NTFS partition, need ext4 for NAS | GParted resize → mkfs.ext4 → setup_disk.sh |
+| External access | ✅ Implemented via VPS reverse tunnel (ADR-0005) | — |
 
 ## 8. Rollback
 
