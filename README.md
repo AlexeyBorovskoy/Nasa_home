@@ -6,13 +6,20 @@
 [![Platform](https://img.shields.io/badge/Platform-Jetson%20Nano-76b900)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-v2-2496ED)](docker/compose/)
 [![AI-Assisted](https://img.shields.io/badge/Built%20with-Claude%20Code-blueviolet)](https://claude.ai/code)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)  
+[![Stars](https://img.shields.io/github/stars/AlexeyBorovskoy/Nasa_home?style=social)](https://github.com/AlexeyBorovskoy/Nasa_home/stargazers)
+[![Discussions](https://img.shields.io/github/discussions/AlexeyBorovskoy/Nasa_home)](https://github.com/AlexeyBorovskoy/Nasa_home/discussions)
+[![Issues](https://img.shields.io/github/issues/AlexeyBorovskoy/Nasa_home)](https://github.com/AlexeyBorovskoy/Nasa_home/issues)
+[![CI](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml/badge.svg)](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml)
 
 > 🇷🇺 **Идея:** взял NVIDIA Jetson Nano, который пылился на полке, старый USB HDD — и заменил ими Google Фото, Google Drive и Яндекс.Диск.  
 > Задумал человек — реализовал [Claude Code](https://claude.ai/code). **Новичок тоже справится.**
 >
 > 🇬🇧 **Concept:** took a dusty NVIDIA Jetson Nano and an old USB HDD — replaced Google Photos, Google Drive and Yandex.Disk with them.  
 > Human vision, AI-assisted implementation with Claude Code. **Beginners can do this too.**
+
+**Если проект полезен — поставь ⭐ звезду, это помогает другим его найти.**  
+**If you find this useful — please ⭐ star this repo so others can discover it.**
 
 ---
 
@@ -491,15 +498,17 @@ CI автоматически проверяет секреты: `.github/workfl
 
 Вклад приветствуется. Прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) перед тем, как открывать pull request.
 
+**Есть вопрос или идея?** Заходи в [Discussions](https://github.com/AlexeyBorovskoy/Nasa_home/discussions) — там есть тема для знакомства и Q&A.
+
 Правила:
 - Не коммитьте секреты и персональные данные.
 - Предпочитайте небольшие PR с документацией.
 - Stage 1 должен оставаться безопасным: нет прямого публичного доступа к сервисам.
 
-Хорошие первые задачи:
-- Адаптация под **Raspberry Pi 4/5** (аналогичная архитектура, без JetPack).
-- **HTTPS** (Let's Encrypt) для VPS nginx — нужен домен.
-- **Netdata Telegram alerts** — настроить и описать в docs.
+Хорошие первые задачи / Good first issues:
+- [#5 Адаптация под Raspberry Pi 4/5](https://github.com/AlexeyBorovskoy/Nasa_home/issues/5) — только документация, без изменения кода.
+- [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — нужен домен и базовый nginx.
+- [#6 Netdata Telegram alerts](https://github.com/AlexeyBorovskoy/Nasa_home/issues/6) — настроить и описать в docs.
 - CI shellcheck для всех bash-скриптов в `scripts/`.
 - Инструкция по миграции данных **microSD → USB HDD** (Stage 3.1).
 
