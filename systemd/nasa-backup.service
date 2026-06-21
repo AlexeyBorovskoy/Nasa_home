@@ -11,10 +11,6 @@ Type=oneshot
 Environment=NASA_PROJECT_DIR=/home/admin/nasa
 ExecStart=/bin/bash -c "${NASA_PROJECT_DIR}/scripts/backup/backup_databases.sh"
 User=admin
-# On failure try once more after 5 min, then give up
-Restart=on-failure
-RestartSec=5min
-# Log to journal; retrieve with: journalctl -u nasa-backup.service
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=nasa-backup
