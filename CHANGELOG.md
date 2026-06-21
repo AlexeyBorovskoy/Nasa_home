@@ -8,6 +8,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-06-21 · Stage 1G + 1H complete
+
+### Added / Добавлено
+
+- **Monitoring stack deployed** (Stage 1F): Netdata (19999), Uptime Kuma (3001), Portainer (9000)
+  running on Jetson via `docker-compose.monitoring.yml`
+- **nasa-api** (Stage 1G): FastAPI service on port 8099 with Swagger UI at `/docs`
+  — endpoints: `/v1/metrics`, `/v1/containers`, `/v1/logs`, `POST /v1/report/now`
+  — pydantic-settings config, JSON structured logging (RotatingFileHandler 10 MB × 5)
+  — `docker/compose/docker-compose.nasa-api.yml`
+- **Telegram daily health report** (09:00): `scripts/monitoring/nasa-daily-report.sh`
+  collects RAM, CPU, disk, container states, HTTP checks; sent via VPS SSH relay
+  (`scripts/monitoring/nasa-send-report-telegram.sh`)
+  — systemd timer: `nasa-daily-report-telegram.{service,timer}`
+- **Docker healthchecks** added to all 10 containers:
+  Nextcloud (`curl /status.php`), nextcloud-db/immich-db (`pg_isready`),
+  nextcloud-redis/immich-redis (`redis-cli ping` with auth),
+  immich-server (`curl /api/server/ping`), llm-gateway/nasa-api (`python3 urllib`),
+  netdata (`curl /api/v1/info`), uptime-kuma (`extra/healthcheck`),
+  portainer (`disable: true` — scratch image, no shell)
+- **`depends_on: condition: service_healthy`** for nextcloud and immich stacks
+  — containers wait for DB + Redis to be healthy before starting
+- **`mem_limit`** added to all remaining containers:
+  llm-gateway 256m, nasa-api 128m, netdata 256m, uptime-kuma 128m, portainer 128m
+- **`restart: always`** applied to llm-gateway, nasa-api, and all monitoring services
+- **`NETDATA_UPDATE_EVERY=5`** — reduces Netdata CPU from 19.5% to ~4%
+- **goss v0.4.9 spec**: `tests/goss/goss.yaml` — 34 tests (ports, services, files, HTTP)
+- **docs/21_LOGGING_API.md**: bilingual documentation for logging subsystem and nasa-api
+- **docs/22_AUDIT_RESILIENCE.md**: resilience audit report — tools, 10 findings, fixes
+
+### Fixed / Исправлено
+
+- **F-05 (SC2029)**: `nasa-send-report-telegram.sh` — Telegram token no longer appears
+  in `ps aux` on VPS; passed via ephemeral SSH env file on remote
+- **F-06**: `nasa-daily-report-telegram.service` — added `Restart=on-failure` + `RestartSec=60`
+- **F-08 (SC2046)**: `scripts/fetch_external_docs.sh:182` — `$(find ...)` replaced with `xargs`
+- **Immich healthcheck endpoint**: corrected from deprecated `/api/server-info/ping`
+  to `/api/server/ping` (Immich v1.100+)
+
+### Changed / Изменено
+
+- README: complete rewrite to reflect Stage 1 complete state — all services live,
+  accurate architecture diagram, updated stages/docs/stack tables
+- `docker-compose.nextcloud.yml`, `docker-compose.immich.yml`: `restart: unless-stopped`
+  → `restart: always` for all services (applied live via `docker update`)
+- Audit report status updated: F-02 → MEDIUM/Mitigated, F-03/F-04/F-06/F-07 → Fixed
+
 ### Added / Добавлено (deep audit 2026-06-20)
 
 - `config/.env.example`: `STORAGE_DEVICE` variable for SMART monitoring; `SAMBA_NAS_PASSWORD`
