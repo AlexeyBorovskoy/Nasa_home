@@ -154,7 +154,82 @@ systemctl list-timers nasa-daily-report-telegram.timer
 | LLM Gateway недоступен | `docker logs homecloud_llm_gateway --tail=50` |
 | nasa-api недоступен | `docker logs homecloud_nasa_api --tail=50` |
 
-## 12. nasa-api — полезные запросы
+## 12. Автоматический бэкап БД — установка таймера
+
+Скрипт `scripts/backup/backup_databases.sh` уже реализован (pg_dump + gzip + ротация 7 дней).
+Таймер запускает его каждый день в 03:00 (±15 мин).
+
+```bash
+# Установить на Jetson (один раз, из директории проекта):
+cd ~/nasa
+bash scripts/backup/install_backup_timer.sh
+
+# Проверить статус:
+systemctl status nasa-backup.timer
+systemctl list-timers nasa-backup.timer
+
+# Запустить немедленно (тест):
+sudo systemctl start nasa-backup.service
+journalctl -u nasa-backup.service -n 40 --no-pager
+
+# Убедиться, что дампы созданы:
+ls -lh /mnt/storage/backups/database-dumps/
+```
+
+## 13. Uptime Kuma — начальная настройка мониторов
+
+**Первый запуск** → открыть `http://192.168.0.50:3001` и создать admin-аккаунт.
+
+Добавить 5 мониторов (Add New Monitor → HTTP(s)):
+
+| Имя | URL | Интервал | Expected Status |
+|---|---|---|---|
+| Nextcloud | `http://192.168.0.50:8080/status.php` | 60 сек | 200 |
+| Immich | `http://192.168.0.50:2283/api/server/ping` | 60 сек | 200 |
+| LLM Gateway | `http://192.168.0.50:8090/health` | 60 сек | 200 |
+| nasa-api | `http://192.168.0.50:8099/healthcheck` | 60 сек | 200 |
+| Netdata | `http://192.168.0.50:19999/api/v1/info` | 120 сек | 200 |
+
+**Telegram-уведомления** (Settings → Notifications → Add Notification):
+- Type: Telegram
+- Bot Token: значение из `TELEGRAM_BOT_TOKEN` (см. `/etc/nasa-monitor/telegram.env` на Jetson)
+- Chat ID: значение из `TELEGRAM_CHAT_ID`
+- Включить на всех 5 мониторах
+
+## 14. Netdata — Telegram-алерты
+
+Конфиг живёт внутри Docker-тома `homecloud_netdata_config` → `/etc/netdata/health_alarm_notify.conf`.
+
+```bash
+# 1. Посмотреть текущие Telegram-переменные:
+docker exec homecloud_netdata grep -n 'TELEGRAM\|DEFAULT_RECIPIENT' \
+  /etc/netdata/health_alarm_notify.conf
+
+# 2. Включить Telegram (поправить три строки):
+BOT_TOKEN="YOUR_BOT_TOKEN"   # взять из /etc/nasa-monitor/telegram.env
+CHAT_ID="YOUR_CHAT_ID"       # взять из /etc/nasa-monitor/telegram.env
+
+docker exec homecloud_netdata sed -i \
+  -e "s|^SEND_TELEGRAM=.*|SEND_TELEGRAM=\"YES\"|" \
+  -e "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=\"${BOT_TOKEN}\"|" \
+  -e "s|^DEFAULT_RECIPIENT_TELEGRAM=.*|DEFAULT_RECIPIENT_TELEGRAM=\"${CHAT_ID}\"|" \
+  /etc/netdata/health_alarm_notify.conf
+
+# 3. Проверить результат:
+docker exec homecloud_netdata grep -E 'SEND_TELEGRAM|TELEGRAM_BOT_TOKEN|DEFAULT_RECIPIENT_TELEGRAM' \
+  /etc/netdata/health_alarm_notify.conf
+
+# 4. Перезагрузить конфиг (без перезапуска контейнера):
+docker exec homecloud_netdata kill -USR2 1
+
+# 5. Тест: отправить тестовый алерт (если поддерживается):
+docker exec homecloud_netdata /usr/libexec/netdata/plugins.d/alarm-notify.sh test telegram
+```
+
+> **Какие алерты приходят:** CPU > 80%, RAM < 300 MB, Disk > 80%, температура > 85°C,
+> контейнер упал. Настроить пороги можно в `/etc/netdata/health.d/` внутри контейнера.
+
+## 15. nasa-api — полезные запросы
 
 ```bash
 # Метрики системы (RAM, CPU load, диски, температура):

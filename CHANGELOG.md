@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-06-21 · Phase 1 ops tasks
+
+### Added / Добавлено
+
+- **`systemd/nasa-backup.{service,timer}`**: systemd timer for daily automated
+  `pg_dump` at 03:00 (±15 min randomized delay); `Persistent=true` so missed
+  runs are retried on next boot
+- **`scripts/backup/install_backup_timer.sh`**: one-command installer — copies
+  units, patches `NASA_PROJECT_DIR`, calls `daemon-reload`, enables and starts timer
+- **`docs/13_MONITORING_RUNBOOK.md` §12-14**: added operational setup sections:
+  backup timer install & verify, Uptime Kuma initial monitor list (5 services),
+  Netdata Telegram alerts config via `docker exec`
+
 ## [1.3.0] — 2026-06-21 · Stage 1G + 1H complete
 
 ### Added / Добавлено
