@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.2] — 2026-06-21 · GitHub + Claude Code integration
+
+### Added / Добавлено
+
+- **`CLAUDE.md`**: контекстный файл проекта для Claude Code — автоматически читается
+  при открытии репозитория; содержит адреса сервисов, команды SSH, workflow, ограничения
+- **`docs/23_GITHUB_INTEGRATION.md`**: полное руководство по GitHub CLI интеграции —
+  авторизация PAT, `gh issue/pr/release`, стандартный workflow сессии, AI-assisted DevOps цикл
+- **`AGENTS.md` §6**: новый раздел GitHub CLI — разрешённые операции, аварийное восстановление auth,
+  ссылка на `docs/23_GITHUB_INTEGRATION.md`
+- **`gh` CLI** (`C:\tools\gh\bin\`, v2.74.1): авторизован через Windows keyring (полные права `repo`)
+
 ## [1.3.1] — 2026-06-21 · Phase 1 ops tasks
 
 ### Added / Добавлено

@@ -52,7 +52,31 @@
 
 Один шаг — один технический блок. После каждого шага должен быть контроль результата.
 
-## 6. Операционная модель субагентов
+## 6. GitHub CLI интеграция
+
+`gh` CLI установлен в `C:\tools\gh\bin\gh.exe` (добавлен в PATH пользователя).  
+Авторизован под `AlexeyBorovskoy` через Windows keyring (полные права `repo`).
+
+**Разрешённые операции через `gh`:**
+- `gh issue create/list/close` — управление задачами
+- `gh pr create/list/merge` — pull requests
+- `gh release create` — публикация релизов (после `git tag`)
+- `gh api repos/...` — произвольные API-запросы (topics, description, etc.)
+
+**Запрещено:**
+- Хранить токены в файлах репозитория
+- Делать `gh repo delete`, `gh repo transfer`, деструктивные операции с репозиторием
+
+**Если `gh` разлогинился:**
+```bash
+printf 'protocol=https\nhost=github.com\n' | git credential fill | grep password
+# скопировать вывод и:
+echo "ghp_TOKEN" | gh auth login --with-token
+```
+
+Полное руководство: `docs/23_GITHUB_INTEGRATION.md`.
+
+## 7. Операционная модель субагентов
 
 Проект ведётся через малые безопасные шаги с использованием профильных
 субагентов. Подробная модель описана в
