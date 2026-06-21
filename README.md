@@ -2,23 +2,57 @@
 ### _Old hardware should live_ · _Старое железо должно жить_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/Stage-1%20Ops%20Ready-brightgreen)](docs/14_TEST_PLAN.md)
+[![Release](https://img.shields.io/github/v/release/AlexeyBorovskoy/Nasa_home?color=brightgreen)](https://github.com/AlexeyBorovskoy/Nasa_home/releases)
 [![Platform](https://img.shields.io/badge/Platform-Jetson%20Nano-76b900)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-v2-2496ED)](docker/compose/)
 [![AI-Assisted](https://img.shields.io/badge/Built%20with-Claude%20Code-blueviolet)](https://claude.ai/code)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> 🇷🇺 Воспроизводимый шаблон приватного семейного облака на **NVIDIA Jetson Nano + старый HDD**.  
-> Придумал человек — реализовал [Claude Code](https://claude.ai/code). Вся история в промптах и ADR.
+> 🇷🇺 **Идея:** взял NVIDIA Jetson Nano, который пылился на полке, старый USB HDD — и заменил ими Google Фото, Google Drive и Яндекс.Диск.  
+> Задумал человек — реализовал [Claude Code](https://claude.ai/code). **Новичок тоже справится.**
 >
-> 🇬🇧 A reproducible private family cloud blueprint for **NVIDIA Jetson Nano + old HDD**.  
-> Human vision, AI-assisted implementation. Every decision documented in ADRs and agent prompts.
+> 🇬🇧 **Concept:** took a dusty NVIDIA Jetson Nano and an old USB HDD — replaced Google Photos, Google Drive and Yandex.Disk with them.  
+> Human vision, AI-assisted implementation with Claude Code. **Beginners can do this too.**
+
+---
+
+## Зачем это нужно / Why
+
+> Облачные сервисы хранят ваши семейные фотографии, видео, документы и переписку на своих серверах.
+> Этот проект позволяет держать всё дома — на старом железе, которое уже есть, без абонентской платы.
+
+| Было / Before | Стало / After |
+|---|---|
+| Google Фото — безлимитный, но ваши фото у Google | **Immich** — ваш личный фотоархив дома |
+| Google Drive / Яндекс.Диск — платная подписка | **Nextcloud** — файлы, CalDAV, CardDAV |
+| NAS Synology/QNAP — от 20 000 ₽ | **Samba NAS** — на старом HDD, бесплатно |
+| ChatGPT / Claude API — счета за токены | **LLM Gateway** — личный AI-ассистент, контроль данных |
+| Облачный мониторинг | **Netdata + Uptime Kuma** — ваш собственный |
+
+---
+
+## Стоимость / Project Cost
+
+> Это не подписка. Это железо, которое лежит у вас дома или стоит копейки на авито.
+
+| Компонент | Цена (РФ, авито) | Цена ($/eBay) | Примечание |
+|---|---|---|---|
+| NVIDIA Jetson Nano 4 GB | 7 000–12 000 ₽ | $80–130 | Основа проекта |
+| microSD 64 GB (A2) | 600–900 ₽ | $8–12 | Системный диск |
+| USB HDD 2 TB | 0–3 000 ₽ | $0–40 | Старый с ноутбука или нового |
+| VPS (Ubuntu 24.04, 1 vCPU) | 200–400 ₽/мес | $3–5/mo | Для доступа извне через CGNAT |
+| Блок питания microUSB 5V 4A | 400–800 ₽ | $6–12 | Jetson требует хороший БП |
+| **Итого железо** | **≈ 8 000–16 000 ₽** | **≈ $100–200** | Разовая трата |
+| **VPS в год** | **≈ 2 400–4 800 ₽** | **≈ $36–60/yr** | Если нужен внешний доступ |
+
+**Сравните:** подписка Яндекс.360 (1 TB) = 3 600 ₽/год. За 2–4 года подписки на облако — собственный сервер и полный контроль.
 
 ---
 
 ## Содержание / Table of Contents
 
 - [О проекте / About](#о-проекте--about)
+- [Для кого / Who is this for](#для-кого--who-is-this-for)
 - [Что работает прямо сейчас / What's running](#что-работает-прямо-сейчас--whats-running)
 - [Архитектура / Architecture](#архитектура--architecture)
 - [Стек / Stack](#стек--stack)
@@ -62,6 +96,28 @@ Principles:
 - **Small steps** — every deployment block is verified before moving to the next.
 - **No real secrets in git** — `.env`, tokens, API keys, and personal data are excluded from the repository.
 - **Resilience** — `restart: always`, mem_limit, Docker healthchecks, daily Telegram health report, automated DB backup timer.
+
+---
+
+## Для кого / Who is this for
+
+> 🇷🇺 **Вам подойдёт этот проект, если:**
+> - Вы хотите выйти из Google/Яндекс/iCloud, но не знаете с чего начать
+> - У вас лежит старый Jetson Nano, Raspberry Pi 4/5 или мини-ПК
+> - Вы не сеньор-девопс, но готовы разобраться при поддержке AI
+> - Вам важна приватность семейных фотографий и документов
+> - Вы хотите понять, как работает Docker, systemd, nginx на реальном проекте
+>
+> **Весь код реализован с нуля через [Claude Code](https://claude.ai/code)**. Я как владелец проекта формулировал задачи, Claude Code генерировал, отлаживал, тестировал и писал документацию. Вы видите полный лог решений в промптах (`prompts/`), ADR (`docs/decisions/`) и CHANGELOG.
+
+> 🇬🇧 **This project is for you if:**
+> - You want to leave Google/Yandex/iCloud but don't know where to start
+> - You have a dusty Jetson Nano, Raspberry Pi 4/5, or a mini-PC
+> - You're not a senior DevOps engineer but willing to learn with AI help
+> - You care about the privacy of your family's photos and documents
+> - You want to understand Docker, systemd, nginx on a real project
+>
+> **All code was implemented from scratch using [Claude Code](https://claude.ai/code)**. The project owner formulated tasks; Claude Code generated, debugged, tested, and documented everything. Full decision log available in prompts (`prompts/`), ADRs (`docs/decisions/`), and CHANGELOG.
 
 ---
 
@@ -191,15 +247,15 @@ Principles:
 
 | Компонент | Рекомендация |
 |---|---|
-| Вычислительный узел | NVIDIA Jetson Nano Developer Kit (4 GB) |
+| Вычислительный узел | NVIDIA Jetson Nano Developer Kit (4 GB) · или Raspberry Pi 4/5 · или любой мини-ПК |
 | Системный диск | microSD 64 GB (Class 10 / A2) |
 | Диск данных | USB HDD с отдельным питанием |
-| Сеть | Домашняя LAN, статический DHCP lease для Jetson |
+| Сеть | Домашняя LAN, статический DHCP lease |
 | Внешний доступ | VPS (любой; проверено на Ubuntu 24.04, 1 vCPU, 2 GB RAM) |
 
 **ПО на Jetson / Software on Jetson:**
 
-- L4T / JetPack 4.x (Ubuntu 18.04)
+- L4T / JetPack 4.x (Ubuntu 18.04) · или Ubuntu 22.04 (на RPi/мини-ПК)
 - Docker Engine 20.10+, Docker Compose v2
 - autossh (`apt install autossh`)
 - curl, openssl (`apt install curl openssl`)
@@ -266,14 +322,12 @@ sudo cp scripts/monitoring/nasa-daily-report.sh /usr/local/sbin/
 sudo cp scripts/monitoring/nasa-send-report-telegram.sh /usr/local/sbin/
 sudo chmod +x /usr/local/sbin/nasa-*.sh
 
-# Создать /etc/nasa-monitor/telegram.env (не коммитить!)
 sudo tee /etc/nasa-monitor/telegram.env <<EOF
 TELEGRAM_BOT_TOKEN=<your-token>
 TELEGRAM_CHAT_ID=<your-chat-id>
 EOF
 sudo chmod 600 /etc/nasa-monitor/telegram.env
 
-# Установить systemd таймер (09:00 ежедневно)
 sudo cp systemd/nasa-daily-report-telegram.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now nasa-daily-report-telegram.timer
@@ -282,15 +336,14 @@ sudo systemctl enable --now nasa-daily-report-telegram.timer
 ### 6. Автоматическая настройка UI и бэкапов / Automated UI + backup setup
 
 ```bash
-# На Jetson (всё в одном месте):
-
-# 6а. Бэкап таймер (pg_dump · 03:00 ежедневно)
+# На Jetson:
+# Бэкап таймер (pg_dump · 03:00 ежедневно)
 bash scripts/backup/install_backup_timer.sh
 
-# 6б. Portainer admin (curl API init · генерирует пароль если не в .env)
+# Portainer admin (генерирует пароль автоматически)
 bash scripts/monitoring/setup_portainer.sh
 
-# 6в. Uptime Kuma: admin + 5 мониторов (требует docker + python:3.x-slim образ)
+# Uptime Kuma: admin + 5 мониторов
 docker run --rm --network host \
   -v ~/nasa/scripts/monitoring/setup_uptime_kuma.py:/setup.py:ro \
   -e UPTIME_KUMA_ADMIN_USER=admin \
@@ -302,27 +355,20 @@ docker run --rm --network host \
 ### 7. Проверить / Verify
 
 ```bash
-# Сервисы (на Jetson или через LAN):
 curl -sf http://localhost:8080/status.php         # Nextcloud → {"installed":true,...}
 curl -sf http://localhost:2283/api/server/ping    # Immich → {"res":"pong"}
 curl -sf http://localhost:8090/health             # LLM Gateway → {"status":"ok"}
 curl -sf http://localhost:8099/healthcheck        # nasa-api → {"status":"ok"}
 curl -sf http://localhost:19999/api/v1/info       # Netdata → {...}
 
-# Инфраструктурные тесты (34 теста):
-goss -g tests/goss/goss.yaml validate --format tap
-
-# Бэкап (тест немедленного запуска):
-sudo systemctl start nasa-backup.service
-journalctl -u nasa-backup.service -n 20 --no-pager
-ls -lh /mnt/storage/backups/database-dumps/
-
-# Web UI:
-#   Swagger:     http://192.168.0.50:8099/docs
-#   Netdata:     http://192.168.0.50:19999
-#   Uptime Kuma: http://192.168.0.50:3001
-#   Portainer:   http://192.168.0.50:9000
+goss -g tests/goss/goss.yaml validate --format tap   # 34 infrastructure tests
 ```
+
+Web UI:
+- **Swagger:** http://192.168.0.50:8099/docs
+- **Netdata:** http://192.168.0.50:19999
+- **Uptime Kuma:** http://192.168.0.50:3001
+- **Portainer:** http://192.168.0.50:9000
 
 Полный план тестирования: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).  
 Подготовка microSD: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).  
@@ -354,12 +400,7 @@ VPS_SSH_KEY=/home/admin/.ssh/id_ed25519
 # LLM Gateway
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_MODEL=deepseek-chat
-IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Nano
-
-# Бэкап
-RESTIC_REPOSITORY=/mnt/storage/backups/restic-repo
-RESTIC_PASSWORD=changeme
-BACKUP_RETENTION_DAILY=7
+IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Nano 4GB
 ```
 
 Никогда не коммитьте реальный `config/.env`. Он в `.gitignore`.
@@ -379,10 +420,10 @@ BACKUP_RETENTION_DAILY=7
 | Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ **Развёрнут и работает** |
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
 | Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
-| Stage 1 Ops | Портал мониторинга: Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер (03:00) | ✅ **Настроено автоматически** |
+| Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ✅ **Автоматически настроен** |
 | Stage 2 | Android backup/restore client API | 📋 Архитектура готова |
-| Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы (`restic_backup_example.sh`) |
-| Stage 3.1 | HDD: подключение + ext4 + миграция данных с microSD | ⏳ Ожидает физического доступа к HDD |
+| Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы |
+| Stage 3.1 | HDD: подключение + ext4 + миграция данных с microSD | ⏳ Ожидает физического доступа |
 | Stage 4 | Analytics, RAG, fallback LLM providers | 📋 Будущее |
 
 ---
@@ -437,11 +478,11 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **HDD не подключён** — в текущей конфигурации `/mnt/storage` смонтирован на microSD (434 МБ данных). Для полноценного NAS и долгосрочного хранения нужно подключить USB HDD, создать ext4-раздел рядом с NTFS (или после переноса данных) и смигрировать данные. Фstab уже настроен (UUID, `nofail`).
+- **HDD не подключён** — в текущей конфигурации `/mnt/storage` смонтирован на microSD (434 МБ данных). Для полноценного NAS нужно подключить USB HDD, создать ext4-раздел и смигрировать данные. Fstab уже настроен (UUID, `nofail`).
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Immich работает без machine learning (`IMMICH_DISABLE_MACHINE_LEARNING=true`) — Jetson Nano 4 GB с ML не тестировался.
 - VPS IP может меняться — при смене обновить `VPS_HOST` в `config/.env` на Jetson и перезапустить `nasa-tunnel.service`.
-- Docker 20.10.7 (JetPack 4.x) — устаревший. Обновление нетривиально из-за зависимостей NVIDIA runtime. Для home lab допустимо: все сервисы LAN-only, untrusted images не запускаются.
+- Docker 20.10.7 (JetPack 4.x) — устаревший. Обновление нетривиально из-за зависимостей NVIDIA runtime. Для home lab допустимо.
 - HTTPS для VPS nginx — Let's Encrypt не настроен (нет доменного имени).
 
 ---
@@ -456,11 +497,11 @@ CI автоматически проверяет секреты: `.github/workfl
 - Stage 1 должен оставаться безопасным: нет прямого публичного доступа к сервисам.
 
 Хорошие первые задачи:
-- Добавить заметки для Raspberry Pi 4/5 (аналогичная архитектура, без JetPack).
-- Реализовать Let's Encrypt HTTPS для VPS nginx (нужен домен).
-- Настроить Netdata Telegram alerts (`/etc/netdata/health_alarm_notify.conf`) и описать в docs.
-- Добавить CI shellcheck для всех bash-скриптов в `scripts/`.
-- Инструкция по миграции данных microSD → USB HDD (Stage 3.1).
+- Адаптация под **Raspberry Pi 4/5** (аналогичная архитектура, без JetPack).
+- **HTTPS** (Let's Encrypt) для VPS nginx — нужен домен.
+- **Netdata Telegram alerts** — настроить и описать в docs.
+- CI shellcheck для всех bash-скриптов в `scripts/`.
+- Инструкция по миграции данных **microSD → USB HDD** (Stage 3.1).
 
 ---
 
