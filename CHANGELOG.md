@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [1.3.2] — 2026-06-21 · GitHub + Claude Code integration
+## [1.3.2] — 2026-06-21 · GitHub integration + promotion
 
 ### Added / Добавлено
 
@@ -16,9 +16,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   при открытии репозитория; содержит адреса сервисов, команды SSH, workflow, ограничения
 - **`docs/23_GITHUB_INTEGRATION.md`**: полное руководство по GitHub CLI интеграции —
   авторизация PAT, `gh issue/pr/release`, стандартный workflow сессии, AI-assisted DevOps цикл
-- **`AGENTS.md` §6**: новый раздел GitHub CLI — разрешённые операции, аварийное восстановление auth,
-  ссылка на `docs/23_GITHUB_INTEGRATION.md`
+- **`AGENTS.md` §6**: новый раздел GitHub CLI — разрешённые операции, аварийное восстановление auth
 - **`gh` CLI** (`C:\tools\gh\bin\`, v2.74.1): авторизован через Windows keyring (полные права `repo`)
+- **GitHub Discussions** включены; Welcome-дискуссия (#7) создана
+- **GitHub Issues** #4, #5, #6 — три `good first issue` задачи (HTTPS, RPi guide, Netdata alerts)
+
+### Changed / Изменено
+
+- **`README.md`**: полный рерайт вводной части — личная история (Jetson в ящике, HDD через раз),
+  убрана таблица цен, более живой и человеческий язык в секциях "О проекте" и "Для кого"
+- **`README.md`**: добавлены бейджи stars/discussions/issues/CI, призыв поставить ⭐
+- **`README.md`**: секция Contributing — прямые ссылки на good first issues
+- **GitHub**: homepage очищен (был бессмысленный `#readme`)
 
 ## [1.3.1] — 2026-06-21 · Phase 1 ops tasks
 
@@ -210,7 +219,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `.github/workflows/secrets-check.yml` — CI secret scanner on push/PR
   - `.github/workflows/validate-compose.yml` — CI Docker Compose validation
 
-[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v1.3.0
 [0.1.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v0.1.0
