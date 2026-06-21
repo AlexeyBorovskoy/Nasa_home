@@ -12,11 +12,15 @@
 [![Issues](https://img.shields.io/github/issues/AlexeyBorovskoy/Nasa_home)](https://github.com/AlexeyBorovskoy/Nasa_home/issues)
 [![CI](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml/badge.svg)](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml)
 
-> 🇷🇺 **Идея:** взял NVIDIA Jetson Nano, который пылился на полке, старый USB HDD — и заменил ими Google Фото, Google Drive и Яндекс.Диск.  
-> Задумал человек — реализовал [Claude Code](https://claude.ai/code). **Новичок тоже справится.**
+> 🇷🇺 В ящике лежал NVIDIA Jetson Nano — купил когда-то для экспериментов, поиграл неделю и забыл.
+> Там же был USB HDD от старого ноутбука, который работал через раз и давно валялся без дела.
+> Вместо того чтобы покупать что-то новое — взял то, что уже было, и сделал из этого домашний сервер.
+> Заменил Google Фото, Google Drive и Яндекс.Диск. Задумал я — реализовал [Claude Code](https://claude.ai/code). **Новичок тоже справится.**
 >
-> 🇬🇧 **Concept:** took a dusty NVIDIA Jetson Nano and an old USB HDD — replaced Google Photos, Google Drive and Yandex.Disk with them.  
-> Human vision, AI-assisted implementation with Claude Code. **Beginners can do this too.**
+> 🇬🇧 Had an NVIDIA Jetson Nano sitting in a drawer — bought it for experiments, tinkered for a week, then forgot about it.
+> Also had an old laptop USB HDD that barely worked and had been collecting dust for years.
+> Instead of buying new hardware — used what was already there and turned it into a proper home server.
+> Replaced Google Photos, Google Drive, and Yandex.Disk. My vision — [Claude Code](https://claude.ai/code) did the implementation. **Beginners can do this too.**
 
 **Если проект полезен — поставь ⭐ звезду, это помогает другим его найти.**  
 **If you find this useful — please ⭐ star this repo so others can discover it.**
@@ -25,34 +29,21 @@
 
 ## Зачем это нужно / Why
 
-> Облачные сервисы хранят ваши семейные фотографии, видео, документы и переписку на своих серверах.
-> Этот проект позволяет держать всё дома — на старом железе, которое уже есть, без абонентской платы.
+> 🇷🇺 Семейные фото копились в Google и Xiaomi Cloud. В какой-то момент понял, что не хочу чтобы они были у кого-то ещё.
+> Не хотелось тратить деньги на подписки и покупать новое железо, когда старое просто лежит.
+> Решение: собрать собственный облачный сервер из того что есть.
+
+> 🇬🇧 Family photos were piling up in Google and Xiaomi Cloud. At some point I realised I didn't want them sitting on someone else's server.
+> Didn't want to keep paying for subscriptions or buy new hardware when old hardware was just sitting there.
+> Solution: build a home cloud from what I already had.
 
 | Было / Before | Стало / After |
 |---|---|
-| Google Фото — безлимитный, но ваши фото у Google | **Immich** — ваш личный фотоархив дома |
-| Google Drive / Яндекс.Диск — платная подписка | **Nextcloud** — файлы, CalDAV, CardDAV |
-| NAS Synology/QNAP — от 20 000 ₽ | **Samba NAS** — на старом HDD, бесплатно |
-| ChatGPT / Claude API — счета за токены | **LLM Gateway** — личный AI-ассистент, контроль данных |
-| Облачный мониторинг | **Netdata + Uptime Kuma** — ваш собственный |
-
----
-
-## Стоимость / Project Cost
-
-> Это не подписка. Это железо, которое лежит у вас дома или стоит копейки на авито.
-
-| Компонент | Цена (РФ, авито) | Цена ($/eBay) | Примечание |
-|---|---|---|---|
-| NVIDIA Jetson Nano 4 GB | 7 000–12 000 ₽ | $80–130 | Основа проекта |
-| microSD 64 GB (A2) | 600–900 ₽ | $8–12 | Системный диск |
-| USB HDD 2 TB | 0–3 000 ₽ | $0–40 | Старый с ноутбука или нового |
-| VPS (Ubuntu 24.04, 1 vCPU) | 200–400 ₽/мес | $3–5/mo | Для доступа извне через CGNAT |
-| Блок питания microUSB 5V 4A | 400–800 ₽ | $6–12 | Jetson требует хороший БП |
-| **Итого железо** | **≈ 8 000–16 000 ₽** | **≈ $100–200** | Разовая трата |
-| **VPS в год** | **≈ 2 400–4 800 ₽** | **≈ $36–60/yr** | Если нужен внешний доступ |
-
-**Сравните:** подписка Яндекс.360 (1 TB) = 3 600 ₽/год. За 2–4 года подписки на облако — собственный сервер и полный контроль.
+| Google Фото — ваши фото у Google | **Immich** — личный фотоархив дома |
+| Google Drive / Яндекс.Диск | **Nextcloud** — файлы, CalDAV, CardDAV |
+| Старый HDD без дела | **Samba NAS** — сетевое хранилище для всей семьи |
+| ChatGPT / Claude API | **LLM Gateway** — локальный AI-ассистент, данные не уходят |
+| Облачный мониторинг | **Netdata + Uptime Kuma** — всё под рукой |
 
 ---
 
@@ -72,15 +63,18 @@
 - [Вклад / Contributing](#вклад--contributing)
 - [Лицензия / License](#лицензия--license)
 
+
 ---
 
 ## О проекте / About
 
 > 🇷🇺 Русский
 
-**NASA Home Cloud** — проект домашней семейной облачной платформы на базе **NVIDIA Jetson Nano 4 GB + USB HDD**. Цель — заменить Google/Xiaomi Cloud собственной инфраструктурой: файлы, фотоархив, локальный NAS, резервное копирование и приватный LLM-ассистент.
+Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Рядом был старый USB HDD от ноутбука — работал нестабильно, лежал без дела. Покупать готовый NAS или новое железо не хотелось.
 
-Это не production-инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Итог: работают Nextcloud, Immich, Samba NAS, мониторинг и даже локальный LLM-ассистент.
+
+**NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
 Принципы:
 
@@ -92,9 +86,11 @@
 
 > 🇬🇧 English
 
-**NASA Home Cloud** is a Codex-ready blueprint for a private family cloud on **NVIDIA Jetson Nano 4 GB + USB HDD**. It replaces Google/Xiaomi Cloud with self-hosted files, photo archive, local NAS, backups, and a privacy-controlled LLM admin assistant.
+It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. Next to it was an old laptop USB HDD that worked unreliably and had been gathering dust. Didn't want to buy a ready-made NAS or new hardware.
 
-This is not a one-command production installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe step-by-step deployment.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. Result: Nextcloud, Immich, Samba NAS, monitoring, and even a local LLM assistant are all running.
+
+**NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
 Principles:
 
@@ -108,23 +104,17 @@ Principles:
 
 ## Для кого / Who is this for
 
-> 🇷🇺 **Вам подойдёт этот проект, если:**
-> - Вы хотите выйти из Google/Яндекс/iCloud, но не знаете с чего начать
-> - У вас лежит старый Jetson Nano, Raspberry Pi 4/5 или мини-ПК
-> - Вы не сеньор-девопс, но готовы разобраться при поддержке AI
-> - Вам важна приватность семейных фотографий и документов
-> - Вы хотите понять, как работает Docker, systemd, nginx на реальном проекте
+> 🇷🇺 Если у вас где-то лежит Jetson Nano, Raspberry Pi 4/5 или любой мини-ПК — и он либо не используется, либо используется по крайней необходимости — этот проект для вас. Не нужно быть DevOps-инженером. Нужно быть готовым разбираться шаг за шагом.
 >
-> **Весь код реализован с нуля через [Claude Code](https://claude.ai/code)**. Я как владелец проекта формулировал задачи, Claude Code генерировал, отлаживал, тестировал и писал документацию. Вы видите полный лог решений в промптах (`prompts/`), ADR (`docs/decisions/`) и CHANGELOG.
+> Мне не нужна была экспертиза в Docker и systemd — достаточно было сформулировать задачи для [Claude Code](https://claude.ai/code). Агент генерировал код, отлаживал, тестировал, писал документацию. Я проверял, принимал решения, говорил что делать дальше. Получился рабочий сервер.
+>
+> Весь лог решений открыт: промпты (`prompts/`), архитектурные решения (`docs/decisions/`), CHANGELOG с каждым шагом.
 
-> 🇬🇧 **This project is for you if:**
-> - You want to leave Google/Yandex/iCloud but don't know where to start
-> - You have a dusty Jetson Nano, Raspberry Pi 4/5, or a mini-PC
-> - You're not a senior DevOps engineer but willing to learn with AI help
-> - You care about the privacy of your family's photos and documents
-> - You want to understand Docker, systemd, nginx on a real project
+> 🇬🇧 If you have a Jetson Nano, Raspberry Pi 4/5, or any mini-PC sitting somewhere — either unused or barely used — this project is for you. You don't need to be a DevOps engineer. You just need to be willing to work through it step by step.
 >
-> **All code was implemented from scratch using [Claude Code](https://claude.ai/code)**. The project owner formulated tasks; Claude Code generated, debugged, tested, and documented everything. Full decision log available in prompts (`prompts/`), ADRs (`docs/decisions/`), and CHANGELOG.
+> I didn't need expertise in Docker or systemd — just the ability to formulate tasks for [Claude Code](https://claude.ai/code). The agent wrote the code, debugged it, tested it, and documented everything. I reviewed, made decisions, and directed what to do next. The result: a working home server.
+>
+> The full decision log is open: agent prompts (`prompts/`), architecture decisions (`docs/decisions/`), CHANGELOG with every step.
 
 ---
 
