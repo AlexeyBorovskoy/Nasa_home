@@ -4,7 +4,8 @@ services:
     build:
       context: ../../services/llm-gateway
     container_name: homecloud_llm_gateway
-    restart: unless-stopped
+    restart: always
+    mem_limit: 256m
     ports:
       - "8090:8090"
     environment:
@@ -17,6 +18,12 @@ services:
       LLM_REDACT_PERSONAL_DATA: ${LLM_REDACT_PERSONAL_DATA}
       LLM_LOG_PROMPTS: ${LLM_LOG_PROMPTS}
       LLM_LOG_RESPONSES: ${LLM_LOG_RESPONSES}
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8090/health', timeout=3)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     networks:
       - homecloud_internal
 

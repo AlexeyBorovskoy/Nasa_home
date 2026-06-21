@@ -4,7 +4,8 @@ services:
     build:
       context: ../../services/nasa-api
     container_name: homecloud_nasa_api
-    restart: unless-stopped
+    restart: always
+    mem_limit: 128m
     ports:
       - "8099:8099"
     volumes:
@@ -28,6 +29,12 @@ services:
         Nextcloud=http://192.168.0.50:8080/
         Immich=http://192.168.0.50:2283/
         LLM-Gateway=http://192.168.0.50:8090/health
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8099/healthcheck', timeout=3)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

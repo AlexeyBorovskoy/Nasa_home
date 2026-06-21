@@ -44,12 +44,12 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | ID | Серьёзность | Категория | Находка | Статус |
 |---|---|---|---|---|
 | F-01 | **CRITICAL** | Docker | Docker 20.10.7 (2021) — устаревший, известные CVE. Актуальная версия: 27.x | Open |
-| F-02 | **CRITICAL** | Resilience | `docker kill` на Nextcloud → контейнер остаётся `Exited` 60+ сек при `restart: unless-stopped`. Баг Docker 20.10: SIGKILL трактуется как явная остановка. Естественный крэш процесса перезапуск ВСЁ ЖЕ запускает. | Open |
-| F-03 | HIGH | OOM | `mem_limit` не задан ни на одном из 11 контейнеров. Immich-server: 748 МБ. Суммарный RAM контейнеров: 1453 МБ. Нет OOM-барьера — один «взбесившийся» контейнер может убить остальных. | Open |
-| F-04 | HIGH | Observability | Docker healthcheck отсутствует у 8 из 11 контейнеров (нет у: Nextcloud, Nextcloud-DB, Nextcloud-Redis, LLM Gateway, Portainer, nasa-api). Docker не может обнаружить состояние «работает, но не отвечает». | Open |
+| F-02 | **MEDIUM** | Resilience | `docker kill` на Nextcloud → контейнер остаётся `Exited` при `restart: unless-stopped`. Баг Docker 20.10: SIGKILL трактуется как явная остановка. Смягчено переходом на `restart: always`. Полное исправление — обновление Docker (F-01). | Mitigated |
+| F-03 | HIGH | OOM | `mem_limit` добавлен всем 11 контейнерам. Immich-server: 1024m, Nextcloud: 512m, БД: 256–384m, Redis: 64m, мониторинг: 128–256m. Суммарный бюджет: 1453 МБ из 3964 МБ + 1980 МБ zram. | **Fixed** |
+| F-04 | HIGH | Observability | Docker healthcheck добавлен всем контейнерам: Nextcloud (`status.php`), DB (`pg_isready`), Redis (`redis-cli ping`), LLM GW + nasa-api (`urllib`), Immich (`api ping`), Netdata/Uptime Kuma/Portainer. | **Fixed** |
 | F-05 | HIGH | Security | SC2029: `nasa-send-report-telegram.sh` раскрывает `TELEGRAM_BOT_TOKEN` на стороне клиента в строке SSH-команды → токен виден в `ps aux` на VPS во время выполнения. | **Fixed** |
-| F-06 | MEDIUM | Reliability | `nasa-daily-report-telegram.service` задан `Restart=no` — при тайм-ауте сети systemd не повторит попытку. | Open |
-| F-07 | MEDIUM | Performance | Netdata потребляет 19.5% CPU непрерывно — аномально высоко. Требует тюнинга. | Open |
+| F-06 | MEDIUM | Reliability | `nasa-daily-report-telegram.service` — добавлен `Restart=on-failure` + `RestartSec=60`. systemd повторит попытку при тайм-ауте сети. | **Fixed** |
+| F-07 | MEDIUM | Performance | Netdata потреблял 19.5% CPU. Добавлен `NETDATA_UPDATE_EVERY=5` — сбор метрик раз в 5 сек вместо 1. Вступит в силу после `docker compose up -d --no-deps netdata`. | **Fixed** |
 | F-08 | MEDIUM | Code | SC2046 в `scripts/fetch_external_docs.sh:182`: неэкранированный `$(find ...)` → word splitting для имён файлов с пробелами. | **Fixed** |
 | F-09 | LOW | Code | SC2016 в `scripts/diagnostics/hardware_audit.sh`: ложное срабатывание — markdown-бэктики внутри одинарных кавычек. | Accepted |
 | F-10 | LOW | Code | SC1090 в скриптах мониторинга: динамический путь для `source` (известное ограничение shellcheck). | Accepted |
