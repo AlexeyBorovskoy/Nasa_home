@@ -100,13 +100,20 @@ api = UptimeKumaApi("http://localhost:3001")
 try:
     api.setup(ADMIN_USER, ADMIN_PASS)
     print(f"[setup] Admin user '{ADMIN_USER}' created.")
+    # setup() leaves socket in non-authed state — must reconnect
+    api.disconnect()
+    api = UptimeKumaApi("http://localhost:3001")
+    api.login(ADMIN_USER, ADMIN_PASS)
+    print("[setup] Logged in after setup.")
 except Exception as e:
     err = str(e).lower()
-    if "already" in err or "exist" in err or "setup" in err:
-        print(f"[setup] Already set up — logging in as '{ADMIN_USER}'...")
+    if any(x in err for x in ("already", "exist", "setup", "admin")):
+        print(f"[setup] Admin already exists — logging in as '{ADMIN_USER}'...")
+        api.disconnect()
+        api = UptimeKumaApi("http://localhost:3001")
         api.login(ADMIN_USER, ADMIN_PASS)
     else:
-        print(f"[setup] Setup error: {e}")
+        print(f"[setup] Error: {e}")
         sys.exit(1)
 
 existing = {m["name"] for m in api.get_monitors()}
