@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
+
+### Added / Добавлено
+
+- **`docs/24_CLIENT_SETUP.md`**: полное руководство по подключению устройств —
+  Android (Nextcloud app, DAVx⁵, Immich, Samba), Windows (Desktop client, WebDAV, net use),
+  Linux (nextcloudcmd, cifs-utils, Nautilus); таблица URL для LAN и внешнего доступа
+- **`docs/04_STORAGE_DESIGN.md` §3а**: новый раздел "HDD с данными — NTFS + ext4 гибрид":
+  пошаговый план сжатия NTFS (Windows), создания ext4 на Jetson, двойного fstab-монтирования,
+  добавления NTFS-шары в Samba (`archive`); таблица "что где хранится"
+- **`README.md`**: добавлены docs/23 и docs/24 в таблицу документации
+
 ## [1.3.2] — 2026-06-21 · GitHub integration + promotion
 
 ### Added / Добавлено

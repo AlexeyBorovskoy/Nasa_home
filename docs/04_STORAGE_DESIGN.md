@@ -66,6 +66,147 @@ find /mnt/hdd-check -mindepth 1 -maxdepth 1 | wc -l
 нужно проверить `du -sh /mnt/storage` и решить, нужно ли сохранять эти временные
 данные.
 
+## 3а. HDD с данными которые некуда перенести — NTFS + ext4 гибрид
+
+### Ситуация
+
+На HDD есть нужные файлы (фото, документы, архивы), объём большой — переносить некуда.
+Форматировать нельзя. При этом HDD нужен как основное хранилище NASA Home Cloud.
+
+### Решение: два раздела на одном диске
+
+```
+HDD 2 TB (пример)
+├── /dev/sda1  NTFS  1.4 TB  — старые файлы (данные сохраняются!)
+└── /dev/sda2  ext4   600 GB — NASA Home Cloud данные (Docker, БД, бэкапы)
+```
+
+NTFS-раздел монтируется отдельно → доступен через **Samba** со всей домашней сети.
+ext4-раздел монтируется как `/mnt/storage` → используется Docker-сервисами.
+
+> Старые файлы не просто сохраняются — они сразу становятся доступны с телефона,
+> ноутбука, планшета по локальной сети через Samba.
+
+### Шаг 1 — Сжать NTFS (Windows, до отключения HDD)
+
+1. Подключить HDD к Windows
+2. Нажать Win + X → "Управление дисками"
+3. ПКМ на NTFS-разделе → **Сжать том**
+4. Указать размер сжатия (сколько отдаём под ext4):
+   - Рекомендуется: освободить ≥ 100 ГБ (минимум для БД + Nextcloud + Immich + бэкапы)
+   - Хватает 50–200 ГБ в зависимости от объёма данных
+5. Нажать "Сжать" — данные не затрагиваются, операция занимает секунды
+6. Убедиться что в конце диска появилось "Нераспределённое пространство"
+7. Безопасно извлечь HDD
+
+### Шаг 2 — Создать ext4 на Jetson
+
+```bash
+# Найти диск
+lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MODEL
+
+# Предположим HDD = /dev/sda, NTFS = /dev/sda1
+# Нераспределённое пространство — пока без раздела
+
+# Создать раздел ext4 в нераспределённом пространстве
+sudo fdisk /dev/sda
+# Нажать: n (новый раздел) → Enter → Enter → Enter → w (записать)
+# fdisk сам возьмёт нераспределённое пространство
+
+# Отформатировать новый раздел (обычно /dev/sda2)
+sudo mkfs.ext4 -L nasa-storage /dev/sda2
+
+# Получить UUID
+sudo blkid /dev/sda2
+```
+
+### Шаг 3 — Настроить монтирование обоих разделов
+
+```bash
+# Установить поддержку NTFS (если не установлена)
+sudo apt install ntfs-3g
+
+# Создать точки монтирования
+sudo mkdir -p /mnt/storage     # ext4 — для Docker/NASA
+sudo mkdir -p /mnt/hdd-ntfs   # NTFS — старые файлы
+
+# Получить UUID обоих разделов
+sudo blkid /dev/sda1  # NTFS
+sudo blkid /dev/sda2  # ext4
+```
+
+Добавить в `/etc/fstab`:
+```text
+# NASA storage (ext4) — Docker volumes, databases, backups
+UUID=<ext4-UUID>  /mnt/storage   ext4  defaults,noatime,nofail  0 2
+
+# Old data (NTFS) — existing files, accessible via Samba
+UUID=<ntfs-UUID>  /mnt/hdd-ntfs  ntfs-3g  ro,uid=1000,gid=1000,umask=0022,nofail,_netdev  0 0
+```
+
+> `ro` — монтировать NTFS только для чтения (безопасно). Убрать `ro` если нужна запись.
+> `nofail` — Jetson загрузится даже если HDD не подключён.
+
+```bash
+# Применить
+sudo mount -a
+df -h /mnt/storage /mnt/hdd-ntfs
+
+# Проверить что обе точки смонтированы
+mountpoint /mnt/storage && echo "OK: ext4"
+mountpoint /mnt/hdd-ntfs && echo "OK: ntfs"
+```
+
+### Шаг 4 — Сделать NTFS-папку доступной через Samba
+
+Добавить в `configs/samba/config.yml` новую шару:
+
+```yaml
+share:
+  - name: archive
+    path: /mnt/hdd-ntfs
+    comment: "Old archive from HDD"
+    browsable: yes
+    readonly: yes          # читать можно, писать нельзя — данные в безопасности
+    guestok: yes           # без пароля из домашней сети
+```
+
+Или в `configs/samba/smb.conf`:
+```ini
+[archive]
+   path = /mnt/hdd-ntfs
+   comment = Old HDD Archive
+   browseable = yes
+   read only = yes
+   guest ok = yes
+```
+
+После изменения конфига перезапустить Samba:
+```bash
+ssh admin@192.168.0.50 "docker compose -f ~/nasa/docker/compose/docker-compose.samba.yml --env-file ~/nasa/config/.env restart"
+```
+
+### Итог: что где хранится
+
+| Что | Где | Формат | Доступ |
+|---|---|---|---|
+| Старые файлы (фото, документы, архивы) | `/mnt/hdd-ntfs` | NTFS | Samba `\\192.168.0.50\archive` |
+| Nextcloud файлы новых пользователей | `/mnt/storage/nextcloud/data` | ext4 | Nextcloud web/desktop/mobile |
+| Immich фотоархив | `/mnt/storage/immich/library` | ext4 | Immich app |
+| Базы данных (PostgreSQL) | `/mnt/storage/db/` | ext4 | Docker internal |
+| Бэкапы | `/mnt/storage/backups/` | ext4 | Автоматически (03:00) |
+
+### Если свободного места на диске нет совсем
+
+Если NTFS занимает весь диск и нет нераспределённого пространства:
+
+**Вариант A** — использовать microSD для баз данных (текущая конфигурация, `/mnt/storage` на microSD).
+Баз данных сейчас ~434 МБ — microSD справляется. NTFS HDD монтируется только для Samba.
+
+**Вариант B** — добавить второй USB-носитель (даже 32 ГБ флешка) под ext4 для баз данных.
+
+**Вариант C** — сжать NTFS со стороны Windows и освободить хотя бы 30–50 ГБ.
+
 ## 4. Целевая структура
 
 ```text
