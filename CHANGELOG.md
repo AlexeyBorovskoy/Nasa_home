@@ -198,5 +198,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `.github/workflows/secrets-check.yml` — CI secret scanner on push/PR
   - `.github/workflows/validate-compose.yml` — CI Docker Compose validation
 
-[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.0...HEAD
+[1.3.1]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v1.3.0
 [0.1.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v0.1.0
