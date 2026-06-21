@@ -1,0 +1,38 @@
+name: homecloud-nasa-api
+services:
+  nasa-api:
+    build:
+      context: ../../services/nasa-api
+    container_name: homecloud_nasa_api
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    volumes:
+      # Shared log directory — persists JSON logs on host
+      - /var/log/nasa-monitor:/var/log/nasa-monitor
+      # Docker socket — for `docker ps` inside container
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Report script — for POST /v1/report/now
+      - /usr/local/sbin/nasa-send-report-telegram.sh:/usr/local/sbin/nasa-send-report-telegram.sh:ro
+      - /etc/nasa-monitor:/etc/nasa-monitor:ro
+    environment:
+      API_LOG_LEVEL: ${NASA_API_LOG_LEVEL:-INFO}
+      EXPECTED_CONTAINERS: >-
+        homecloud-nextcloud-nextcloud-1
+        homecloud-immich-immich-server-1
+        homecloud-llm-gateway-llm-gateway-1
+        homecloud_netdata
+        homecloud_uptime_kuma
+        homecloud_portainer
+      LOCAL_SERVICES: >-
+        Nextcloud=http://192.168.0.50:8080/
+        Immich=http://192.168.0.50:2283/
+        LLM-Gateway=http://192.168.0.50:8090/health
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - homecloud_internal
+
+networks:
+  homecloud_internal:
+    external: true
