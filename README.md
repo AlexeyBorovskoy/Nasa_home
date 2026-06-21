@@ -2,7 +2,7 @@
 ### _Old hardware should live_ · _Старое железо должно жить_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/Stage-1%20Complete-brightgreen)](docs/14_TEST_PLAN.md)
+[![Stage](https://img.shields.io/badge/Stage-1%20Ops%20Ready-brightgreen)](docs/14_TEST_PLAN.md)
 [![Platform](https://img.shields.io/badge/Platform-Jetson%20Nano-76b900)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-v2-2496ED)](docker/compose/)
 [![AI-Assisted](https://img.shields.io/badge/Built%20with-Claude%20Code-blueviolet)](https://claude.ai/code)
@@ -47,7 +47,7 @@
 - **Только LAN + обратный SSH-тоннель** — сервисы недоступны напрямую из интернета; CGNAT обходится через VPS.
 - **Малые шаги** — каждый блок разворачивается отдельно и проверяется перед следующим.
 - **Без секретов в git** — реальные `.env`, токены, ключи и персональные данные не попадают в репозиторий.
-- **Устойчивость** — `restart: always`, mem_limit, Docker healthchecks, ежедневный Telegram-отчёт.
+- **Устойчивость** — `restart: always`, mem_limit, Docker healthchecks, ежедневный Telegram-отчёт, автоматический бэкап БД.
 
 > 🇬🇧 English
 
@@ -61,13 +61,13 @@ Principles:
 - **LAN + reverse SSH tunnel only** — services are not exposed directly to the internet; CGNAT is bypassed via VPS relay.
 - **Small steps** — every deployment block is verified before moving to the next.
 - **No real secrets in git** — `.env`, tokens, API keys, and personal data are excluded from the repository.
-- **Resilience** — `restart: always`, mem_limit, Docker healthchecks, daily Telegram health report.
+- **Resilience** — `restart: always`, mem_limit, Docker healthchecks, daily Telegram health report, automated DB backup timer.
 
 ---
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-21 / State as of 2026-06-21 · **Stage 1 полностью развёрнут**
+> Состояние на 2026-06-21 / State as of 2026-06-21 · **Stage 1 полностью настроен и операционен**
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
@@ -77,12 +77,15 @@ Principles:
 | nasa-api (Swagger) | 8099 | LAN `192.168.0.50:8099/docs` | ✅ Live |
 | Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ✅ Live |
 | Netdata | 19999 | LAN `192.168.0.50:19999` | ✅ Live |
-| Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live |
-| Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live |
+| Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live · 5 monitors configured |
+| Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live · admin configured |
 | VPS nginx reverse proxy | — | VPS 193.8.215.130 | ✅ Live |
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) |
+| DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live (03:00 daily) |
 | Android backup API | — | — | 🔜 Stage 2 |
+
+> **Примечание:** `/mnt/storage` в текущей конфигурации смонтирован на microSD (HDD физически отключён). Данные: ~434 МБ (PostgreSQL + Nextcloud + Immich). Миграция на HDD — следующий этап.
 
 ---
 
@@ -111,9 +114,10 @@ Principles:
         +-- Nextcloud (8080) · PostgreSQL 16 · Redis 7
         |
         +-- Immich (2283) · PostgreSQL 16 + pgvecto-rs · Redis 7
+        |   IMMICH_DISABLE_MACHINE_LEARNING=true (Jetson Nano 4GB safe mode)
         |
         +-- LLM Gateway / FastAPI (8090)
-        |     +-- [ DeepSeek API ] — privacy-filtered
+        |     +-- [ DeepSeek API ] — privacy-filtered (редакция персданных)
         |
         +-- nasa-api / FastAPI (8099) · Swagger UI /docs
         |     · /v1/metrics · /v1/containers · /v1/logs · POST /v1/report/now
@@ -121,23 +125,23 @@ Principles:
         +-- Samba NAS (445, LAN only)
         |     iptables: разрешён только 192.168.0.0/24
         |
-        +-- Netdata (19999)   — система, Docker, температура Jetson
-        +-- Uptime Kuma (3001) — HTTP uptime + Telegram alerts
-        +-- Portainer (9000)   — Docker management UI
+        +-- Netdata (19999)    — CPU, RAM, Disk, Docker, темп Jetson
+        +-- Uptime Kuma (3001) — 5 HTTP мониторов + Telegram alerts
+        +-- Portainer (9000)   — Docker management UI (admin настроен)
         |
-        +-- systemd: nasa-tunnel.service (autossh, restart=always)
-        +-- systemd: nasa-daily-report-telegram.timer (09:00 ежедневно)
-        +-- systemd: SMART мониторинг HDD (6h timer)
+        +-- systemd: nasa-tunnel.service       (autossh, restart=always)
+        +-- systemd: nasa-daily-report-telegram.timer  (09:00, ежедневно)
+        +-- systemd: nasa-backup.timer         (03:00, ежедневно, pg_dump)
+        +-- systemd: jetson-nas-health.timer   (SMART мониторинг HDD, 6h)
 
-/mnt/storage  (USB HDD, отдельное питание)
+/mnt/storage  (сейчас: microSD; при подключении HDD — смонтируется автоматически)
   ├── nextcloud/data
   ├── immich/library
   ├── db/
-  │   ├── nextcloud-postgres
+  │   ├── nextcloud-postgres    (~373 MB)
   │   └── immich-postgres
   ├── backups/
-  │   ├── database-dumps
-  │   └── restic-repo
+  │   └── database-dumps/       (pg_dump · gzip · ротация 7 дней)
   └── samba/public
 ```
 
@@ -170,12 +174,13 @@ Principles:
 | Тоннель | autossh + systemd | — | Reverse SSH через CGNAT → VPS |
 | VPS прокси | nginx:alpine | — | Reverse proxy на публичный порт |
 | Мониторинг | Netdata | latest ARM64 | CPU, RAM, Disk, Docker, Jetson temp |
-| Uptime | Uptime Kuma | 1 | HTTP uptime + Telegram/email алерты |
+| Uptime | Uptime Kuma | 1 | HTTP uptime + Telegram алерты (5 мониторов) |
 | Docker UI | Portainer CE | latest | Web UI для Docker management |
 | Ежедневный отчёт | bash + SSH relay + Telegram | — | 09:00 отчёт о здоровье кластера |
-| Тестирование | goss v0.4.9 (ARM64) | — | Infrastructure state tests |
+| Бэкап БД | bash pg_dump + gzip | — | 03:00 ежедневно, ротация 7 дней |
+| Тестирование | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 теста) |
 | Здоровье системы | systemd timers + SMART | — | Диагностика 6ч + HDD health |
-| Бэкапы | restic + pg\_dump | — | DB dumps + файловые снимки |
+| Бэкапы файлов | restic | — | Stage 3 (заготовка готова) |
 | Android backup API | services/backup-api | — | Stage 2 placeholder |
 
 ---
@@ -197,13 +202,13 @@ Principles:
 - L4T / JetPack 4.x (Ubuntu 18.04)
 - Docker Engine 20.10+, Docker Compose v2
 - autossh (`apt install autossh`)
-- curl (`apt install curl`)
+- curl, openssl (`apt install curl openssl`)
 - SSH-ключ для VPS в `~/.ssh/`
 
 **ПО на VPS:**
 
 - Docker + Docker Compose v2
-- UFW: открыть порты 8080, 2283, 8090 (и 22 для SSH)
+- UFW: открыть порты 8080, 2283, 8090, 10022 (и 22 для SSH)
 - SSH: разрешить вход от Jetson-ключа
 
 ---
@@ -213,8 +218,8 @@ Principles:
 ### 1. Клонировать / Clone
 
 ```bash
-git clone https://github.com/AlexeyBorovskoy/Nasa_home.git
-cd Nasa_home
+git clone https://github.com/AlexeyBorovskoy/Nasa_home.git ~/nasa
+cd ~/nasa
 cp config/.env.example config/.env
 chmod 600 config/.env
 nano config/.env   # заполнить пароли, пути, DeepSeek API key
@@ -225,8 +230,8 @@ nano config/.env   # заполнить пароли, пути, DeepSeek API key
 ```bash
 # На VPS:
 mkdir -p /opt/nasa
-# скопировать docker/vps/ из репозитория
-cd /opt/nasa && docker compose up -d
+scp -r docker/vps/ root@<VPS_IP>:/opt/nasa/
+ssh root@<VPS_IP> "cd /opt/nasa/vps && docker compose up -d"
 ```
 
 ### 3. Настроить тоннель на Jetson / Setup tunnel on Jetson
@@ -244,13 +249,12 @@ sudo systemctl daemon-reload && sudo systemctl enable --now nasa-tunnel.service
 
 ```bash
 # На Jetson:
-cd ~/nasa/docker/compose
-
-docker compose -f docker-compose.nextcloud.yml   --env-file ../../config/.env up -d
-docker compose -f docker-compose.immich.yml      --env-file ../../config/.env up -d
-docker compose -f docker-compose.llm-gateway.yml --env-file ../../config/.env up -d
-docker compose -f docker-compose.monitoring.yml  --env-file ../../config/.env up -d
-docker compose -f docker-compose.nasa-api.yml    --env-file ../../config/.env up -d
+cd ~/nasa
+docker compose -f docker/compose/docker-compose.nextcloud.yml   --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.immich.yml      --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.llm-gateway.yml --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.monitoring.yml  --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.nasa-api.yml    --env-file config/.env up -d
 ```
 
 ### 5. Настроить Telegram-отчёты / Setup Telegram reports
@@ -275,24 +279,54 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now nasa-daily-report-telegram.timer
 ```
 
-### 6. Проверить / Verify
+### 6. Автоматическая настройка UI и бэкапов / Automated UI + backup setup
 
 ```bash
-# Локально на Jetson:
+# На Jetson (всё в одном месте):
+
+# 6а. Бэкап таймер (pg_dump · 03:00 ежедневно)
+bash scripts/backup/install_backup_timer.sh
+
+# 6б. Portainer admin (curl API init · генерирует пароль если не в .env)
+bash scripts/monitoring/setup_portainer.sh
+
+# 6в. Uptime Kuma: admin + 5 мониторов (требует docker + python:3.x-slim образ)
+docker run --rm --network host \
+  -v ~/nasa/scripts/monitoring/setup_uptime_kuma.py:/setup.py:ro \
+  -e UPTIME_KUMA_ADMIN_USER=admin \
+  -e UPTIME_KUMA_ADMIN_PASSWORD=<your-password> \
+  -e JETSON_LAN_IP=192.168.0.50 \
+  python:3.12-slim bash -c 'pip install uptime-kuma-api -q && python3 /setup.py'
+```
+
+### 7. Проверить / Verify
+
+```bash
+# Сервисы (на Jetson или через LAN):
 curl -sf http://localhost:8080/status.php         # Nextcloud → {"installed":true,...}
 curl -sf http://localhost:2283/api/server/ping    # Immich → {"res":"pong"}
 curl -sf http://localhost:8090/health             # LLM Gateway → {"status":"ok"}
 curl -sf http://localhost:8099/healthcheck        # nasa-api → {"status":"ok"}
 curl -sf http://localhost:19999/api/v1/info       # Netdata → {...}
 
-# Через goss:
+# Инфраструктурные тесты (34 теста):
 goss -g tests/goss/goss.yaml validate --format tap
 
-# Swagger UI: http://192.168.0.50:8099/docs
+# Бэкап (тест немедленного запуска):
+sudo systemctl start nasa-backup.service
+journalctl -u nasa-backup.service -n 20 --no-pager
+ls -lh /mnt/storage/backups/database-dumps/
+
+# Web UI:
+#   Swagger:     http://192.168.0.50:8099/docs
+#   Netdata:     http://192.168.0.50:19999
+#   Uptime Kuma: http://192.168.0.50:3001
+#   Portainer:   http://192.168.0.50:9000
 ```
 
 Полный план тестирования: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).  
-Подготовка microSD: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).
+Подготовка microSD: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).  
+Операционный runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
 
 ---
 
@@ -305,6 +339,7 @@ goss -g tests/goss/goss.yaml validate --format tap
 STORAGE_ROOT=/mnt/storage
 NEXTCLOUD_DATA=/mnt/storage/nextcloud/data
 IMMICH_UPLOAD_LOCATION=/mnt/storage/immich/library
+BACKUP_ROOT=/mnt/storage/backups
 
 # Базы данных
 NEXTCLOUD_DB_PASSWORD=changeme
@@ -320,6 +355,11 @@ VPS_SSH_KEY=/home/admin/.ssh/id_ed25519
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_MODEL=deepseek-chat
 IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Nano
+
+# Бэкап
+RESTIC_REPOSITORY=/mnt/storage/backups/restic-repo
+RESTIC_PASSWORD=changeme
+BACKUP_RETENTION_DAILY=7
 ```
 
 Никогда не коммитьте реальный `config/.env`. Он в `.gitignore`.
@@ -338,9 +378,11 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Stage 1E | VPS + reverse SSH tunnel (autossh) | ✅ **Работает, nginx на VPS** |
 | Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ **Развёрнут и работает** |
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
-| Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **Выполнено (8/10 findings fixed)** |
-| Stage 2 | Android backup/restore client API | 📋 Архитектура |
-| Stage 3 | Backup / restore (restic + pg\_dump) | 🔜 Скрипты-заготовки |
+| Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
+| Stage 1 Ops | Портал мониторинга: Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер (03:00) | ✅ **Настроено автоматически** |
+| Stage 2 | Android backup/restore client API | 📋 Архитектура готова |
+| Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы (`restic_backup_example.sh`) |
+| Stage 3.1 | HDD: подключение + ext4 + миграция данных с microSD | ⏳ Ожидает физического доступа к HDD |
 | Stage 4 | Analytics, RAG, fallback LLM providers | 📋 Будущее |
 
 ---
@@ -352,17 +394,14 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/00_OVERVIEW.md](docs/00_OVERVIEW.md) | Обзор концепции / Project concept overview |
 | [docs/01_HARDWARE_AUDIT.md](docs/01_HARDWARE_AUDIT.md) | Аппаратный аудит Jetson Nano |
 | [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md) | Подготовка microSD, первый boot |
-| [docs/02_REQUIREMENTS.md](docs/02_REQUIREMENTS.md) | Требования к железу, ПО, сети |
 | [docs/03_ARCHITECTURE.md](docs/03_ARCHITECTURE.md) | Архитектурная схема |
 | [docs/04_STORAGE_DESIGN.md](docs/04_STORAGE_DESIGN.md) | Дизайн хранилища (USB HDD, mount, fstab) |
 | [docs/05_NETWORKING_VPN.md](docs/05_NETWORKING_VPN.md) | LAN/VPN-модель, тоннели, порты |
 | [docs/06_NEXTCLOUD_DESIGN.md](docs/06_NEXTCLOUD_DESIGN.md) | Дизайн Nextcloud |
 | [docs/07_IMMICH_DESIGN.md](docs/07_IMMICH_DESIGN.md) | Дизайн Immich (Jetson-safe) |
 | [docs/08_LLM_GATEWAY_DEEPSEEK.md](docs/08_LLM_GATEWAY_DEEPSEEK.md) | LLM Gateway и DeepSeek API |
-| [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) | Безопасность и приватность |
-| [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md) | Политика секретов |
 | [docs/12_BACKUP_RESTORE.md](docs/12_BACKUP_RESTORE.md) | Backup и restore workflow |
-| [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md) | Runbook мониторинга |
+| [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md) | Runbook: диагностика, бэкапы, Uptime Kuma, Netdata |
 | [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md) | План тестирования по этапам |
 | [docs/17_MONITORING_OBSERVABILITY.md](docs/17_MONITORING_OBSERVABILITY.md) | Анализ инструментов мониторинга |
 | [docs/19_NETWORK_INVENTORY.md](docs/19_NETWORK_INVENTORY.md) | Сетевой паспорт стенда |
@@ -398,10 +437,10 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- HDD разбит на один раздел NTFS — для полноценного NAS нужен второй ext4-раздел. Требует физического подключения к ПК.
+- **HDD не подключён** — в текущей конфигурации `/mnt/storage` смонтирован на microSD (434 МБ данных). Для полноценного NAS и долгосрочного хранения нужно подключить USB HDD, создать ext4-раздел рядом с NTFS (или после переноса данных) и смигрировать данные. Фstab уже настроен (UUID, `nofail`).
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Immich работает без machine learning (`IMMICH_DISABLE_MACHINE_LEARNING=true`) — Jetson Nano 4 GB с ML не тестировался.
-- VPS IP может меняться — при смене обновить `VPS_HOST` в `/etc/nasa-monitor/nasa-monitor.env` на Jetson и перезапустить `nasa-tunnel.service`.
+- VPS IP может меняться — при смене обновить `VPS_HOST` в `config/.env` на Jetson и перезапустить `nasa-tunnel.service`.
 - Docker 20.10.7 (JetPack 4.x) — устаревший. Обновление нетривиально из-за зависимостей NVIDIA runtime. Для home lab допустимо: все сервисы LAN-only, untrusted images не запускаются.
 - HTTPS для VPS nginx — Let's Encrypt не настроен (нет доменного имени).
 
@@ -418,10 +457,10 @@ CI автоматически проверяет секреты: `.github/workfl
 
 Хорошие первые задачи:
 - Добавить заметки для Raspberry Pi 4/5 (аналогичная архитектура, без JetPack).
-- Реализовать `backup_databases.sh` с реальным тестом восстановления (`pg_dump` + restic).
-- Добавить HTTPS (Let's Encrypt) для VPS nginx.
-- Настроить Netdata Telegram alerts (`/etc/netdata/health_alarm_notify.conf`).
+- Реализовать Let's Encrypt HTTPS для VPS nginx (нужен домен).
+- Настроить Netdata Telegram alerts (`/etc/netdata/health_alarm_notify.conf`) и описать в docs.
 - Добавить CI shellcheck для всех bash-скриптов в `scripts/`.
+- Инструкция по миграции данных microSD → USB HDD (Stage 3.1).
 
 ---
 
