@@ -27,7 +27,7 @@ services:
       # Samba state persistence
       - samba_data:/data
     environment:
-      - TZ=${TZ:-Europe/Moscow}
+      - TZ=${TZ:-Europe/Berlin}
       - SAMBA_LOG_LEVEL=0
     secrets:
       - samba_password

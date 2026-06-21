@@ -10,3 +10,6 @@ User=root
 ExecStart=/opt/nasa/scripts/diagnostics/storage_health.sh
 StandardOutput=journal
 StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

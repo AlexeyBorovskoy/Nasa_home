@@ -4,6 +4,8 @@
 # Requires: apt install autossh
 set -euo pipefail
 
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../config/.env"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
@@ -14,8 +16,6 @@ if [[ -z "${VPS_HOST:-}" ]]; then
 fi
 VPS_USER="${VPS_USER:-root}"
 VPS_SSH_KEY="${VPS_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
-
-log() { echo "[$(date ''+%Y-%m-%d %H:%M:%S'')] $*"; }
 
 log "=== NASA VPS reverse tunnel ==="
 log "VPS: ${VPS_USER}@${VPS_HOST}"

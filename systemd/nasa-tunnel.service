@@ -16,8 +16,8 @@ ExecStart=/usr/bin/autossh -N \
     -o ServerAliveCountMax=3 \
     -o ExitOnForwardFailure=yes \
     -o StrictHostKeyChecking=accept-new \
-    -i ${VPS_SSH_KEY} \
-    ${VPS_USER}@${VPS_HOST}
+    -i "${VPS_SSH_KEY}" \
+    "${VPS_USER}@${VPS_HOST}"
 Restart=always
 RestartSec=10
 
