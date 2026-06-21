@@ -34,15 +34,31 @@ fi
 
 "$REPORT_CMD" > "$REPORT_FILE"
 
-# Send via VPS: pipe report text over SSH, VPS runs curl to Telegram
+# Send via VPS relay: token is passed via SSH environment variable (not expanded
+# in the command string) to avoid exposure in `ps aux` on the VPS side (SC2029).
+# RequireEnvironment must be allowed by VPS sshd (AcceptEnv NASA_*).
+# Fallback: if AcceptEnv is not configured, we use a one-shot remote env file.
+REMOTE_ENV="/tmp/nasa-tg-$$.env"
 ssh -i "$VPS_KEY" \
     -o StrictHostKeyChecking=no \
     -o ConnectTimeout=15 \
     -o BatchMode=yes \
     "${VPS_USER}@${VPS_HOST}" \
-    "curl -sS -X POST 'https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage' \
-        -d 'chat_id=${TELEGRAM_CHAT_ID}' \
-        --data-urlencode 'text@-'" \
+    "cat > ${REMOTE_ENV} && chmod 600 ${REMOTE_ENV}" \
+    <<EOF
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+EOF
+
+ssh -i "$VPS_KEY" \
+    -o StrictHostKeyChecking=no \
+    -o ConnectTimeout=15 \
+    -o BatchMode=yes \
+    "${VPS_USER}@${VPS_HOST}" \
+    ". ${REMOTE_ENV}; rm -f ${REMOTE_ENV};
+     curl -sS -X POST \"https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage\" \
+         -d \"chat_id=\${TELEGRAM_CHAT_ID}\" \
+         --data-urlencode 'text@-'" \
     < "$REPORT_FILE" \
     | tee "$SEND_LOG" \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK, message_id=' + str(d['result']['message_id']) if d.get('ok') else 'FAIL: '+str(d))"

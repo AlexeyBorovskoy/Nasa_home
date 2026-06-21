@@ -179,5 +179,5 @@ fetch https://restic.readthedocs.io/en/latest/040_backup.html "${OUT_DIR}/backup
 fetch https://restic.readthedocs.io/en/latest/050_restore.html "${OUT_DIR}/backup/restic-050-restore.html"
 fetch https://restic.readthedocs.io/en/latest/060_forget.html "${OUT_DIR}/backup/restic-060-forget.html"
 
-sha256sum $(find "${OUT_DIR}" -type f | sort) > "${OUT_DIR}/SHA256SUMS.local"
+find "${OUT_DIR}" -type f | sort | xargs sha256sum > "${OUT_DIR}/SHA256SUMS.local"
 printf 'External documentation cache updated: %s\n' "${OUT_DIR}"
