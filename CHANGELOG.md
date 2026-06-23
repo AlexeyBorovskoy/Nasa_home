@@ -48,6 +48,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   USB cable/enclosure/power chain.
 - Jetson `~/nasa` checkout synchronized to `6844447`; the pre-sync live diff is
   preserved on Jetson as `stash@{0}` for audit/recovery.
+- Nextcloud data/app review completed read-only: 503 traced to the earlier
+  read-only storage remount; `.ncdata`, ownership, config and DB checks are
+  clean, with controlled start left as the next step.
 
 ## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
 

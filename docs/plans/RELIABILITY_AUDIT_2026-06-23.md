@@ -13,7 +13,7 @@ No destructive storage operations were performed during this audit.
 | ID | Severity | Area | Finding | Status |
 |---|---|---|---|---|
 | R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, but kernel logged repeated `EXT4-fs error ... comm apache2` while Nextcloud was running. | Open |
-| R-02 | Critical | Nextcloud | `.ncdata` is present when checked as root, but Nextcloud returned HTTP 503 before stop and kernel logged `EXT4-fs error ... comm apache2`; app/data state still needs review before restart. | Open |
+| R-02 | Critical | Nextcloud | HTTP 503 was caused by the storage remounting read-only during the USB incident. Step 2 review found `.ncdata`, config, data ownership and DB state consistent. App container is still stopped pending controlled start. | Review clean / start pending |
 | R-03 | High | Boot ordering | Docker can start before `/mnt/storage` is safely mounted, which can create/write bind-mount data under a plain microSD directory after power loss. | Mitigation added in repo |
 | R-04 | High | Runtime drift | Jetson `~/nasa` was behind `origin/main` and had live changes. It is now clean at `6844447`; the pre-sync live diff is preserved as `stash@{0}`. | Fixed live + repo |
 | R-05 | Medium | Reporting | Daily report and nasa-api expected old compose-generated container names, causing false `missing` warnings. | Fixed in repo |
@@ -30,6 +30,9 @@ Disk: 229G total, 525M used, 217G free
 e2fsck: e2fsck -f -n returned 0, no repairs required
 Preflight: sudo storage_preflight.sh returned errors=0 warnings=0
 Nextcloud: container stopped intentionally, restart=no, HTTP 503 before stop
+Nextcloud review: logs show read-only data-dir writes failed; current mount is rw
+Nextcloud data: `.ncdata` present, data dir 33:33 mode 750, no ownership drift
+Nextcloud DB: pg_isready OK; users=1, filecache=76, file_locks=0
 Immich: HTTP 200
 LLM Gateway: HTTP 200
 nasa-api: HTTP 200
@@ -68,29 +71,52 @@ Step 1 completed on 2026-06-23: Jetson `~/nasa` was synchronized with
 saved with `git stash -u` as `stash@{0}: pre-sync live Jetson checkout
 2026-06-23 step1`.
 
+Step 2 completed on 2026-06-23: Nextcloud data/app review stayed read-only and
+found no data-marker, ownership, config or DB blocker. The observed 503 cause
+was the earlier read-only filesystem state:
+
+```text
+fopen(/var/www/html/data/data_dir_writability_test_...tmp): Read-only file system
+fopen(/var/www/html/data/nextcloud.log): Read-only file system
+```
+
+Current safe-state evidence:
+
+```text
+/mnt/storage: /dev/sda1 ext4 rw,noatime,data=ordered
+/mnt/storage/nextcloud/data: mode 750, owner 33:33
+`.ncdata`: present, owner 33:33
+writability_test leftovers: 0
+non-33 owner/group entries under data dir: 0
+DB: accepting connections, file_locks=0
+homecloud_nextcloud: exited, restart=no
+```
+
 Path A was completed on 2026-06-23: storage-backed containers were stopped,
 `/mnt/storage` was unmounted, `e2fsck -f -n` returned 0, the filesystem was
 remounted, preflight passed, and non-Nextcloud services were restarted.
 
-Do not start Nextcloud before the data/app review below is completed.
+Do not start Nextcloud as a blind restart. Use the controlled start below so a
+new read-only remount or HTTP 503 is caught immediately.
 
-### Nextcloud data/app review
+### Controlled Nextcloud start
 
-Use read-only/low-write diagnostics first:
+Before start:
 
 ```bash
-docker ps -a --filter name=homecloud_nextcloud
-docker logs homecloud_nextcloud --tail=120
-sudo findmnt -T /mnt/storage/nextcloud/data -o TARGET,SOURCE,FSTYPE,OPTIONS
-sudo test -f /mnt/storage/nextcloud/data/.ncdata
-sudo journalctl -k --since "2026-06-23 09:20:00 UTC" --no-pager | grep -i -E "ext4|I/O error|error -71|read-only" || true
+cd ~/nasa
+sudo bash scripts/storage/storage_preflight.sh
+sudo journalctl -k --since "10 minutes ago" --no-pager \
+  | grep -i -E "ext4|I/O error|error -71|read-only" || true
 ```
 
-Only after review passes, restore restart policy and start Nextcloud:
+Start and observe:
 
 ```bash
 docker update --restart=always homecloud_nextcloud
 docker start homecloud_nextcloud
+docker logs -f --tail=80 homecloud_nextcloud
+curl -i http://127.0.0.1:8080/status.php
 ```
 
 ### Optional Path B: Reformat SSD for maximum reliability
