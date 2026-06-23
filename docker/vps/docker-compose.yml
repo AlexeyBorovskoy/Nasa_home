@@ -9,7 +9,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: nasa_nginx
-    restart: unless-stopped
+    restart: always
     # host network required: SSH tunnel binds to 127.0.0.1 on the VPS host.
     # Bridge mode cannot reach the host's loopback — proxy_pass to 127.0.0.1:18080
     # would hit the container's own loopback instead of the tunnel endpoint.

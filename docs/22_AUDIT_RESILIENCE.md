@@ -54,7 +54,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | F-08 | MEDIUM | Code | SC2046 в `scripts/fetch_external_docs.sh:182`: неэкранированный `$(find ...)` → word splitting для имён файлов с пробелами. | **Fixed** |
 | F-09 | LOW | Code | SC2016 в `scripts/diagnostics/hardware_audit.sh`: ложное срабатывание — markdown-бэктики внутри одинарных кавычек. | Accepted |
 | F-10 | LOW | Code | SC1090 в скриптах мониторинга: динамический путь для `source` (известное ограничение shellcheck). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB физически подключён, но не перечисляется как block device; ранее фиксировались I/O errors и read-only remount `/mnt/storage`. Nextcloud деградировал, backup должен отказываться писать дампы. | Open / mitigated by preflight |
+| F-11 | HIGH | Storage | USB storage 250 GB восстановлен как `/dev/sda1` и смонтирован в `/mnt/storage`, но ранее фиксировались `error -71`, I/O errors и ext4 ошибки. Nextcloud остановлен до data/app review; backup работает с fail-closed guard. | Open / recovered / mitigated |
 
 > **Критические находки F-01 и F-02 связаны между собой:** поведение restart-политики
 > при `docker kill` является багом Docker 20.10. Обновление до Docker 27.x (F-01)
@@ -84,9 +84,9 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 - **Туннель**: `nasa-tunnel.service` — `restart=always`, статус active.
 - **RAM**: 2117 МБ свободно + 1980 МБ swap (zram).
 - **Диск**: 38 ГБ свободно на `/` (35% занято).
-- **Storage incident 2026-06-23**: `/mnt/storage` не смонтирован; добавлен
-  `scripts/storage/storage_preflight.sh`, backup работает fail-closed и не
-  создаёт дампы на microSD вместо внешнего диска.
+- **Storage incident 2026-06-23**: `/mnt/storage` снова смонтирован, read-only
+  `e2fsck -f -n` и `storage_preflight.sh` чистые; backup работает fail-closed и
+  не создаёт дампы на microSD вместо внешнего диска.
 
 > **Единственный провальный goss-тест:** `http://localhost:8099/health` вернул
 > не-200 статус — возможна проблема с эндпойнтом nasa-api или временный глюк во время
@@ -215,11 +215,13 @@ services:
 Переменная `$(find ...)` теперь заключена в двойные кавычки для корректной
 обработки пробелов в именах файлов.
 
-### F-11 — USB storage incident (Open / mitigated)
+### F-11 — USB storage incident (Open / recovered / mitigated)
 
 Симптомы: Realtek RTL9210B-CG / 250 GB один раз определялся как `/dev/sda`, затем
 появились I/O errors, `EXT4-fs` remount read-only, а после переподключений ядро
-показывает `error -71` и устройство не появляется как block device.
+показывало `error -71`. После физического переподключения устройство снова
+видно как `/dev/sda1`, `/mnt/storage` смонтирован, `e2fsck -f -n` и
+`storage_preflight.sh` проходят чисто.
 
 Смягчение в repo:
 
@@ -230,8 +232,9 @@ sudo bash scripts/storage/install_mount_service.sh --start
 
 `backup_databases.sh` теперь сначала проверяет, что `STORAGE_ROOT` является
 mountpoint на внешнем устройстве, не на `/dev/mmcblk*`, и доступен для записи.
-До восстановления накопителя Nextcloud остаётся degraded, а backup timer должен
-завершаться ошибкой вместо записи дампов на microSD.
+Nextcloud остаётся остановленным до data/app review после HTTP 503 и ext4
+ошибок. Backup timer должен завершаться ошибкой вместо записи дампов на microSD,
+если preflight снова перестанет проходить.
 
 ---
 
@@ -284,8 +287,9 @@ scripts, 3 Dockerfiles, and 738 lines of Python code. Additionally: systemd
 units, iptables persistence, and port availability.
 
 Update 2026-06-23: a USB storage incident added finding F-11. `/mnt/storage` is
-currently not mounted; Nextcloud is degraded and database backups fail closed
-until storage preflight passes.
+mounted again and read-only `e2fsck -f -n` plus storage preflight pass cleanly.
+Nextcloud remains intentionally stopped until data/app review; database backups
+fail closed if storage preflight fails again.
 
 ---
 
@@ -318,7 +322,7 @@ until storage preflight passes.
 | F-08 | MEDIUM | Code | SC2046 in `scripts/fetch_external_docs.sh:182`: unquoted `$(find ...)` → word splitting on filenames with spaces. | **Fixed** |
 | F-09 | LOW | Code | SC2016 in `scripts/diagnostics/hardware_audit.sh`: harmless false positive (markdown backticks inside single-quoted strings). | Accepted |
 | F-10 | LOW | Code | SC1090 in monitoring scripts: dynamic `source` path (known shellcheck limitation). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB is physically attached but does not enumerate as a block device; previous logs showed I/O errors and read-only remount. Nextcloud is degraded; backups must not write to microSD. | Open / mitigated by preflight |
+| F-11 | HIGH | Storage | USB storage 250 GB recovered as `/dev/sda1` and is mounted at `/mnt/storage`, but previous logs showed `error -71`, I/O errors and ext4 errors. Nextcloud is stopped until data/app review; backups must not write to microSD if preflight fails. | Open / recovered / mitigated |
 
 > **Critical findings F-01 and F-02 are related:** the restart policy misbehaviour
 > under `docker kill` is a Docker 20.10 bug. Upgrading to Docker 27.x (F-01)
@@ -348,9 +352,9 @@ until storage preflight passes.
 - **Tunnel**: `nasa-tunnel.service` — `restart=always`, status active.
 - **RAM**: 2117 MB available + 1980 MB swap (zram).
 - **Disk**: 38 GB free on `/` (35% used).
-- **Storage incident 2026-06-23**: `/mnt/storage` is not mounted; added
-  `scripts/storage/storage_preflight.sh`; backups fail closed instead of
-  writing dumps to the microSD fallback directory.
+- **Storage incident 2026-06-23**: `/mnt/storage` is mounted again; read-only
+  `e2fsck -f -n` and `storage_preflight.sh` are clean. Backups fail closed
+  instead of writing dumps to the microSD fallback directory.
 
 > **The one failing goss test:** `http://localhost:8099/health` returned a non-200
 > status — possible nasa-api endpoint issue or transient glitch during audit.
@@ -478,11 +482,12 @@ Optionally disable unused plugins in `/etc/netdata/netdata.conf`:
 The `$(find ...)` subshell is now double-quoted to correctly handle filenames
 containing spaces.
 
-### F-11 — USB storage incident (Open / mitigated)
+### F-11 — USB storage incident (Open / recovered / mitigated)
 
 The Realtek RTL9210B-CG / 250 GB device briefly appeared as `/dev/sda`, then
-reported I/O errors and an ext4 read-only remount. Subsequent checks show USB
-`error -71` and no block device.
+reported I/O errors and an ext4 read-only remount. Subsequent checks showed USB
+`error -71`; after physical reconnect it is visible again as `/dev/sda1`,
+mounted at `/mnt/storage`, and passes read-only fsck plus storage preflight.
 
 Mitigation in repo:
 

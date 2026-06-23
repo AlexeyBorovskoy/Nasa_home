@@ -45,9 +45,12 @@ with Android recovery roadmap and privacy-controlled LLM gateway.
 
 ## 6. Текущее операционное состояние
 
-На 2026-06-23 проект находится в Stage 1 degraded mode из-за USB storage
-incident: Jetson доступен через VPS reverse SSH tunnel, Immich, LLM Gateway и
-nasa-api отвечают, но Nextcloud недоступен до восстановления `/mnt/storage`.
+На 2026-06-23 проект находится в Stage 1 partial recovery после USB storage
+incident: Jetson доступен через VPS reverse SSH tunnel, SSD снова смонтирован в
+`/mnt/storage`, `e2fsck -f -n` и `storage_preflight.sh` проходят чисто. Immich,
+LLM Gateway, nasa-api, Samba, мониторинг и backup работают. Nextcloud
+намеренно остановлен (`restart=no`) до отдельного разбора data/app state после
+HTTP 503 и прошлых kernel ext4 ошибок.
 
 Корневой документ инцидента:
 `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.

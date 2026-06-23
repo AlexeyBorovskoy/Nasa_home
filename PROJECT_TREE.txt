@@ -83,6 +83,7 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   │   ├── TAILSCALE_ACCESS_PLAN.md   # архивный/альтернативный план
 │   │   ├── VPS_INTEGRATION_PLAN.md    # reverse SSH tunnel через VPS
 │   │   ├── STORAGE_INCIDENT_2026-06-23.md # live runbook USB storage incident
+│   │   ├── RELIABILITY_AUDIT_2026-06-23.md # аудит авто-восстановления и boot guard
 │   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
 │   │   └── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
 │   └── references/
@@ -120,6 +121,7 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   │   ├── setup_disk.sh              # монтирование USB HDD с UUID/fstab (JetsonHacks+NasberryPi)
 │   │   ├── benchmark_io.sh            # sequential I/O benchmark
 │   │   ├── storage_preflight.sh       # fail-closed проверка STORAGE_ROOT перед сервисами
+│   │   ├── install_docker_storage_guard.sh # Docker ждёт /mnt/storage при boot
 │   │   └── install_mount_service.sh   # установка jetson-nas-mount.service на Jetson
 │   └── fetch_external_docs.sh         # загрузка внешней документации
 │
@@ -142,6 +144,8 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   ├── jetson-nas-health.service      # запускает storage_health.sh
 │   ├── jetson-nas-health.timer        # OnBootSec=5min, OnUnitActiveSec=6h, Persistent
 │   ├── jetson-nas-mount.service       # монтирование STORAGE_ROOT
+│   ├── docker.service.d/
+│   │   └── 10-nasa-storage.conf       # strict Docker storage boot guard
 │   ├── nasa-backup.service            # bash wrapper для backup_databases.sh
 │   ├── nasa-backup.timer              # daily DB dump timer
 │   └── nasa-tunnel.service            # autossh reverse SSH tunnel → VPS

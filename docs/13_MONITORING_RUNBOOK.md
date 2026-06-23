@@ -159,13 +159,19 @@ bash scripts/storage/install_mount_service.sh
 sudo systemctl start jetson-nas-mount.service
 sudo bash scripts/storage/storage_preflight.sh
 
-# После успешного preflight можно запускать сервисы.
-docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env up -d
+# После успешного preflight можно запускать storage-backed сервисы, кроме
+# Nextcloud, если он был остановлен после HTTP 503/ext4 ошибок и ещё не прошёл
+# отдельный data/app review.
 docker compose -f docker/compose/docker-compose.immich.yml --env-file config/.env up -d
 ```
 
 Если накопитель снова отваливается с `error -71`, это аппаратная проблема
 USB-цепочки. Продолжать эксплуатацию Nextcloud/Immich на таком накопителе нельзя.
+
+**Текущий итог инцидента 2026-06-23:** SSD снова смонтирован в `/mnt/storage`,
+`e2fsck -f -n` и `storage_preflight.sh` чистые, fresh DB dumps созданы. Новых
+kernel storage ошибок после остановки Nextcloud не наблюдалось. Nextcloud
+оставлен остановленным (`restart=no`) до отдельного разбора data/app state.
 
 ## 9. Telegram ежедневный отчёт
 

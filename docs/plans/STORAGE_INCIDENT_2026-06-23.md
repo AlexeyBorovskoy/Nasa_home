@@ -9,19 +9,25 @@ was no longer present as a block device.
 The failure is below Docker and Nextcloud: the kernel repeatedly fails to
 enumerate the USB device on `usb 1-2.1` with `error -71`.
 
+Recovery update 2026-06-23 09:32 UTC: after physical reconnect the SSD appeared
+again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage` with label
+`nasa-storage`, passed `e2fsck -f -n` and `storage_preflight.sh`, and fresh DB
+dumps were created. Nextcloud remains intentionally stopped (`restart=no`) until
+its data/app state is reviewed after the earlier HTTP 503 and ext4 errors.
+
 ## 2. Observed State
 
 | Area | Result |
 |---|---|
 | Jetson SSH via VPS | OK: `ssh root@193.8.215.130` then `ssh -p 10022 admin@127.0.0.1` |
-| `/mnt/storage` on host | Not a mountpoint |
-| Block devices | Only microSD and zram visible; 250 GB disk absent |
-| USB topology | Realtek hub visible, storage LUN absent |
-| Nextcloud | Degraded: HTTP 503, container unhealthy |
+| `/mnt/storage` on host | Recovered: ext4 mountpoint after reconnect |
+| Block devices | Recovered: Realtek RTL9210B-CG `/dev/sda1` visible |
+| USB topology | Recovered, but prior `error -71` keeps cable/enclosure/power suspect |
+| Nextcloud | Intentionally stopped after HTTP 503/ext4 errors |
 | Immich | Responds to `/api/server/ping` |
 | LLM Gateway | Responds to `/health` |
 | nasa-api | Responds to `/healthcheck` |
-| Backup timer | Failed closed; no safe storage target |
+| Backup timer | Recovered: fresh DB dumps created; fail-closed guard remains |
 
 ## 3. Kernel Evidence
 
@@ -77,6 +83,8 @@ sudo bash scripts/storage/storage_preflight.sh
 
 4. Only after the disk is stable and preflight is clean, install/start the mount
    unit and restart storage-backed services.
+5. If Nextcloud was stopped after HTTP 503 or ext4 errors, keep it stopped until
+   data/app state is reviewed. Do not create `.ncdata` manually as a shortcut.
 
 ## 6. Follow-Up Changes
 
@@ -86,4 +94,6 @@ sudo bash scripts/storage/storage_preflight.sh
   storage-backed services.
 - `scripts/storage/install_mount_service.sh` installs the mount unit without
   mounting immediately unless `--start` is passed.
+- `scripts/storage/install_docker_storage_guard.sh` installs a Docker systemd
+  drop-in so Docker waits for `/mnt/storage` on future restarts/boots.
 - `docs/13_MONITORING_RUNBOOK.md` now contains the incident workflow.

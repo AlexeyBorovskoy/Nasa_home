@@ -65,27 +65,27 @@ flowchart TB
 
 ## 3. Основные компоненты
 
-| Компонент | Роль | Статус (2026-06-21) |
+| Компонент | Роль | Статус (2026-06-23) |
 |---|---|---|
 | Jetson Nano 4 GB | Домашний сервер, storage-узел | ✅ Работает в LAN |
-| USB storage | Основное хранилище `/mnt/storage` | ⚠️ Incident 2026-06-23: not mounted, `error -71` |
-| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ⚠️ Degraded, HTTP 503 until storage restored |
+| USB storage | Основное хранилище `/mnt/storage` | ✅ Mounted after 2026-06-23 recovery; `e2fsck -f -n` and preflight clean |
+| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ⚠️ Intentionally stopped until data/app review |
 | Immich | Фото- и видеоархив | ✅ Live, HTTP 200 |
-| Samba | Локальный NAS (SMB2+) | ⚠️ Storage-dependent |
+| Samba | Локальный NAS (SMB2+) | ✅ Live; storage-dependent |
 | PostgreSQL | БД Nextcloud и Immich | ✅ Running |
 | Redis | Кэш/очереди для Nextcloud и Immich | ✅ Running |
 | LLM Gateway | Privacy-шлюз к DeepSeek API | ✅ Live, /health 200 |
 | VPS + nginx | Reverse proxy через тоннель | ✅ Live |
 | autossh tunnel | Обход CGNAT, Jetson → VPS | ✅ nasa-tunnel.service active |
 | Backup API | Будущий Android restore API | 📋 Stage 2 placeholder |
-| DB backup | pg_dump timer | ⚠️ Fail-closed while storage preflight fails |
+| DB backup | pg_dump timer | ✅ Fresh dumps created; fail-closed guard remains |
 | Monitoring | Netdata + Uptime Kuma + Portainer | ✅ Live |
 
 ## 4. Сетевые правила
 
 | Сервис | Порт Jetson | Внешний доступ | Механизм |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel; degraded until storage restored |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel; returns 502/503 while container is intentionally stopped |
 | Immich | 2283 | `http://193.8.215.130:2283/` | VPS nginx → SSH tunnel |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | VPS nginx → SSH tunnel |
 | SSH (управление) | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | SSH tunnel -R 10022 |
@@ -96,7 +96,7 @@ flowchart TB
 ## 5. Хранилище
 
 ```text
-/mnt/storage                     ← target USB storage, ext4 (incident 2026-06-23: not mounted)
+/mnt/storage                     ← target USB storage, ext4 (mounted after 2026-06-23 recovery; preflight required)
 ├── nextcloud/data                ← bind mount → /var/www/html/data
 ├── immich/library                ← Immich photo uploads
 ├── db/
@@ -116,10 +116,10 @@ flowchart TB
 
 | Файл | Назначение | Статус |
 |---|---|---|
-| `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ✅ Running |
+| `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ⚠️ App stopped intentionally; DB/Redis running |
 | `docker/compose/docker-compose.immich.yml` | Immich + PostgreSQL + Redis | ✅ Running |
 | `docker/compose/docker-compose.llm-gateway.yml` | LLM Gateway (FastAPI) | ✅ Running |
-| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ⚠️ Storage-dependent |
+| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ✅ Running; storage-dependent |
 | `docker/compose/docker-compose.monitoring.yml` | Netdata + Uptime Kuma + Portainer | ✅ Running |
 | `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack draft | draft |
 | `docker/vps/docker-compose.yml` | nginx на VPS (`network_mode: host`) | ✅ Running on VPS |
@@ -196,6 +196,8 @@ ADR: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](docs/decisions/ADR-
 
 Текущее состояние: `scripts/backup/backup_databases.sh` реализован и работает
 fail-closed: если `/mnt/storage` не смонтирован безопасно, дампы не создаются.
+После восстановления SSD 2026-06-23 сервис успешно создал свежие дампы
+Nextcloud и Immich в `/mnt/storage/backups/database-dumps/`.
 
 Детали: [docs/12_BACKUP_RESTORE.md](docs/12_BACKUP_RESTORE.md).
 
@@ -209,13 +211,13 @@ Future: Android-клиент восстановления через `services/b
 | Этап | Содержание | Статус |
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ Задокументировано |
-| Stage 1A | Hardware audit, storage, Samba | ⚠️ USB storage incident |
-| Stage 1B | Nextcloud | ⚠️ **Degraded until `/mnt/storage` is restored** |
+| Stage 1A | Hardware audit, storage, Samba | ✅ **Storage recovered; boot guard added** |
+| Stage 1B | Nextcloud | ⚠️ **Stopped intentionally; data/app review pending** |
 | Stage 1C | Immich (ML disabled) | ✅ **Live** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Live** |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ **Live** |
 | Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ Live |
-| Stage 1G | Backup/restore | ⚠️ DB dumps fail-closed while storage is missing |
+| Stage 1G | Backup/restore | ✅ DB dumps live; fail-closed guard remains |
 | Stage 2 | Android backup/restore API | 📋 Архитектура |
 | Stage 3 | RAG, fallback LLM providers | 📋 Будущее |
 
@@ -272,8 +274,10 @@ NASA/
 
 ## 15. Известные технические долги
 
-- USB storage incident 2026-06-23: Realtek RTL9210B-CG / 250 GB device gives
-  `error -71` and is absent from `lsblk`; see `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+- USB storage incident 2026-06-23: Realtek RTL9210B-CG / 250 GB device previously
+  showed `error -71` and ext4 errors. It is currently mounted and passes
+  preflight, but cable/enclosure/power remain a hardware reliability risk; see
+  `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
 - Storage-backed services must pass `sudo bash scripts/storage/storage_preflight.sh`
   before Nextcloud/Immich/backup operations.
 - HTTPS для VPS nginx не настроен (Let's Encrypt — будущее улучшение).

@@ -16,9 +16,20 @@ DISK_ROOT_PCT="$(df -P / | awk 'NR==2 {gsub("%","",$5); print $5}')"
 
 DISK_STORAGE_LINE="not mounted"
 DISK_STORAGE_PCT=0
+STORAGE_HEALTH_LINE="❌ /mnt/storage is not a mountpoint"
 if mountpoint -q /mnt/storage 2>/dev/null; then
     DISK_STORAGE_LINE="$(df -h /mnt/storage | awk 'NR==2 {print $3 " / " $2 " (" $5 ")"}')"
     DISK_STORAGE_PCT="$(df -P /mnt/storage | awk 'NR==2 {gsub("%","",$5); print $5}')"
+    storage_src="$(findmnt -n -T /mnt/storage -o SOURCE 2>/dev/null || echo unknown)"
+    storage_fstype="$(findmnt -n -T /mnt/storage -o FSTYPE 2>/dev/null || echo unknown)"
+    storage_opts="$(findmnt -n -T /mnt/storage -o OPTIONS 2>/dev/null || echo unknown)"
+    STORAGE_HEALTH_LINE="✅ /mnt/storage mounted: ${storage_src} (${storage_fstype}, ${storage_opts})"
+    case "$storage_src" in
+        /dev/mmcblk*) STORAGE_HEALTH_LINE="❌ /mnt/storage is backed by microSD: ${storage_src}" ;;
+    esac
+    case ",${storage_opts}," in
+        *,ro,*) STORAGE_HEALTH_LINE="❌ /mnt/storage is read-only: ${storage_src}" ;;
+    esac
 fi
 
 RAM_LINE="$(free -h | awk '/Mem:/ {print $3 " / " $2 " (avail " $7 ")"}')"
@@ -44,7 +55,7 @@ DOCKER_STATE="$(systemctl is-active docker 2>/dev/null || echo unknown)"
 NM_STATE="$(systemctl is-active NetworkManager 2>/dev/null || echo unknown)"
 
 # Containers
-EXPECTED_CONTAINERS="${EXPECTED_CONTAINERS:-homecloud-nextcloud-nextcloud-1 homecloud-immich-immich-server-1 homecloud-llm-gateway-llm-gateway-1 homecloud_netdata homecloud_uptime_kuma homecloud_portainer}"
+EXPECTED_CONTAINERS="${EXPECTED_CONTAINERS:-homecloud_nextcloud homecloud_nextcloud_db homecloud_nextcloud_redis homecloud_immich_server homecloud_immich_microservices homecloud_immich_db homecloud_immich_redis homecloud_llm_gateway homecloud_nasa_api homecloud_samba homecloud_netdata homecloud_uptime_kuma homecloud_portainer}"
 
 CONTAINER_REPORT=""
 WARNINGS=""
@@ -64,7 +75,8 @@ done
 # HTTP checks (local)
 http_check() {
     local url="$1" label="$2"
-    code="$(curl -o /dev/null -s -w '%{http_code}' --max-time 5 "$url" 2>/dev/null || echo 000)"
+    code="$(curl -o /dev/null -s -w '%{http_code}' --max-time 5 "$url" 2>/dev/null || true)"
+    [ -n "$code" ] || code="000"
     if [ "$code" = "200" ] || [ "$code" = "302" ]; then
         echo "  ✅ ${label}: HTTP ${code}"
     else
@@ -82,13 +94,21 @@ HTTP_REPORT="${HTTP_REPORT}\n$(http_check "http://localhost:19999/" "Netdata")"
 # External check via VPS (optional)
 EXTERNAL_REPORT=""
 VPS="${SERVER_IP:-193.8.215.130}"
-ext_code="$(curl -o /dev/null -s -w '%{http_code}' --max-time 8 "http://${VPS}:8080/" 2>/dev/null || echo 000)"
-if [ "$ext_code" = "200" ] || [ "$ext_code" = "302" ]; then
-    EXTERNAL_REPORT="  ✅ VPS relay (${VPS}:8080): HTTP ${ext_code}"
-else
-    EXTERNAL_REPORT="  ❌ VPS relay (${VPS}:8080): HTTP ${ext_code}"
-    add_warning "VPS relay unreachable (${ext_code}) — tunnel may be down"
-fi
+external_check() {
+    local port="$1" path="$2" label="$3"
+    local code
+    code="$(curl -o /dev/null -s -w '%{http_code}' --max-time 8 "http://${VPS}:${port}${path}" 2>/dev/null || true)"
+    [ -n "$code" ] || code="000"
+    if [ "$code" = "200" ] || [ "$code" = "302" ]; then
+        echo "  ✅ ${label} via VPS (${VPS}:${port}): HTTP ${code}"
+    else
+        echo "  ❌ ${label} via VPS (${VPS}:${port}): HTTP ${code}"
+        add_warning "${label} via VPS returned HTTP ${code}"
+    fi
+}
+EXTERNAL_REPORT="${EXTERNAL_REPORT}\n$(external_check 8080 "/" "Nextcloud")"
+EXTERNAL_REPORT="${EXTERNAL_REPORT}\n$(external_check 2283 "/api/server/ping" "Immich")"
+EXTERNAL_REPORT="${EXTERNAL_REPORT}\n$(external_check 8090 "/health" "LLM Gateway")"
 
 # Threshold warnings
 [ "$DISK_ROOT_PCT" -ge "${DISK_WARN_PERCENT:-80}" ] && \
@@ -97,6 +117,20 @@ fi
     add_warning "storage disk usage high: ${DISK_STORAGE_PCT}%"
 [ "$RAM_AVAIL_MB" -lt "${RAM_WARN_MB:-300}" ] && \
     add_warning "available RAM low: ${RAM_AVAIL_MB} MB"
+[ "$STORAGE_HEALTH_LINE" != "${STORAGE_HEALTH_LINE#❌}" ] && \
+    add_warning "$STORAGE_HEALTH_LINE"
+if mountpoint -q /mnt/storage 2>/dev/null; then
+    if [ -f /mnt/storage/nextcloud/data/.ncdata ]; then
+        :
+    elif [ "$(id -u)" -ne 0 ] && [ ! -x /mnt/storage/nextcloud/data ]; then
+        add_warning "cannot verify Nextcloud marker without root access"
+    else
+        add_warning "Nextcloud marker missing: /mnt/storage/nextcloud/data/.ncdata"
+    fi
+fi
+journalctl -k --since "1 hour ago" --no-pager 2>/dev/null \
+    | grep -qiE "EXT4-fs error|I/O error|error -71|unable to enumerate|read-only" \
+    && add_warning "kernel storage errors detected in the last hour"
 [ "$TUNNEL_STATE" != "active" ] && \
     add_warning "nasa-tunnel.service is ${TUNNEL_STATE}"
 [ "$DOCKER_STATE" != "active" ] && \
@@ -117,6 +151,7 @@ cat <<REPORT
   RAM: ${RAM_LINE}
   Disk /: ${DISK_ROOT_LINE}
   Disk /mnt/storage: ${DISK_STORAGE_LINE}
+  Storage health: ${STORAGE_HEALTH_LINE}
 
 🌡  TEMPERATURE
 $(printf "%b" "$TEMP_REPORT")
@@ -132,6 +167,6 @@ $(printf "%b" "$CONTAINER_REPORT")
 $(printf "%b" "$HTTP_REPORT")
 
 ☁️  EXTERNAL ACCESS
-${EXTERNAL_REPORT}
+$(printf "%b" "$EXTERNAL_REPORT")
 ${WARN_SECTION}
 REPORT

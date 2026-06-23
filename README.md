@@ -75,7 +75,7 @@
 
 Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Покупать готовый NAS или новое железо не хотелось.
 
-Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. На 2026-06-23 стек живёт в degraded mode: Immich, LLM Gateway, мониторинг и туннель работают, а Nextcloud ждёт восстановления `/mnt/storage`.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. На 2026-06-23 SSD снова смонтирован в `/mnt/storage` и проходит preflight; Immich, LLM Gateway, мониторинг, Samba, backup и туннель работают. Nextcloud намеренно остановлен до отдельной проверки данных после USB-инцидента.
 
 **NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
@@ -91,7 +91,7 @@
 
 It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. My son brought a DEXP board with 232 GB storage — "dad, you'll need this". Didn't want to buy a ready-made NAS or new hardware.
 
-Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-23 the stack is in degraded mode: Immich, LLM Gateway, monitoring, and the tunnel are live, while Nextcloud is waiting for `/mnt/storage` recovery.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-23 the SSD is mounted at `/mnt/storage` again and passes preflight; Immich, LLM Gateway, monitoring, Samba, backup, and the tunnel are live. Nextcloud is intentionally stopped until its data/app state is reviewed after the USB incident.
 
 **NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
@@ -123,31 +123,35 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 в degraded mode из-за USB storage incident**
-> Jetson доступен через VPS reverse tunnel. Immich, LLM Gateway и nasa-api отвечают.
-> Nextcloud временно недоступен (`503`), потому что `/mnt/storage` не смонтирован:
-> USB-накопитель `Realtek RTL9210B-CG` даёт `error -71` и не появляется как block device.
+> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 partially recovered**
+> Jetson доступен через VPS reverse tunnel. SSD снова смонтирован в `/mnt/storage`,
+> `e2fsck -f -n` и `storage_preflight.sh` проходят чисто. Immich, LLM Gateway,
+> Samba, monitoring, nasa-api и DB backup работают. Nextcloud намеренно остановлен
+> (`restart=no`) до отдельного разбора его data/app state.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
-| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ⚠️ Degraded: storage missing / HTTP 503 |
+| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ⚠️ Stopped intentionally: data/app state review pending |
 | Immich | 2283 | VPS `193.8.215.130:2283` + LAN | ✅ Live |
 | LLM Gateway | 8090 | VPS `193.8.215.130:8090` + LAN | ✅ Live |
 | nasa-api (Swagger) | 8099 | LAN `192.168.0.50:8099/docs` | ✅ Live |
-| Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ⚠️ Storage-dependent |
+| Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ✅ Live, storage-backed |
 | Netdata | 19999 | LAN `192.168.0.50:19999` | ✅ Live |
 | Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live · 5 monitors configured |
 | Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live · admin configured |
 | VPS nginx reverse proxy | — | VPS 193.8.215.130 | ✅ Live |
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) |
-| DB backup timer | — | pg_dump → /mnt/storage/backups | ⚠️ Fail-closed until storage preflight passes |
+| DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard installed |
 | Android backup API | — | — | 🔜 Stage 2 |
 
 > **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
-> На 2026-06-23 он физически подключён, но не определяется как диск; kernel log
-> показывает `usb 1-2.1 ... error -71`. См. incident runbook:
-> [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md).
+> После переподключения он виден как `/dev/sda1`, смонтирован `rw,noatime`,
+> `e2fsck -f -n` вернул `0`, `storage_preflight.sh` завершился без ошибок.
+> История инцидента и порядок восстановления:
+> [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md),
+> текущий reliability-аудит:
+> [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md).
 
 ---
 
@@ -196,7 +200,7 @@ Principles:
         +-- systemd: nasa-backup.timer         (03:00, ежедневно, pg_dump)
         +-- systemd: jetson-nas-health.timer   (SMART мониторинг HDD, 6h)
 
-/mnt/storage  (target: DEXP/Realtek 250 ГБ ext4 USB; incident 2026-06-23: not mounted)
+/mnt/storage  (DEXP/Realtek 250 ГБ ext4 USB; mounted, fsck/preflight OK; Nextcloud stopped)
   ├── nextcloud/data
   ├── immich/library
   ├── db/
@@ -418,15 +422,15 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Этап / Stage | Содержание / Content | Статус / Status |
 |---|---|---|
 | Stage 0 | microSD, первый boot, SSH, USB device mode | ✅ Задокументировано |
-| Stage 1A | Hardware audit, DEXP USB storage setup, Samba NAS | ⚠️ **Degraded: USB storage incident** |
-| Stage 1B | Nextcloud + PostgreSQL + Redis | ⚠️ **Degraded until `/mnt/storage` is restored** |
+| Stage 1A | Hardware audit, DEXP USB storage setup, Samba NAS | ✅ **Storage recovered; boot guard added** |
+| Stage 1B | Nextcloud + PostgreSQL + Redis | ⚠️ **Nextcloud stopped intentionally; DB/Redis healthy** |
 | Stage 1C | Immich (ML отключён для Jetson) | ✅ **Развёрнут и работает** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Развёрнут и работает** |
 | Stage 1E | VPS + reverse SSH tunnel (autossh) | ✅ **Работает, nginx на VPS** |
 | Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ **Развёрнут и работает** |
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
 | Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
-| Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ⚠️ **Monitoring live, backup fail-closed without storage** |
+| Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ✅ **Monitoring + fail-closed backup live** |
 | Stage 2 | Android backup/restore client API | 📋 Архитектура готова |
 | Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы |
 | Stage 3.1 | USB HDD: резервное расширение хранилища (NTFS + ext4 гибрид) | 📋 Готово к подключению |
@@ -457,7 +461,8 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/22_AUDIT_RESILIENCE.md](docs/22_AUDIT_RESILIENCE.md) | Аудит надёжности: goss, shellcheck, итоги |
 | [docs/23_GITHUB_INTEGRATION.md](docs/23_GITHUB_INTEGRATION.md) | GitHub CLI + Claude Code интеграция, AI DevOps workflow |
 | [docs/24_CLIENT_SETUP.md](docs/24_CLIENT_SETUP.md) | **Подключение устройств: Android, Windows, Linux** |
-| [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, Nextcloud degraded, recovery order |
+| [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, recovery status, Nextcloud holdback |
+| [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md) | Live reliability audit: fsck/preflight, boot guard, restart policy, remaining risks |
 | [docs/plans/VPS_INTEGRATION_PLAN.md](docs/plans/VPS_INTEGRATION_PLAN.md) | План интеграции VPS + тоннель |
 | [AGENTS.md](AGENTS.md) | Правила для Codex/агентов |
 | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | Зафиксированные решения и ограничения |
@@ -487,7 +492,8 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **USB storage incident 2026-06-23** — DEXP/Realtek 250 GB накопитель физически подключён, но не появляется в `lsblk`; kernel log показывает `error -71` и `unable to enumerate USB device`. Nextcloud degraded до стабилизации USB-цепочки и успешного `sudo bash scripts/storage/storage_preflight.sh`.
+- **USB storage incident 2026-06-23** — накопитель снова доступен и смонтирован, но USB-цепочка уже показывала `error -71`; кабель/питание/корпус остаются hardware-рискoм.
+- **Nextcloud intentionally stopped** — `homecloud_nextcloud` выключен и `restart=no`, пока не разобран data/app state после HTTP 503 и прошлых `EXT4-fs error ... comm apache2`.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Immich работает без machine learning (`IMMICH_DISABLE_MACHINE_LEARNING=true`) — Jetson Nano 4 GB с ML не тестировался.

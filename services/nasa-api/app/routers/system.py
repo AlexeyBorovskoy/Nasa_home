@@ -91,14 +91,32 @@ def _read_thermal() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Docker helpers (via CLI — no docker-py dep)
+# Docker helpers (via Docker Engine socket, fallback to CLI; no docker-py dep)
 # ---------------------------------------------------------------------------
 
 async def _docker_ps_json() -> list[dict]:
-    fmt = (
-        '{"name":"{{.Names}}","status":"{{.Status}}",'
-        '"image":"{{.Image}}","state":"{{.State}}"}'
-    )
+    socket_path = "/var/run/docker.sock"
+    if Path(socket_path).exists():
+        try:
+            transport = httpx.AsyncHTTPTransport(uds=socket_path)
+            async with httpx.AsyncClient(transport=transport, timeout=10.0) as client:
+                response = await client.get("http://docker/containers/json", params={"all": "1"})
+            response.raise_for_status()
+            result = []
+            for item in response.json():
+                names = item.get("Names") or []
+                name = names[0].lstrip("/") if names else item.get("Id", "")[:12]
+                result.append({
+                    "name": name,
+                    "status": item.get("Status", ""),
+                    "image": item.get("Image", ""),
+                    "state": item.get("State", ""),
+                })
+            return result
+        except Exception as exc:
+            log.warning("docker socket query failed: %s", exc)
+
+    fmt = '{"name":"{{.Names}}","status":"{{.Status}}","image":"{{.Image}}","state":"{{.State}}"}'
     try:
         proc = await asyncio.create_subprocess_exec(
             "docker", "ps", "-a", "--format", fmt,

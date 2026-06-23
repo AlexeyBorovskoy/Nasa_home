@@ -15,10 +15,12 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-23:** Jetson жив и доступен через VPS reverse tunnel,
-но storage-backed часть находится в degraded mode из-за USB storage incident
-(`error -71`, `/mnt/storage` не смонтирован). Immich, LLM Gateway и nasa-api
-отвечают; Nextcloud отдаёт `503` до восстановления накопителя.
+**Состояние на 2026-06-23:** Jetson жив и доступен через VPS reverse tunnel.
+SSD снова смонтирован в `/mnt/storage` (`/dev/sda1`, ext4, label
+`nasa-storage`), `e2fsck -f -n` и `storage_preflight.sh` проходят чисто.
+Immich, LLM Gateway, nasa-api, Samba, monitoring и DB backup работают.
+Nextcloud намеренно остановлен (`restart=no`) до отдельного разбора data/app
+state после HTTP 503 и прошлых `EXT4-fs error ... comm apache2`.
 
 ## Железо и доступ
 
@@ -27,7 +29,7 @@
 | Jetson Nano | `192.168.0.50` | LAN, статический IP |
 | SSH на Jetson | `ssh admin@192.168.0.50` | key-based, из Git Bash |
 | SSH через VPS | `ssh root@193.8.215.130` → `ssh -p 10022 admin@127.0.0.1` | текущий рабочий путь из внешней сети |
-| sudo на Jetson | `echo 'PASS' \| sudo -S <cmd>` | пароль в memory/project_nasa_credentials.md |
+| sudo на Jetson | `sudo -S <cmd>` | пароль брать только из приватного runtime/local secret storage; не коммитить |
 | VPS (Vienna) | `193.8.215.130` | `ssh -i ~/.ssh/borovskoy_new_ed25519 root@193.8.215.130` |
 | Репо на Jetson | `~/nasa` | `/home/admin/nasa` |
 
@@ -116,7 +118,7 @@ prompts/          — агентные промпты (CODEX_*)
 
 | Сервис | Порт | URL |
 |---|---|---|
-| Nextcloud | 8080 | http://192.168.0.50:8080 · degraded до восстановления `/mnt/storage` |
+| Nextcloud | 8080 | http://192.168.0.50:8080 · intentionally stopped until data/app review |
 | Immich | 2283 | http://192.168.0.50:2283 |
 | LLM Gateway | 8090 | http://192.168.0.50:8090 |
 | nasa-api + Swagger | 8099 | http://192.168.0.50:8099/docs |
@@ -124,7 +126,7 @@ prompts/          — агентные промпты (CODEX_*)
 | Uptime Kuma | 3001 | http://192.168.0.50:3001 |
 | Portainer | 9000 | http://192.168.0.50:9000 |
 
-VPS (193.8.215.130): Nextcloud :8080 (degraded), Immich :2283, LLM Gateway :8090
+VPS (193.8.215.130): Nextcloud :8080 (502/503 while stopped), Immich :2283, LLM Gateway :8090
 
 ## Жёсткие правила
 

@@ -57,7 +57,7 @@ Internet / mobile client
     |
     v (HTTP)
 VPS 193.8.215.130 — nginx (network_mode: host)
-    :8080 Nextcloud (degraded while storage is missing), :2283 Immich,
+    :8080 Nextcloud (502/503 while intentionally stopped), :2283 Immich,
     :8090 LLM GW
     |
     v (SSH reverse tunnel, autossh)
@@ -97,10 +97,10 @@ VPS:
 | Jetson Nano | LAN SSH | `admin@192.168.0.50` | Target LAN path | Pending; currently not verified |
 | USB HDD | Attachment | USB to Jetson Nano | User-confirmed target topology | Accepted |
 | USB HDD | Network role | none | Storage architecture | Local block device only |
-| USB HDD | Working mount | `/mnt/storage` | ADR-0002 + 2026-06-23 incident | Target; currently not mounted |
+| USB HDD | Working mount | `/mnt/storage` | ADR-0002 + 2026-06-23 incident | Mounted; preflight clean |
 | USB HDD | Existing-data intake mount | `/mnt/hdd-check` read-only | Storage design | Use before migration |
-| USB HDD | Current incident | Realtek RTL9210B-CG / 250 GB not enumerating as block device, kernel `error -71` | Live check 2026-06-23 | Open |
-| Nextcloud | LAN port | `8080/tcp` | Compose/docs | Degraded until `/mnt/storage` is restored |
+| USB HDD | Current incident | Realtek RTL9210B-CG / 250 GB recovered as `/dev/sda1`; prior kernel `error -71` and ext4 errors remain hardware risk | Live check 2026-06-23 | Open / recovered |
+| Nextcloud | LAN port | `8080/tcp` | Compose/docs | Intentionally stopped until data/app review |
 | Immich | LAN port | `2283/tcp` | Compose/docs | Live |
 | LLM Gateway | LAN port | `8090/tcp` | Compose/docs | LAN-only |
 | Samba | LAN port | `445/tcp` | Samba design | LAN-only |
@@ -110,7 +110,7 @@ VPS:
 | VPS | SSH key | `VPS_SSH_KEY` | `config/.env` | Secret/local operational value |
 | External access | Implemented path | VPS 193.8.215.130 + autossh | ADR-0005 | ✅ Live |
 | VPS | Host | 193.8.215.130 (Vienna, AEZA) | observed | ✅ Active |
-| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active; Nextcloud upstream degraded |
+| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active; Nextcloud upstream stopped intentionally |
 | SSH tunnel | nasa-tunnel.service | -R 18080/12283/18090/10022 | systemd/nasa-tunnel.service | ✅ Active |
 | Public port forwarding | Home router | none for Stage 1 | ADR-0003 | Required safe default |
 
@@ -188,8 +188,8 @@ sudo bash scripts/storage/storage_preflight.sh
 | Router admin password missing | DHCP range and static lease cannot be verified from UI | User provides password; inspect only |
 | Jetson LAN SSH | ✅ Verified: `admin@192.168.0.50:22` works | — |
 | VPS external access | ✅ Live: nginx+tunnel, ports 8080/2283/8090 | — |
-| USB storage incident | 250 GB device is physically connected but not enumerating as `/dev/sdX`; `/mnt/storage` is not mounted | Re-seat/replace cable/power, then run `storage_preflight.sh`; do not mount/write until stable |
-| HDD partition | Target ext4 partition for NAS, exact current partition state blocked by enumeration failure | After stable enumeration: inspect with `lsblk`, then decide migration/format path |
+| USB storage incident | 250 GB device recovered as `/dev/sda1` and mounted at `/mnt/storage`, but prior `error -71`/ext4 errors show hardware risk | Keep preflight/boot guard; replace suspect cable/enclosure/power if errors return |
+| HDD partition | Target ext4 partition for NAS is active: label `nasa-storage`, UUID tracked in fstab | Keep read-only fsck path for future incidents; destructive format only with explicit confirmation |
 | External access | ✅ Implemented via VPS reverse tunnel (ADR-0005) | — |
 
 ## 8. Rollback

@@ -4,7 +4,7 @@ services:
   nextcloud-db:
     image: postgres:16-alpine
     container_name: homecloud_nextcloud_db
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_DB: ${NEXTCLOUD_DB_NAME}
       POSTGRES_USER: ${NEXTCLOUD_DB_USER}
@@ -19,7 +19,7 @@ services:
   nextcloud-redis:
     image: redis:7-alpine
     container_name: homecloud_nextcloud_redis
-    restart: unless-stopped
+    restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD}
     mem_limit: 64m
     networks:
@@ -28,7 +28,7 @@ services:
   nextcloud:
     image: nextcloud:apache
     container_name: homecloud_nextcloud
-    restart: unless-stopped
+    restart: always
     depends_on:
       - nextcloud-db
       - nextcloud-redis
@@ -55,7 +55,7 @@ services:
   immich-db:
     image: tensorchord/pgvecto-rs:pg16-v0.3.0
     container_name: homecloud_immich_db
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_DB: ${IMMICH_DB_NAME}
       POSTGRES_USER: ${IMMICH_DB_USER}
@@ -69,7 +69,7 @@ services:
   immich-redis:
     image: redis:7-alpine
     container_name: homecloud_immich_redis
-    restart: unless-stopped
+    restart: always
     # Password-protected to match nextcloud-redis security posture
     command: redis-server --requirepass ${REDIS_PASSWORD}
     mem_limit: 64m
@@ -79,7 +79,7 @@ services:
   immich-server:
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     container_name: homecloud_immich_server
-    restart: unless-stopped
+    restart: always
     depends_on:
       - immich-db
       - immich-redis
@@ -107,7 +107,7 @@ services:
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     container_name: homecloud_immich_microservices
     command: ['start.sh', 'microservices']
-    restart: unless-stopped
+    restart: always
     profiles:
       - microservices
     depends_on:
@@ -132,7 +132,7 @@ services:
     build:
       context: ../../services/llm-gateway
     container_name: homecloud_llm_gateway
-    restart: unless-stopped
+    restart: always
     # LLM Gateway is independent — removed incorrect depends_on: nextcloud
     ports:
       - "8090:8090"

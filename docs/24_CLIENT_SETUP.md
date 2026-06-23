@@ -3,8 +3,9 @@
 > Как подключить телефон, ноутбук и десктоп к NASA Home Cloud.
 > Охватывает Android, Windows и Linux — для каждой платформы и каждого сервиса.
 >
-> Статус 2026-06-23: Immich и LLM Gateway доступны через VPS, Nextcloud временно
-> degraded (`503`) до восстановления `/mnt/storage`.
+> Статус 2026-06-23: Immich и LLM Gateway доступны через VPS. SSD снова
+> смонтирован в `/mnt/storage`, но Nextcloud временно остановлен (`restart=no`)
+> до отдельного разбора data/app state.
 
 ---
 
@@ -36,8 +37,8 @@
 
 ### Nextcloud — файлы, фото, контакты, календарь
 
-**Файлы:** временно не настраивать новые синхронизации, пока Nextcloud degraded.
-После восстановления `/mnt/storage`:
+**Файлы:** временно не настраивать новые синхронизации, пока Nextcloud
+остановлен после USB-инцидента. После data/app review и запуска Nextcloud:
 
 1. Установить [Nextcloud](https://play.google.com/store/apps/details?id=com.nextcloud.client) из Play Store или F-Droid
 2. Открыть приложение → "Войти" → ввести адрес сервера:
@@ -87,7 +88,7 @@
 
 ### Nextcloud Desktop — синхронизация файлов
 
-Сейчас Nextcloud degraded до восстановления `/mnt/storage`. После восстановления:
+Сейчас Nextcloud остановлен до проверки data/app state. После запуска:
 
 1. Скачать [Nextcloud Desktop](https://nextcloud.com/install/#install-clients) для Windows
 2. Установить → "Войти" → сервер:
@@ -263,14 +264,17 @@ API-ключ: Immich → Профиль → API-ключи → Создать.
 
 ```bash
 # Проверить доступность с клиентской машины (замени IP при необходимости)
-curl -sf http://192.168.0.50:8080/status.php | python3 -m json.tool  # Nextcloud
+# Nextcloud проверять только после data/app review и запуска контейнера.
+# curl -sf http://192.168.0.50:8080/status.php | python3 -m json.tool
 curl -sf http://192.168.0.50:2283/api/server/ping                     # Immich
 curl -sf http://192.168.0.50:8099/healthcheck                         # nasa-api
 ping 192.168.0.50                                                      # базовая связь
 ```
 
-Если Nextcloud возвращает `503`, сначала проверить storage на Jetson:
+Если Nextcloud возвращает `503`, сначала проверить, не остановлен ли он
+намеренно после USB-инцидента, затем проверить storage на Jetson:
 
 ```bash
+docker ps -a --filter name=homecloud_nextcloud
 sudo bash scripts/storage/storage_preflight.sh
 ```

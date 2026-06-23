@@ -31,7 +31,7 @@ services:
       - SAMBA_LOG_LEVEL=0
     secrets:
       - samba_password
-    restart: unless-stopped
+    restart: always
 
 secrets:
   samba_password:

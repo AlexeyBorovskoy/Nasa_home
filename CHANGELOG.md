@@ -16,17 +16,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `scripts/storage/install_mount_service.sh`: safe installer for
   `jetson-nas-mount.service`; install/enable by default, immediate mount only with
   explicit `--start`.
+- `scripts/storage/install_docker_storage_guard.sh` and
+  `systemd/docker.service.d/10-nasa-storage.conf`: optional strict boot guard
+  that makes Docker wait for `/mnt/storage` after power loss or USB failure.
+- `docs/plans/RELIABILITY_AUDIT_2026-06-23.md`: live reliability audit via VPS
+  with confirmed Jetson findings, repo mitigations, and SSD recovery paths.
 
 ### Changed / Изменено
 
+- `docker/compose/docker-compose.nasa-api.yml`,
+  `services/nasa-api/app/config.py`, and
+  `scripts/monitoring/nasa-daily-report.sh`: expected containers now use real
+  `homecloud_*` container names instead of stale compose-generated names.
+- `scripts/monitoring/nasa-daily-report.sh`: adds storage mount health,
+  Nextcloud `.ncdata` presence check, recent kernel storage errors, and separate
+  VPS checks for Nextcloud, Immich, and LLM Gateway.
 - `scripts/backup/backup_databases.sh`: refuses to write database dumps when
   `${STORAGE_ROOT}` is not a mountpoint, cannot be resolved, points to microSD, or
   is not writable.
+- `systemd/nasa-backup.service` and `systemd/jetson-nas-health.service`: require
+  `/mnt/storage` to be a real mountpoint before running.
 - `systemd/jetson-nas-mount.service`: uses `STORAGE_ROOT=/mnt/storage` default,
   reads `/home/admin/nasa/config/.env`, and avoids unsupported shell-style
   `${VAR:-default}` expansion in systemd `ExecStart`.
+- `docker/compose/docker-compose.samba.yml`, `docker/compose/docker-compose.stage1.yml`,
+  and `docker/vps/docker-compose.yml`: normalized restart policy to `always`.
 - `docs/13_MONITORING_RUNBOOK.md`: added USB storage failure runbook for
   `error -71`, ext4 read-only remounts, safe recovery order, and preflight usage.
+- Top-level and operational docs now reflect the recovered SSD state, intentional
+  Nextcloud stop, live DB backup success, and the remaining hardware risk in the
+  USB cable/enclosure/power chain.
 
 ## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
 

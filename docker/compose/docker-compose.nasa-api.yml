@@ -19,9 +19,16 @@ services:
     environment:
       API_LOG_LEVEL: ${NASA_API_LOG_LEVEL:-INFO}
       EXPECTED_CONTAINERS: >-
-        homecloud-nextcloud-nextcloud-1
-        homecloud-immich-immich-server-1
-        homecloud-llm-gateway-llm-gateway-1
+        homecloud_nextcloud
+        homecloud_nextcloud_db
+        homecloud_nextcloud_redis
+        homecloud_immich_server
+        homecloud_immich_microservices
+        homecloud_immich_db
+        homecloud_immich_redis
+        homecloud_llm_gateway
+        homecloud_nasa_api
+        homecloud_samba
         homecloud_netdata
         homecloud_uptime_kuma
         homecloud_portainer

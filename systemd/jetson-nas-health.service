@@ -3,11 +3,15 @@ Description=NASA Home Cloud — storage & SMART health check
 Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
 After=local-fs.target
 Requires=local-fs.target
+RequiresMountsFor=/mnt/storage
+ConditionPathIsMountPoint=/mnt/storage
 
 [Service]
 Type=oneshot
 User=root
-ExecStart=/opt/nasa/scripts/diagnostics/storage_health.sh
+Environment=NASA_PROJECT_DIR=/home/admin/nasa
+EnvironmentFile=-/home/admin/nasa/config/.env
+ExecStart=/bin/bash "${NASA_PROJECT_DIR}/scripts/diagnostics/storage_health.sh"
 StandardOutput=journal
 StandardError=journal
 

@@ -7,6 +7,8 @@
 На 2026-06-23 backup работает в fail-closed режиме: если `/mnt/storage` не
 является отдельным mountpoint или указывает на microSD, дампы БД не создаются.
 Это защищает от записи backup-архивов в ложный каталог на системной microSD.
+После восстановления SSD сервис был успешно запущен вручную и создал свежие
+дампы Nextcloud и Immich в `/mnt/storage/backups/database-dumps/`.
 
 ## 2. Объекты backup
 
@@ -58,5 +60,7 @@ ls -la /tmp/homecloud-restore-test
 
 Если preflight падает из-за отсутствующего `/mnt/storage`, `error -71` или
 read-only remount, backup/restore работы останавливаются до стабилизации
-накопителя. Порядок восстановления описан в
+накопителя. На 2026-06-23 SSD снова смонтирован и preflight чистый, но прошлые
+kernel/ext4 ошибки оставляют USB-цепочку аппаратным риском. Порядок
+восстановления описан в
 `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
