@@ -42,3 +42,12 @@ with Android recovery roadmap and privacy-controlled LLM gateway.
 ```
 
 Ключевая отличительная особенность — связка **Nextcloud + Immich + Android Restore Roadmap + LLM Privacy Gateway + Codex-ready documentation**.
+
+## 6. Текущее операционное состояние
+
+На 2026-06-23 проект находится в Stage 1 degraded mode из-за USB storage
+incident: Jetson доступен через VPS reverse SSH tunnel, Immich, LLM Gateway и
+nasa-api отвечают, но Nextcloud недоступен до восстановления `/mnt/storage`.
+
+Корневой документ инцидента:
+`docs/plans/STORAGE_INCIDENT_2026-06-23.md`.

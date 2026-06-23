@@ -45,6 +45,37 @@ container_running() {
     docker inspect --format '{{.State.Running}}' "${name}" 2>/dev/null | grep -q '^true$'
 }
 
+storage_ready() {
+    if ! mountpoint -q "${STORAGE_ROOT}" 2>/dev/null; then
+        log "CRITICAL: ${STORAGE_ROOT} is not a mount point; refusing to write backups"
+        return 1
+    fi
+
+    local storage_source
+    storage_source="$(findmnt -n -T "${STORAGE_ROOT}" -o SOURCE 2>/dev/null || true)"
+    if [[ -z "${storage_source}" ]]; then
+        log "CRITICAL: cannot resolve backing device for ${STORAGE_ROOT}"
+        return 1
+    fi
+
+    if [[ "${storage_source}" == /dev/mmcblk* ]]; then
+        log "CRITICAL: ${STORAGE_ROOT} is backed by ${storage_source}; refusing to write backups to microSD"
+        return 1
+    fi
+
+    local writable_target="${STORAGE_ROOT}"
+    if [[ -d "${BACKUP_ROOT}" ]]; then
+        writable_target="${BACKUP_ROOT}"
+    fi
+
+    if [[ ! -w "${writable_target}" ]]; then
+        log "CRITICAL: ${writable_target} is not writable"
+        return 1
+    fi
+
+    return 0
+}
+
 dump_postgres() {
     local container="$1"
     local db_user="$2"
@@ -81,6 +112,7 @@ rotate_old_dumps() {
 # ---------------------------------------------------------------------------
 
 log "=== Database backup started ==="
+storage_ready
 mkdir -p "${DUMP_DIR}"
 
 ERRORS=0

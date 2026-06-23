@@ -1,11 +1,12 @@
 # 22. Аудит надёжности и устойчивости / Resilience Audit
 
-> Актуализировано: 2026-06-21.
+> Актуализировано: 2026-06-23.
 >
 > Документ фиксирует результаты аудита инфраструктуры NASA Home Cloud
 > (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): тесты состояния через goss,
 > статический анализ скриптов и Dockerfile, симуляцию отказов контейнеров
-> и туннеля. Найдено 10 находок (2 критических, 3 высоких, 3 средних, 2 низких).
+> и туннеля. После USB storage incident добавлена storage-находка F-11.
+> Всего зафиксировано 11 находок.
 
 ---
 
@@ -53,6 +54,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | F-08 | MEDIUM | Code | SC2046 в `scripts/fetch_external_docs.sh:182`: неэкранированный `$(find ...)` → word splitting для имён файлов с пробелами. | **Fixed** |
 | F-09 | LOW | Code | SC2016 в `scripts/diagnostics/hardware_audit.sh`: ложное срабатывание — markdown-бэктики внутри одинарных кавычек. | Accepted |
 | F-10 | LOW | Code | SC1090 в скриптах мониторинга: динамический путь для `source` (известное ограничение shellcheck). | Accepted |
+| F-11 | HIGH | Storage | USB storage 250 GB физически подключён, но не перечисляется как block device; ранее фиксировались I/O errors и read-only remount `/mnt/storage`. Nextcloud деградировал, backup должен отказываться писать дампы. | Open / mitigated by preflight |
 
 > **Критические находки F-01 и F-02 связаны между собой:** поведение restart-политики
 > при `docker kill` является багом Docker 20.10. Обновление до Docker 27.x (F-01)
@@ -82,6 +84,9 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 - **Туннель**: `nasa-tunnel.service` — `restart=always`, статус active.
 - **RAM**: 2117 МБ свободно + 1980 МБ swap (zram).
 - **Диск**: 38 ГБ свободно на `/` (35% занято).
+- **Storage incident 2026-06-23**: `/mnt/storage` не смонтирован; добавлен
+  `scripts/storage/storage_preflight.sh`, backup работает fail-closed и не
+  создаёт дампы на microSD вместо внешнего диска.
 
 > **Единственный провальный goss-тест:** `http://localhost:8099/health` вернул
 > не-200 статус — возможна проблема с эндпойнтом nasa-api или временный глюк во время
@@ -210,6 +215,24 @@ services:
 Переменная `$(find ...)` теперь заключена в двойные кавычки для корректной
 обработки пробелов в именах файлов.
 
+### F-11 — USB storage incident (Open / mitigated)
+
+Симптомы: Realtek RTL9210B-CG / 250 GB один раз определялся как `/dev/sda`, затем
+появились I/O errors, `EXT4-fs` remount read-only, а после переподключений ядро
+показывает `error -71` и устройство не появляется как block device.
+
+Смягчение в repo:
+
+```bash
+sudo bash scripts/storage/storage_preflight.sh
+sudo bash scripts/storage/install_mount_service.sh --start
+```
+
+`backup_databases.sh` теперь сначала проверяет, что `STORAGE_ROOT` является
+mountpoint на внешнем устройстве, не на `/dev/mmcblk*`, и доступен для записи.
+До восстановления накопителя Nextcloud остаётся degraded, а backup timer должен
+завершаться ошибкой вместо записи дампов на microSD.
+
 ---
 
 ## 7. Goss-тесты
@@ -260,6 +283,10 @@ Netdata, Uptime Kuma, Portainer, nasa-api and their dependencies), 14 bash
 scripts, 3 Dockerfiles, and 738 lines of Python code. Additionally: systemd
 units, iptables persistence, and port availability.
 
+Update 2026-06-23: a USB storage incident added finding F-11. `/mnt/storage` is
+currently not mounted; Nextcloud is degraded and database backups fail closed
+until storage preflight passes.
+
 ---
 
 ## 2. Tools
@@ -291,6 +318,7 @@ units, iptables persistence, and port availability.
 | F-08 | MEDIUM | Code | SC2046 in `scripts/fetch_external_docs.sh:182`: unquoted `$(find ...)` → word splitting on filenames with spaces. | **Fixed** |
 | F-09 | LOW | Code | SC2016 in `scripts/diagnostics/hardware_audit.sh`: harmless false positive (markdown backticks inside single-quoted strings). | Accepted |
 | F-10 | LOW | Code | SC1090 in monitoring scripts: dynamic `source` path (known shellcheck limitation). | Accepted |
+| F-11 | HIGH | Storage | USB storage 250 GB is physically attached but does not enumerate as a block device; previous logs showed I/O errors and read-only remount. Nextcloud is degraded; backups must not write to microSD. | Open / mitigated by preflight |
 
 > **Critical findings F-01 and F-02 are related:** the restart policy misbehaviour
 > under `docker kill` is a Docker 20.10 bug. Upgrading to Docker 27.x (F-01)
@@ -320,6 +348,9 @@ units, iptables persistence, and port availability.
 - **Tunnel**: `nasa-tunnel.service` — `restart=always`, status active.
 - **RAM**: 2117 MB available + 1980 MB swap (zram).
 - **Disk**: 38 GB free on `/` (35% used).
+- **Storage incident 2026-06-23**: `/mnt/storage` is not mounted; added
+  `scripts/storage/storage_preflight.sh`; backups fail closed instead of
+  writing dumps to the microSD fallback directory.
 
 > **The one failing goss test:** `http://localhost:8099/health` returned a non-200
 > status — possible nasa-api endpoint issue or transient glitch during audit.
@@ -446,6 +477,22 @@ Optionally disable unused plugins in `/etc/netdata/netdata.conf`:
 
 The `$(find ...)` subshell is now double-quoted to correctly handle filenames
 containing spaces.
+
+### F-11 — USB storage incident (Open / mitigated)
+
+The Realtek RTL9210B-CG / 250 GB device briefly appeared as `/dev/sda`, then
+reported I/O errors and an ext4 read-only remount. Subsequent checks show USB
+`error -71` and no block device.
+
+Mitigation in repo:
+
+```bash
+sudo bash scripts/storage/storage_preflight.sh
+sudo bash scripts/storage/install_mount_service.sh --start
+```
+
+`backup_databases.sh` now verifies that `STORAGE_ROOT` is a mounted external
+device, not `/dev/mmcblk*`, and writable before creating dump directories.
 
 ---
 

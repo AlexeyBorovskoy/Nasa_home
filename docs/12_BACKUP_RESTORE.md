@@ -4,6 +4,10 @@
 
 Хранение фото на одном USB HDD не является резервным копированием. Минимально нужен второй носитель или удалённая копия.
 
+На 2026-06-23 backup работает в fail-closed режиме: если `/mnt/storage` не
+является отдельным mountpoint или указывает на microSD, дампы БД не создаются.
+Это защищает от записи backup-архивов в ложный каталог на системной microSD.
+
 ## 2. Объекты backup
 
 | Объект | Метод |
@@ -16,6 +20,13 @@
 | `.env` | зашифрованный backup вне публичного Git |
 
 ## 3. Пример restic
+
+Перед любым backup:
+
+```bash
+cd ~/nasa
+sudo bash scripts/storage/storage_preflight.sh
+```
 
 ```bash
 export RESTIC_REPOSITORY=/mnt/storage/backups/restic-repo
@@ -42,3 +53,10 @@ ls -la /tmp/homecloud-restore-test
 | RPO | 24 часа |
 | RTO | 2–4 часа вручную |
 | Проверка restore | ежемесячно |
+
+## 6. USB Storage Incident 2026-06-23
+
+Если preflight падает из-за отсутствующего `/mnt/storage`, `error -71` или
+read-only remount, backup/restore работы останавливаются до стабилизации
+накопителя. Порядок восстановления описан в
+`docs/plans/STORAGE_INCIDENT_2026-06-23.md`.

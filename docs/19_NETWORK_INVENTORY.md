@@ -7,6 +7,8 @@ It is a sanitized public inventory: real Wi-Fi passwords, router serial numbers,
 router MAC addresses, and private credentials must stay in `config/.env`
 (gitignored).
 
+Updated: 2026-06-23.
+
 Scope of this step:
 
 1. Observe current network state.
@@ -22,7 +24,8 @@ Scope of this step:
   internet via port forwarding on the home router.
 - Do not touch the Amnezia VPN containers on VPS 193.8.215.130 through SSH or
   `wg set` — serves ~25 clients.
-- External access implemented via VPS reverse SSH tunnel (ADR-0005). No Tailscale.
+- External access implemented via VPS reverse SSH tunnel (ADR-0005). Tailscale
+  is archival/alternative documentation only.
 - Treat router photos, SSIDs, passwords, MAC addresses, serial numbers, and
   admin credentials as secrets.
 
@@ -44,7 +47,7 @@ Gateway: 192.168.0.1
            gateway: 192.168.0.1
            services: LAN-only
            |
-           +-- USB HDD
+           +-- USB storage
                   data disk attached directly to Jetson over USB
                   not a network device
 
@@ -54,7 +57,8 @@ Internet / mobile client
     |
     v (HTTP)
 VPS 193.8.215.130 — nginx (network_mode: host)
-    :8080 Nextcloud, :2283 Immich, :8090 LLM GW
+    :8080 Nextcloud (degraded while storage is missing), :2283 Immich,
+    :8090 LLM GW
     |
     v (SSH reverse tunnel, autossh)
 Jetson Nano 192.168.0.50
@@ -93,10 +97,11 @@ VPS:
 | Jetson Nano | LAN SSH | `admin@192.168.0.50` | Target LAN path | Pending; currently not verified |
 | USB HDD | Attachment | USB to Jetson Nano | User-confirmed target topology | Accepted |
 | USB HDD | Network role | none | Storage architecture | Local block device only |
-| USB HDD | Working mount | `/mnt/storage` | ADR-0002 | Only after storage migration decision |
+| USB HDD | Working mount | `/mnt/storage` | ADR-0002 + 2026-06-23 incident | Target; currently not mounted |
 | USB HDD | Existing-data intake mount | `/mnt/hdd-check` read-only | Storage design | Use before migration |
-| Nextcloud | LAN port | `8080/tcp` | Compose/docs | LAN-only |
-| Immich | LAN port | `2283/tcp` | Compose/docs | LAN-only |
+| USB HDD | Current incident | Realtek RTL9210B-CG / 250 GB not enumerating as block device, kernel `error -71` | Live check 2026-06-23 | Open |
+| Nextcloud | LAN port | `8080/tcp` | Compose/docs | Degraded until `/mnt/storage` is restored |
+| Immich | LAN port | `2283/tcp` | Compose/docs | Live |
 | LLM Gateway | LAN port | `8090/tcp` | Compose/docs | LAN-only |
 | Samba | LAN port | `445/tcp` | Samba design | LAN-only |
 | SSH | LAN port | `22/tcp` | Jetson admin | LAN/VPN-only |
@@ -105,7 +110,7 @@ VPS:
 | VPS | SSH key | `VPS_SSH_KEY` | `config/.env` | Secret/local operational value |
 | External access | Implemented path | VPS 193.8.215.130 + autossh | ADR-0005 | ✅ Live |
 | VPS | Host | 193.8.215.130 (Vienna, AEZA) | observed | ✅ Active |
-| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active |
+| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active; Nextcloud upstream degraded |
 | SSH tunnel | nasa-tunnel.service | -R 18080/12283/18090/10022 | systemd/nasa-tunnel.service | ✅ Active |
 | Public port forwarding | Home router | none for Stage 1 | ADR-0003 | Required safe default |
 
@@ -167,11 +172,13 @@ nmcli connection show nasa-lan
 ping -c 3 192.168.0.1
 ```
 
-Storage check after HDD is attached to Jetson:
+Storage check after USB storage is attached to Jetson:
 
 ```bash
 lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,TRAN,RO
 mountpoint /mnt/storage || echo "/mnt/storage is not mounted"
+sudo dmesg -T | grep -i -E "usb|uas|reset|I/O error|error -71" | tail -n 80
+sudo bash scripts/storage/storage_preflight.sh
 ```
 
 ## 7. Current Open Items
@@ -181,7 +188,8 @@ mountpoint /mnt/storage || echo "/mnt/storage is not mounted"
 | Router admin password missing | DHCP range and static lease cannot be verified from UI | User provides password; inspect only |
 | Jetson LAN SSH | ✅ Verified: `admin@192.168.0.50:22` works | — |
 | VPS external access | ✅ Live: nginx+tunnel, ports 8080/2283/8090 | — |
-| HDD partition | One NTFS partition, need ext4 for NAS | GParted resize → mkfs.ext4 → setup_disk.sh |
+| USB storage incident | 250 GB device is physically connected but not enumerating as `/dev/sdX`; `/mnt/storage` is not mounted | Re-seat/replace cable/power, then run `storage_preflight.sh`; do not mount/write until stable |
+| HDD partition | Target ext4 partition for NAS, exact current partition state blocked by enumeration failure | After stable enumeration: inspect with `lsblk`, then decide migration/format path |
 | External access | ✅ Implemented via VPS reverse tunnel (ADR-0005) | — |
 
 ## 8. Rollback

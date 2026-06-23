@@ -8,10 +8,11 @@ Before=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-EnvironmentFile=/opt/nasa/config/.env
+Environment=STORAGE_ROOT=/mnt/storage
+EnvironmentFile=-/home/admin/nasa/config/.env
 # Mount only the storage HDD, not all fstab entries
-ExecStart=/bin/mount ${STORAGE_ROOT:-/mnt/storage}
-ExecStop=/bin/umount ${STORAGE_ROOT:-/mnt/storage}
+ExecStart=/bin/mount ${STORAGE_ROOT}
+ExecStop=/bin/umount ${STORAGE_ROOT}
 
 [Install]
 WantedBy=multi-user.target

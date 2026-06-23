@@ -127,6 +127,7 @@ done
 echo ""
 log "HDD SMART health:"
 STORAGE_DEVICE="${STORAGE_DEVICE:-}"  # e.g. /dev/sda — set in config/.env
+STORAGE_SMART_DEVICE_TYPE="${STORAGE_SMART_DEVICE_TYPE:-}"  # e.g. sat/scsi for USB bridges
 
 if ! command -v smartctl &>/dev/null; then
     log "  smartctl not installed. Run: sudo apt install smartmontools"
@@ -136,10 +137,15 @@ elif [[ ! -b "${STORAGE_DEVICE}" ]]; then
     log "  WARNING: ${STORAGE_DEVICE} is not a block device (HDD not connected?)"
     ERRORS=$(( ERRORS + 1 ))
 else
-    smart_raw="$(smartctl -H "${STORAGE_DEVICE}" 2>&1 || true)"
-    if echo "${smart_raw}" | grep -q "PASSED"; then
-        log "  ${STORAGE_DEVICE}: SMART PASSED"
-    elif echo "${smart_raw}" | grep -q "FAILED"; then
+    SMARTCTL_ARGS=()
+    if [[ -n "${STORAGE_SMART_DEVICE_TYPE}" ]]; then
+        SMARTCTL_ARGS=(-d "${STORAGE_SMART_DEVICE_TYPE}")
+    fi
+
+    smart_raw="$(smartctl "${SMARTCTL_ARGS[@]}" -H "${STORAGE_DEVICE}" 2>&1 || true)"
+    if echo "${smart_raw}" | grep -Eq "PASSED|SMART Health Status:[[:space:]]*OK"; then
+        log "  ${STORAGE_DEVICE}: SMART OK"
+    elif echo "${smart_raw}" | grep -Eq "FAILED|SMART Health Status:.*(FAIL|BAD)"; then
         log "  ${STORAGE_DEVICE}: SMART FAILED! Drive may be failing — backup immediately."
         ERRORS=$(( ERRORS + 1 ))
     elif echo "${smart_raw}" | grep -qi "USB bridge"; then
@@ -153,7 +159,7 @@ else
     # Save SMART attributes snapshot
     SMART_LOG_DIR="${STORAGE_ROOT}/logs/health"
     mkdir -p "${SMART_LOG_DIR}"
-    smartctl -A "${STORAGE_DEVICE}" > "${SMART_LOG_DIR}/smart-attrs-$(date +%Y%m%d-%H%M%S).log" 2>/dev/null || true
+    smartctl "${SMARTCTL_ARGS[@]}" -A "${STORAGE_DEVICE}" > "${SMART_LOG_DIR}/smart-attrs-$(date +%Y%m%d-%H%M%S).log" 2>/dev/null || true
     log "  SMART attributes saved to ${SMART_LOG_DIR}/"
 fi
 

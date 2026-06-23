@@ -1,6 +1,6 @@
 # 03. Архитектура
 
-> Актуализировано: 2026-06-21. Полная карта — [archtectura_nasa.md](../archtectura_nasa.md).
+> Актуализировано: 2026-06-23. Полная карта — [archtectura_nasa.md](../archtectura_nasa.md).
 
 ## 1. Логическая схема
 
@@ -44,7 +44,7 @@ flowchart TB
 | Слой | Назначение |
 |---|---|
 | External relay | VPS nginx (host network) + SSH reverse tunnel через CGNAT |
-| Storage | USB HDD, ext4, `/mnt/storage` |
+| Storage | USB SSD/HDD, ext4, `/mnt/storage`; currently degraded until USB storage is stable |
 | NAS | Samba/SMB2+ (LAN only) |
 | Cloud | Nextcloud |
 | Photo archive | Immich |
@@ -57,11 +57,11 @@ flowchart TB
 
 | Сервис | Порт Jetson | Внешний доступ | Статус |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ✅ Live |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ⚠️ Degraded: storage missing |
 | Immich | 2283 | `http://193.8.215.130:2283/` | ✅ Live |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | ✅ Live |
 | SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | ✅ tunnel |
-| Samba | 445/139 | LAN only (192.168.0.0/24) | ✅ iptables |
+| Samba | 445/139 | LAN only (192.168.0.0/24) | ⚠️ Storage-dependent |
 
 Прямого проброса портов на домашнем роутере нет.
 
@@ -95,12 +95,12 @@ LLM Gateway **не получает**:
 | Этап | Содержание | Статус |
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ |
-| Stage 1A | Hardware audit, storage, Samba | ✅ |
-| Stage 1B | Nextcloud | ✅ Live |
+| Stage 1A | Hardware audit, storage, Samba | ⚠️ USB storage incident |
+| Stage 1B | Nextcloud | ⚠️ Degraded until `/mnt/storage` is restored |
 | Stage 1C | Immich (ML disabled) | ✅ Live |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ Live |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ Live |
-| Stage 1F | Monitoring | 🔜 |
-| Stage 1G | Backup/restore | 🔜 |
+| Stage 1F | Monitoring | ✅ |
+| Stage 1G | Backup/restore | ⚠️ DB dumps fail-closed while storage is missing |
 | Stage 2 | Android backup API | 📋 |
 | Stage 3 | RAG, fallback LLM | 📋 |

@@ -9,7 +9,7 @@ Requires=docker.service
 Type=oneshot
 # Adjust NASA_PROJECT_DIR if repo is not at /home/admin/nasa
 Environment=NASA_PROJECT_DIR=/home/admin/nasa
-ExecStart=/bin/bash -c "${NASA_PROJECT_DIR}/scripts/backup/backup_databases.sh"
+ExecStart=/bin/bash "${NASA_PROJECT_DIR}/scripts/backup/backup_databases.sh"
 User=admin
 StandardOutput=journal
 StandardError=journal

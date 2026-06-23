@@ -19,12 +19,17 @@ goss -g tests/goss/goss.yaml validate --format tap
 
 # API-статус через nasa-api:
 curl -sf http://localhost:8099/v1/containers | python3 -m json.tool
+
+# Storage preflight перед запуском Nextcloud/Immich/backup:
+cd ~/nasa
+sudo bash scripts/storage/storage_preflight.sh
 ```
 
 ## 2. Ежедневные проверки
 
 ```bash
 df -h /mnt/storage          # место на диске данных
+mountpoint /mnt/storage     # /mnt/storage обязан быть отдельным mountpoint
 free -h                     # RAM (предупреждение < 300 MB)
 docker ps --format "{{.Names}}\t{{.Status}}"  # healthcheck-статусы
 sudo dmesg | grep -i -E "error|reset|fail|i/o" | tail -20
@@ -50,6 +55,7 @@ sudo smartctl -a /dev/sda || sudo smartctl -a -d sat /dev/sda
 ```bash
 # Запуск стека (если контейнер упал и не поднялся сам):
 cd ~/nasa
+sudo bash scripts/storage/storage_preflight.sh
 docker compose -f docker/compose/docker-compose.nextcloud.yml  --env-file config/.env up -d
 docker compose -f docker/compose/docker-compose.immich.yml     --env-file config/.env up -d
 docker compose -f docker/compose/docker-compose.llm-gateway.yml --env-file config/.env up -d
@@ -81,10 +87,12 @@ docker logs homecloud_nextcloud --tail=50
 docker logs homecloud_nextcloud_db --tail=20
 ```
 
-4. Проверить диск:
+4. Проверить диск и preflight:
 
 ```bash
 df -h /mnt/storage
+mountpoint /mnt/storage
+cd ~/nasa && sudo bash scripts/storage/storage_preflight.sh
 ```
 
 ## 7. Если Immich тормозит
@@ -103,22 +111,61 @@ docker stats --no-stream | grep immich
 docker logs homecloud_immich_db --tail=30
 ```
 
-## 8. Если HDD отваливается
+## 8. Если USB storage отваливается
 
-1. Проверить питание и кабель.
-2. Проверить dmesg:
+Симптомы: `/mnt/storage` не является mountpoint, `lsblk` не показывает диск,
+Nextcloud отдаёт `503` / `data directory is invalid`, в `journalctl -k`
+видны `error -71`, `unable to enumerate USB device`, `EXT4-fs error`,
+`Aborting journal` или `Remounting filesystem read-only`.
 
-```bash
-sudo dmesg | grep -E "sda|usb" | tail -20
-```
-
-3. Проверить SMART:
+**Сначала только read-only диагностика:**
 
 ```bash
-sudo smartctl -a /dev/sda
+lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,RO
+blkid
+mountpoint /mnt/storage || echo "/mnt/storage is not mounted"
+findmnt -T /mnt/storage -o TARGET,SOURCE,FSTYPE,OPTIONS
+journalctl -k -n 120 --no-pager | grep -i -E "usb|sda|sdb|ext4|I/O error|error -71|enumerate|read-only"
+cd ~/nasa && sudo bash scripts/storage/storage_preflight.sh
 ```
 
-4. Не запускать БД до стабилизации — данные в `/mnt/storage`.
+**Нельзя делать до стабилизации USB:**
+
+- не запускать `docker compose up -d` для Nextcloud/Immich;
+- не создавать `.ncdata` вручную в ложном `/mnt/storage` на microSD;
+- не запускать `fsck` на смонтированном разделе;
+- не использовать `docker compose down -v`;
+- не писать backup в `/mnt/storage`, если preflight не прошёл.
+
+**Физический порядок восстановления:**
+
+1. Проверить питание, кабель, USB-порт и USB-SATA/NVMe адаптер.
+2. Предпочтительно подключить накопитель через powered USB hub или корпус с
+   отдельным питанием.
+3. Дождаться, что `lsblk` стабильно показывает диск и нужный UUID из `/etc/fstab`.
+4. Только после этого монтировать `/mnt/storage` и запускать storage-backed
+   контейнеры.
+
+**После стабильного переподключения:**
+
+```bash
+cd ~/nasa
+sudo bash scripts/storage/storage_preflight.sh
+
+# Установить mount-unit, если он ещё не установлен.
+bash scripts/storage/install_mount_service.sh
+
+# Запуск mount-unit только после проверки lsblk/blkid.
+sudo systemctl start jetson-nas-mount.service
+sudo bash scripts/storage/storage_preflight.sh
+
+# После успешного preflight можно запускать сервисы.
+docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.immich.yml --env-file config/.env up -d
+```
+
+Если накопитель снова отваливается с `error -71`, это аппаратная проблема
+USB-цепочки. Продолжать эксплуатацию Nextcloud/Immich на таком накопителе нельзя.
 
 ## 9. Telegram ежедневный отчёт
 
@@ -158,6 +205,9 @@ systemctl list-timers nasa-daily-report-telegram.timer
 
 Скрипт `scripts/backup/backup_databases.sh` уже реализован (pg_dump + gzip + ротация 7 дней).
 Таймер запускает его каждый день в 03:00 (±15 мин).
+Скрипт работает fail-closed: если `${STORAGE_ROOT}` не является отдельным
+mountpoint или указывает на microSD, backup не создаётся, чтобы не писать дампы
+в ложный `/mnt/storage`.
 
 ```bash
 # Установить на Jetson (один раз, из директории проекта):

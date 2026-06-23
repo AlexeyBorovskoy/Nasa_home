@@ -2,7 +2,7 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 ├── README.md                          # двуязычная документация (RU+EN) с badges
 ├── PROJECT_CONTEXT.md                 # scope, зафиксированные решения, ограничения
 ├── AGENTS.md                          # правила для Codex/агентов + сетевые ограничения
-├── archtectura_nasa.md                # архитектурная карта (актуальна 2026-05-31)
+├── archtectura_nasa.md                # архитектурная карта (актуальна 2026-06-23)
 ├── AUDIT_2026-05-31.md                # аудит целостности (2026-05-31)
 ├── SECURITY.md                        # политика безопасности (RU+EN)
 ├── CONTRIBUTING.md                    # правила для контрибьюторов
@@ -66,6 +66,10 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   ├── 18_NAS_RESEARCH_REPORT.md      # аналитика по 6 NAS-проектам (JetsonHacks, OMV, ...)
 │   ├── 19_NETWORK_INVENTORY.md        # инвентарь сети
 │   ├── 20_AGENT_OPERATING_MODEL.md    # операционная модель субагентов
+│   ├── 21_LOGGING_API.md              # logging/API layer для nasa-api
+│   ├── 22_AUDIT_RESILIENCE.md         # аудит устойчивости + F-11 storage incident
+│   ├── 23_GITHUB_INTEGRATION.md       # gh CLI и GitHub workflow
+│   ├── 24_CLIENT_SETUP.md             # подключение Android/Windows/Linux клиентов
 │   ├── articles/
 │   │   └── habr_draft.md              # заготовка статьи для Habr.com
 │   ├── decisions/
@@ -76,8 +80,9 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   ├── plans/
 │   │   ├── README.md                  # навигация по планам
 │   │   ├── TEST_STAND_CHECKPOINT_2026-05-31.md
-│   │   ├── TAILSCALE_ACCESS_PLAN.md   # внешний доступ через Tailscale
+│   │   ├── TAILSCALE_ACCESS_PLAN.md   # архивный/альтернативный план
 │   │   ├── VPS_INTEGRATION_PLAN.md    # reverse SSH tunnel через VPS
+│   │   ├── STORAGE_INCIDENT_2026-06-23.md # live runbook USB storage incident
 │   │   ├── GITHUB_PROJECT_PROMOTION_WORKPLAN.md
 │   │   └── OLD_HARDWARE_PROJECT_PROMOTION_PLAN.md
 │   └── references/
@@ -113,7 +118,9 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │   │   └── check_no_secrets.sh        # pre-publish secret scanner (git-tracked files)
 │   ├── storage/
 │   │   ├── setup_disk.sh              # монтирование USB HDD с UUID/fstab (JetsonHacks+NasberryPi)
-│   │   └── benchmark_io.sh            # sequential I/O benchmark
+│   │   ├── benchmark_io.sh            # sequential I/O benchmark
+│   │   ├── storage_preflight.sh       # fail-closed проверка STORAGE_ROOT перед сервисами
+│   │   └── install_mount_service.sh   # установка jetson-nas-mount.service на Jetson
 │   └── fetch_external_docs.sh         # загрузка внешней документации
 │
 ├── services/
@@ -128,10 +135,15 @@ nasa-home-cloud/                       # NASA Home Cloud project root
 │       ├── app/main.py
 │       └── requirements.txt
 │
+├── photo/
+│   └── test_sys.jpg                   # фото реального стенда для README
+│
 ├── systemd/                           # systemd units для Jetson Nano
 │   ├── jetson-nas-health.service      # запускает storage_health.sh
 │   ├── jetson-nas-health.timer        # OnBootSec=5min, OnUnitActiveSec=6h, Persistent
 │   ├── jetson-nas-mount.service       # монтирование STORAGE_ROOT
+│   ├── nasa-backup.service            # bash wrapper для backup_databases.sh
+│   ├── nasa-backup.timer              # daily DB dump timer
 │   └── nasa-tunnel.service            # autossh reverse SSH tunnel → VPS
 │
 └── tests/                             # smoke-тесты (запускать на Jetson вручную)

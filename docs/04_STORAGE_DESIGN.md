@@ -4,6 +4,11 @@
 
 USB HDD является основным хранилищем данных. microSD используется для ОС и минимального runtime.
 
+Статус 2026-06-23: целевой 250 GB USB storage физически подключён, но сейчас не
+перечисляется как block device (`error -71` в kernel log), поэтому `/mnt/storage`
+не смонтирован. См. инцидент:
+`docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+
 ## 2. Рекомендуемая файловая система
 
 Рекомендуется `ext4`, если диск постоянно используется с Linux-сервером.
@@ -209,6 +214,14 @@ ssh admin@192.168.0.50 "docker compose -f ~/nasa/docker/compose/docker-compose.s
 
 ## 4. Целевая структура
 
+Перед созданием каталогов или запуском Nextcloud/Immich/backup обязательно
+проверить, что `/mnt/storage` является mountpoint на внешнем устройстве, а не
+обычной директорией на microSD:
+
+```bash
+sudo bash scripts/storage/storage_preflight.sh
+```
+
 ```text
 /mnt/storage
 ├── nextcloud/
@@ -267,6 +280,7 @@ UUID=<HDD_UUID> /mnt/storage ext4 defaults,noatime 0 2
 ```bash
 sudo mount -a
 df -h /mnt/storage
+sudo bash scripts/storage/storage_preflight.sh
 ```
 
 ## 7. Критический контроль
@@ -277,4 +291,9 @@ df -h /mnt/storage
 mount | grep /mnt/storage
 df -h /mnt/storage
 sudo dmesg | grep -i -E "error|reset|i/o" | tail -n 100
+sudo bash scripts/storage/storage_preflight.sh
 ```
+
+Если `storage_preflight.sh` не проходит, нельзя запускать backup, Nextcloud
+data repair или массовую запись на `/mnt/storage`: есть риск записать данные на
+microSD или усугубить I/O-инцидент.

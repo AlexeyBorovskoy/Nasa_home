@@ -12,10 +12,15 @@ Android-телефоны семьи
   ├── Immich Android: фото/видео
   └── DAVx5: контакты/календарь
         ↓
-Jetson Nano + USB HDD
+Jetson Nano + USB storage
         ↓
 Nextcloud + Immich + Backup + DeepSeek Gateway
 ```
+
+Текущее состояние на 2026-06-23: Jetson доступен через реализованный VPS
+reverse SSH tunnel, Immich/LLM Gateway/nasa-api отвечают, а storage-backed
+часть находится в degraded mode из-за USB-инцидента (`/mnt/storage` не
+смонтирован, устройство не появляется как block device).
 
 ## 2. Зафиксированные решения
 
@@ -25,11 +30,11 @@ Nextcloud + Immich + Backup + DeepSeek Gateway
 | Контакты/календарь | Nextcloud Contacts/Calendar + DAVx5 |
 | Фото/видео | Immich |
 | Локальный NAS | Samba + SFTP |
-| Внешний доступ | VPN, без прямого публикации портов на первом этапе |
+| Внешний доступ | Реализованный VPS reverse SSH tunnel (ADR-0005), без port forwarding на домашнем роутере |
 | AI/LLM | DeepSeek API через LLM Gateway |
 | Локальная LLM | Не используется на первом этапе |
 | Android-приложение | Архитектура закладывается, реализация Stage 2 |
-| USB HDD | С отдельным питанием |
+| USB storage | Целевой `/mnt/storage`; перед запуском storage-backed сервисов обязателен preflight |
 
 ## 3. Ограничения Jetson Nano
 

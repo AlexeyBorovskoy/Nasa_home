@@ -2,6 +2,9 @@
 
 > Как подключить телефон, ноутбук и десктоп к NASA Home Cloud.
 > Охватывает Android, Windows и Linux — для каждой платформы и каждого сервиса.
+>
+> Статус 2026-06-23: Immich и LLM Gateway доступны через VPS, Nextcloud временно
+> degraded (`503`) до восстановления `/mnt/storage`.
 
 ---
 
@@ -23,7 +26,9 @@
 | Uptime Kuma | `http://192.168.0.50:3001` | ❌ только LAN |
 | Portainer | `http://192.168.0.50:9000` | ❌ только LAN |
 
-> **Примечание:** Samba и мониторинг — только LAN. Для безопасного внешнего доступа ко всем сервисам — Tailscale (ADR-0004).
+> **Примечание:** Samba и мониторинг — только LAN. Текущий внешний доступ для
+> пользовательских сервисов идёт через VPS reverse tunnel (ADR-0005). Tailscale
+> оставлен как архивный/альтернативный план, не как текущая реализация.
 
 ---
 
@@ -31,7 +36,9 @@
 
 ### Nextcloud — файлы, фото, контакты, календарь
 
-**Файлы:**
+**Файлы:** временно не настраивать новые синхронизации, пока Nextcloud degraded.
+После восстановления `/mnt/storage`:
+
 1. Установить [Nextcloud](https://play.google.com/store/apps/details?id=com.nextcloud.client) из Play Store или F-Droid
 2. Открыть приложение → "Войти" → ввести адрес сервера:
    - Дома: `http://192.168.0.50:8080`
@@ -71,13 +78,16 @@
 1. Установить [Solid Explorer](https://play.google.com/store/apps/details?id=pl.solidexplorer2)
 2. "+" → Network → SMB/CIFS → Хост: `192.168.0.50`
 
-> Samba работает только в домашней сети (LAN). Вне дома — Tailscale.
+> Samba работает только в домашней сети (LAN). Вне дома доступ к Samba сейчас не
+> публикуется.
 
 ---
 
 ## Windows
 
 ### Nextcloud Desktop — синхронизация файлов
+
+Сейчас Nextcloud degraded до восстановления `/mnt/storage`. После восстановления:
 
 1. Скачать [Nextcloud Desktop](https://nextcloud.com/install/#install-clients) для Windows
 2. Установить → "Войти" → сервер:
@@ -230,10 +240,13 @@ API-ключ: Immich → Профиль → API-ключи → Создать.
 
 ---
 
-## Tailscale — удалённый доступ ко всем сервисам
+## Tailscale — архивный/альтернативный план
 
-> VPS-тоннель открывает только Nextcloud, Immich и LLM Gateway.
-> Для доступа к Samba, Netdata, Portainer и nas-api извне — нужен Tailscale.
+> VPS-тоннель открывает только Nextcloud, Immich и LLM Gateway. Доступ к Samba,
+> Netdata, Portainer и nasa-api извне намеренно не опубликован.
+>
+> Tailscale описан как возможный отдельный admin/private-access сценарий, но
+> текущая реализация проекта — VPS reverse SSH tunnel по ADR-0005.
 
 Установить на все устройства: [tailscale.com/download](https://tailscale.com/download)
 
@@ -254,4 +267,10 @@ curl -sf http://192.168.0.50:8080/status.php | python3 -m json.tool  # Nextcloud
 curl -sf http://192.168.0.50:2283/api/server/ping                     # Immich
 curl -sf http://192.168.0.50:8099/healthcheck                         # nasa-api
 ping 192.168.0.50                                                      # базовая связь
+```
+
+Если Nextcloud возвращает `503`, сначала проверить storage на Jetson:
+
+```bash
+sudo bash scripts/storage/storage_preflight.sh
 ```

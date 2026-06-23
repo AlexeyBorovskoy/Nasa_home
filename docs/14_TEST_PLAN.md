@@ -5,7 +5,8 @@
 | Тест | Команда | Критерий |
 |---|---|---|
 | RAM | `free -h` | система не в swap storm |
-| Storage | `df -h /mnt/storage` | диск доступен |
+| Storage preflight | `sudo bash scripts/storage/storage_preflight.sh` | `/mnt/storage` — отдельный ext4 mountpoint, не microSD |
+| Storage | `df -h /mnt/storage && mountpoint /mnt/storage` | диск доступен и смонтирован |
 | USB errors | `dmesg` | нет I/O/reset loop |
 | SMART | `smartctl -a` | нет критичных ошибок |
 | Stage 0 direct-link | `nmap -sn 192.168.1.0/24` | Jetson виден как отдельный host |
@@ -24,6 +25,7 @@
 | Services stopped before storage check | `docker ps` + `docker compose ... stop` | Nextcloud/Immich не пишут в `/mnt/storage` |
 | No false `/mnt/storage` mount | `mountpoint /mnt/storage` | понятно, смонтирован ли внешний диск или это каталог на microSD |
 | Existing HDD detected | `lsblk -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,TRAN,RO` | виден ожидаемый USB HDD и раздел |
+| No USB enumeration loop | `journalctl -k -n 120 --no-pager \| grep -i -E "error -71|unable to enumerate"` | пусто |
 | Read-only mount | `sudo mount -t ntfs-3g -o ro /dev/sdXN /mnt/hdd-check` | диск смонтирован отдельно от `/mnt/storage` |
 | Data presence without leaking names | `df -hT /mnt/hdd-check && find /mnt/hdd-check -mindepth 1 -maxdepth 1 | wc -l` | размер корректный, данные видны, имена файлов не публикуются |
 | No forced repair | manual check | не использовались `force`, форматирование, repartition, `setup_disk.sh` |
@@ -79,7 +81,8 @@
 
 ## 7. Backup/Restore
 
-1. Создать тестовый backup.
-2. Проверить список snapshots.
-3. Восстановить в `/tmp/restore-test`.
-4. Проверить целостность файлов.
+1. Запустить `sudo bash scripts/storage/storage_preflight.sh`.
+2. Создать тестовый backup.
+3. Проверить список snapshots.
+4. Восстановить в `/tmp/restore-test`.
+5. Проверить целостность файлов.

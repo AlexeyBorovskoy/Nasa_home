@@ -13,17 +13,20 @@
 [![CI](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml/badge.svg)](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml)
 
 > 🇷🇺 В ящике лежал NVIDIA Jetson Nano — купил когда-то для экспериментов, поиграл неделю и забыл.
-> Там же был USB HDD от старого ноутбука, который работал через раз и давно валялся без дела.
+> Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Пригодилась.
 > Вместо того чтобы покупать что-то новое — взял то, что уже было, и сделал из этого домашний сервер.
 > Заменил Google Фото, Google Drive и Яндекс.Диск. Задумал я — реализовал [Claude Code](https://claude.ai/code). **Новичок тоже справится.**
 >
 > 🇬🇧 Had an NVIDIA Jetson Nano sitting in a drawer — bought it for experiments, tinkered for a week, then forgot about it.
-> Also had an old laptop USB HDD that barely worked and had been collecting dust for years.
+> My son brought a DEXP board with 232 GB storage — "dad, you'll need this". He was right.
 > Instead of buying new hardware — used what was already there and turned it into a proper home server.
 > Replaced Google Photos, Google Drive, and Yandex.Disk. My vision — [Claude Code](https://claude.ai/code) did the implementation. **Beginners can do this too.**
 
 **Если проект полезен — поставь ⭐ звезду, это помогает другим его найти.**  
 **If you find this useful — please ⭐ star this repo so others can discover it.**
+
+![NASA Home Cloud — реальный стенд](photo/test_sys.jpg)
+*Jetson Nano на роутере + DEXP-плата от сына (232 ГБ) · реальный стенд проекта*
 
 ---
 
@@ -41,7 +44,7 @@
 |---|---|
 | Google Фото — ваши фото у Google | **Immich** — личный фотоархив дома |
 | Google Drive / Яндекс.Диск | **Nextcloud** — файлы, CalDAV, CardDAV |
-| Старый HDD без дела | **Samba NAS** — сетевое хранилище для всей семьи |
+| DEXP-плата (232 ГБ) — лежала без дела, принёс сын | **Samba NAS + основное хранилище** |
 | ChatGPT / Claude API | **LLM Gateway** — локальный AI-ассистент, данные не уходят |
 | Облачный мониторинг | **Netdata + Uptime Kuma** — всё под рукой |
 
@@ -70,9 +73,9 @@
 
 > 🇷🇺 Русский
 
-Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Рядом был старый USB HDD от ноутбука — работал нестабильно, лежал без дела. Покупать готовый NAS или новое железо не хотелось.
+Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Покупать готовый NAS или новое железо не хотелось.
 
-Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Итог: работают Nextcloud, Immich, Samba NAS, мониторинг и даже локальный LLM-ассистент.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. На 2026-06-23 стек живёт в degraded mode: Immich, LLM Gateway, мониторинг и туннель работают, а Nextcloud ждёт восстановления `/mnt/storage`.
 
 **NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
@@ -86,9 +89,9 @@
 
 > 🇬🇧 English
 
-It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. Next to it was an old laptop USB HDD that worked unreliably and had been gathering dust. Didn't want to buy a ready-made NAS or new hardware.
+It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. My son brought a DEXP board with 232 GB storage — "dad, you'll need this". Didn't want to buy a ready-made NAS or new hardware.
 
-Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. Result: Nextcloud, Immich, Samba NAS, monitoring, and even a local LLM assistant are all running.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-23 the stack is in degraded mode: Immich, LLM Gateway, monitoring, and the tunnel are live, while Nextcloud is waiting for `/mnt/storage` recovery.
 
 **NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
@@ -120,25 +123,31 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-21 / State as of 2026-06-21 · **Stage 1 полностью настроен и операционен**
+> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 в degraded mode из-за USB storage incident**
+> Jetson доступен через VPS reverse tunnel. Immich, LLM Gateway и nasa-api отвечают.
+> Nextcloud временно недоступен (`503`), потому что `/mnt/storage` не смонтирован:
+> USB-накопитель `Realtek RTL9210B-CG` даёт `error -71` и не появляется как block device.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
-| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ✅ Live |
+| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ⚠️ Degraded: storage missing / HTTP 503 |
 | Immich | 2283 | VPS `193.8.215.130:2283` + LAN | ✅ Live |
 | LLM Gateway | 8090 | VPS `193.8.215.130:8090` + LAN | ✅ Live |
 | nasa-api (Swagger) | 8099 | LAN `192.168.0.50:8099/docs` | ✅ Live |
-| Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ✅ Live |
+| Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ⚠️ Storage-dependent |
 | Netdata | 19999 | LAN `192.168.0.50:19999` | ✅ Live |
 | Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live · 5 monitors configured |
 | Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live · admin configured |
 | VPS nginx reverse proxy | — | VPS 193.8.215.130 | ✅ Live |
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) |
-| DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live (03:00 daily) |
+| DB backup timer | — | pg_dump → /mnt/storage/backups | ⚠️ Fail-closed until storage preflight passes |
 | Android backup API | — | — | 🔜 Stage 2 |
 
-> **Примечание:** `/mnt/storage` в текущей конфигурации смонтирован на microSD (HDD физически отключён). Данные: ~434 МБ (PostgreSQL + Nextcloud + Immich). Миграция на HDD — следующий этап.
+> **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
+> На 2026-06-23 он физически подключён, но не определяется как диск; kernel log
+> показывает `usb 1-2.1 ... error -71`. См. incident runbook:
+> [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md).
 
 ---
 
@@ -187,7 +196,7 @@ Principles:
         +-- systemd: nasa-backup.timer         (03:00, ежедневно, pg_dump)
         +-- systemd: jetson-nas-health.timer   (SMART мониторинг HDD, 6h)
 
-/mnt/storage  (сейчас: microSD; при подключении HDD — смонтируется автоматически)
+/mnt/storage  (target: DEXP/Realtek 250 ГБ ext4 USB; incident 2026-06-23: not mounted)
   ├── nextcloud/data
   ├── immich/library
   ├── db/
@@ -246,7 +255,7 @@ Principles:
 |---|---|
 | Вычислительный узел | NVIDIA Jetson Nano Developer Kit (4 GB) · или Raspberry Pi 4/5 · или любой мини-ПК |
 | Системный диск | microSD 64 GB (Class 10 / A2) |
-| Диск данных | USB HDD с отдельным питанием |
+| Диск данных | USB SSD/HDD — любой USB-накопитель; в проекте: DEXP 232 ГБ (от сына) |
 | Сеть | Домашняя LAN, статический DHCP lease |
 | Внешний доступ | VPS (любой; проверено на Ubuntu 24.04, 1 vCPU, 2 GB RAM) |
 
@@ -409,18 +418,18 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Этап / Stage | Содержание / Content | Статус / Status |
 |---|---|---|
 | Stage 0 | microSD, первый boot, SSH, USB device mode | ✅ Задокументировано |
-| Stage 1A | Hardware audit, USB HDD setup, Samba NAS | ✅ **Развёрнут и работает** |
-| Stage 1B | Nextcloud + PostgreSQL + Redis | ✅ **Развёрнут и работает** |
+| Stage 1A | Hardware audit, DEXP USB storage setup, Samba NAS | ⚠️ **Degraded: USB storage incident** |
+| Stage 1B | Nextcloud + PostgreSQL + Redis | ⚠️ **Degraded until `/mnt/storage` is restored** |
 | Stage 1C | Immich (ML отключён для Jetson) | ✅ **Развёрнут и работает** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Развёрнут и работает** |
 | Stage 1E | VPS + reverse SSH tunnel (autossh) | ✅ **Работает, nginx на VPS** |
 | Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ **Развёрнут и работает** |
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
 | Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
-| Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ✅ **Автоматически настроен** |
+| Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ⚠️ **Monitoring live, backup fail-closed without storage** |
 | Stage 2 | Android backup/restore client API | 📋 Архитектура готова |
 | Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы |
-| Stage 3.1 | HDD: подключение + ext4 + миграция данных с microSD | ⏳ Ожидает физического доступа |
+| Stage 3.1 | USB HDD: резервное расширение хранилища (NTFS + ext4 гибрид) | 📋 Готово к подключению |
 | Stage 4 | Analytics, RAG, fallback LLM providers | 📋 Будущее |
 
 ---
@@ -448,6 +457,7 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/22_AUDIT_RESILIENCE.md](docs/22_AUDIT_RESILIENCE.md) | Аудит надёжности: goss, shellcheck, итоги |
 | [docs/23_GITHUB_INTEGRATION.md](docs/23_GITHUB_INTEGRATION.md) | GitHub CLI + Claude Code интеграция, AI DevOps workflow |
 | [docs/24_CLIENT_SETUP.md](docs/24_CLIENT_SETUP.md) | **Подключение устройств: Android, Windows, Linux** |
+| [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, Nextcloud degraded, recovery order |
 | [docs/plans/VPS_INTEGRATION_PLAN.md](docs/plans/VPS_INTEGRATION_PLAN.md) | План интеграции VPS + тоннель |
 | [AGENTS.md](AGENTS.md) | Правила для Codex/агентов |
 | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | Зафиксированные решения и ограничения |
@@ -477,7 +487,8 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **HDD не подключён** — в текущей конфигурации `/mnt/storage` смонтирован на microSD (434 МБ данных). Для полноценного NAS нужно подключить USB HDD, создать ext4-раздел и смигрировать данные. Fstab уже настроен (UUID, `nofail`).
+- **USB storage incident 2026-06-23** — DEXP/Realtek 250 GB накопитель физически подключён, но не появляется в `lsblk`; kernel log показывает `error -71` и `unable to enumerate USB device`. Nextcloud degraded до стабилизации USB-цепочки и успешного `sudo bash scripts/storage/storage_preflight.sh`.
+- `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Immich работает без machine learning (`IMMICH_DISABLE_MACHINE_LEARNING=true`) — Jetson Nano 4 GB с ML не тестировался.
 - VPS IP может меняться — при смене обновить `VPS_HOST` в `config/.env` на Jetson и перезапустить `nasa-tunnel.service`.
@@ -502,7 +513,7 @@ CI автоматически проверяет секреты: `.github/workfl
 - [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — нужен домен и базовый nginx.
 - [#6 Netdata Telegram alerts](https://github.com/AlexeyBorovskoy/Nasa_home/issues/6) — настроить и описать в docs.
 - CI shellcheck для всех bash-скриптов в `scripts/`.
-- Инструкция по миграции данных **microSD → USB HDD** (Stage 3.1).
+- Подключение **USB HDD** как резервного хранилища (Stage 3.1, план готов в `docs/04_STORAGE_DESIGN.md`).
 
 ---
 

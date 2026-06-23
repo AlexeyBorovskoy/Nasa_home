@@ -10,8 +10,15 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.0 — Stage 1 Ops Ready
+- Текущий релиз: v1.3.3 — Client setup + HDD hybrid storage
 - Основная ветка: `main`
+
+## Операционное состояние
+
+**Состояние на 2026-06-23:** Jetson жив и доступен через VPS reverse tunnel,
+но storage-backed часть находится в degraded mode из-за USB storage incident
+(`error -71`, `/mnt/storage` не смонтирован). Immich, LLM Gateway и nasa-api
+отвечают; Nextcloud отдаёт `503` до восстановления накопителя.
 
 ## Железо и доступ
 
@@ -19,6 +26,7 @@
 |---|---|---|
 | Jetson Nano | `192.168.0.50` | LAN, статический IP |
 | SSH на Jetson | `ssh admin@192.168.0.50` | key-based, из Git Bash |
+| SSH через VPS | `ssh root@193.8.215.130` → `ssh -p 10022 admin@127.0.0.1` | текущий рабочий путь из внешней сети |
 | sudo на Jetson | `echo 'PASS' \| sudo -S <cmd>` | пароль в memory/project_nasa_credentials.md |
 | VPS (Vienna) | `193.8.215.130` | `ssh -i ~/.ssh/borovskoy_new_ed25519 root@193.8.215.130` |
 | Репо на Jetson | `~/nasa` | `/home/admin/nasa` |
@@ -108,7 +116,7 @@ prompts/          — агентные промпты (CODEX_*)
 
 | Сервис | Порт | URL |
 |---|---|---|
-| Nextcloud | 8080 | http://192.168.0.50:8080 |
+| Nextcloud | 8080 | http://192.168.0.50:8080 · degraded до восстановления `/mnt/storage` |
 | Immich | 2283 | http://192.168.0.50:2283 |
 | LLM Gateway | 8090 | http://192.168.0.50:8090 |
 | nasa-api + Swagger | 8099 | http://192.168.0.50:8099/docs |
@@ -116,7 +124,7 @@ prompts/          — агентные промпты (CODEX_*)
 | Uptime Kuma | 3001 | http://192.168.0.50:3001 |
 | Portainer | 9000 | http://192.168.0.50:9000 |
 
-VPS (193.8.215.130): Nextcloud :8080, Immich :2283, LLM Gateway :8090
+VPS (193.8.215.130): Nextcloud :8080 (degraded), Immich :2283, LLM Gateway :8090
 
 ## Жёсткие правила
 
@@ -132,10 +140,11 @@ VPS (193.8.215.130): Nextcloud :8080, Immich :2283, LLM Gateway :8090
 1. Изменения в файлах проекта (Windows)
 2. `git add` + `git commit` (с Co-Authored-By)
 3. `git push`
-4. `ssh admin@192.168.0.50 "cd ~/nasa && git pull --ff-only"` (если нужно применить на Jetson)
-5. Перезапуск затронутых контейнеров (если compose-файлы изменились)
-6. После крупных изменений: `git tag` + `gh release create`
-7. Обновить README и CHANGELOG
+4. `ssh admin@192.168.0.50 "cd ~/nasa && git pull --ff-only"` или через VPS `ssh root@193.8.215.130 "ssh -p 10022 admin@127.0.0.1 'cd ~/nasa && git pull --ff-only'"` (если нужно применить на Jetson)
+5. Перед запуском Nextcloud/Immich/backup: `sudo bash scripts/storage/storage_preflight.sh`
+6. Перезапуск затронутых контейнеров (если compose-файлы изменились и preflight прошёл)
+7. После крупных изменений: `git tag` + `gh release create`
+8. Обновить README и CHANGELOG
 
 ## Память
 

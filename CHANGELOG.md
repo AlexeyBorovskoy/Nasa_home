@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Добавлено
+
+- `scripts/storage/storage_preflight.sh`: fail-closed sudo storage preflight before
+  starting Nextcloud/Immich/backup; checks mountpoint, backing device, fstab UUID,
+  read-only mounts, critical paths and Nextcloud `.ncdata`.
+- `scripts/storage/install_mount_service.sh`: safe installer for
+  `jetson-nas-mount.service`; install/enable by default, immediate mount only with
+  explicit `--start`.
+
+### Changed / Изменено
+
+- `scripts/backup/backup_databases.sh`: refuses to write database dumps when
+  `${STORAGE_ROOT}` is not a mountpoint, cannot be resolved, points to microSD, or
+  is not writable.
+- `systemd/jetson-nas-mount.service`: uses `STORAGE_ROOT=/mnt/storage` default,
+  reads `/home/admin/nasa/config/.env`, and avoids unsupported shell-style
+  `${VAR:-default}` expansion in systemd `ExecStart`.
+- `docs/13_MONITORING_RUNBOOK.md`: added USB storage failure runbook for
+  `error -71`, ext4 read-only remounts, safe recovery order, and preflight usage.
+
 ## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
 
 ### Added / Добавлено

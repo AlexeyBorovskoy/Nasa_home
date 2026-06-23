@@ -1,6 +1,6 @@
 # Архитектура NASA Home Cloud
 
-> Актуализировано: 2026-06-21.
+> Актуализировано: 2026-06-23.
 >
 > Этот файл является обзорной архитектурной картой проекта. Детальные
 > инструкции живут в `docs/`, compose-шаблоны — в `docker/compose/`, код
@@ -9,7 +9,7 @@
 ## 1. Назначение
 
 NASA Home Cloud — домашняя семейная облачная платформа на базе **NVIDIA Jetson
-Nano 4 GB + USB HDD**. Проект предназначен для приватного хранения файлов,
+Nano 4 GB + USB SSD/HDD**. Проект предназначен для приватного хранения файлов,
 документов, фото и видео с Android-устройств семьи без зависимости от
 Google/Xiaomi Cloud.
 
@@ -29,7 +29,7 @@ flowchart TB
     Tunnel["SSH reverse tunnel\nautossh → nasa-tunnel.service"]
     Router[Домашний роутер\n192.168.0.1]
     Jetson["Jetson Nano 4GB\n192.168.0.50"]
-    HDD[USB HDD\nexternal power]
+    HDD["USB storage\n/mnt/storage"]
 
     Nextcloud[Nextcloud :8080]
     Immich[Immich :2283]
@@ -68,24 +68,24 @@ flowchart TB
 | Компонент | Роль | Статус (2026-06-21) |
 |---|---|---|
 | Jetson Nano 4 GB | Домашний сервер, storage-узел | ✅ Работает в LAN |
-| USB HDD | Основное хранилище `/mnt/storage` | ⚠️ Смонтирован, нужна разбивка ext4 |
-| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ✅ Live, HTTP 200 |
+| USB storage | Основное хранилище `/mnt/storage` | ⚠️ Incident 2026-06-23: not mounted, `error -71` |
+| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ⚠️ Degraded, HTTP 503 until storage restored |
 | Immich | Фото- и видеоархив | ✅ Live, HTTP 200 |
-| Samba | Локальный NAS (SMB2+) | ✅ Compose + iptables готовы |
+| Samba | Локальный NAS (SMB2+) | ⚠️ Storage-dependent |
 | PostgreSQL | БД Nextcloud и Immich | ✅ Running |
 | Redis | Кэш/очереди для Nextcloud и Immich | ✅ Running |
 | LLM Gateway | Privacy-шлюз к DeepSeek API | ✅ Live, /health 200 |
 | VPS + nginx | Reverse proxy через тоннель | ✅ Live |
 | autossh tunnel | Обход CGNAT, Jetson → VPS | ✅ nasa-tunnel.service active |
 | Backup API | Будущий Android restore API | 📋 Stage 2 placeholder |
-| restic | Резервное копирование | 🔜 Scripts draft, не активен |
-| Monitoring | Netdata + Uptime Kuma + Portainer | 🔜 Stage 1F, Compose готов |
+| DB backup | pg_dump timer | ⚠️ Fail-closed while storage preflight fails |
+| Monitoring | Netdata + Uptime Kuma + Portainer | ✅ Live |
 
 ## 4. Сетевые правила
 
 | Сервис | Порт Jetson | Внешний доступ | Механизм |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel; degraded until storage restored |
 | Immich | 2283 | `http://193.8.215.130:2283/` | VPS nginx → SSH tunnel |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | VPS nginx → SSH tunnel |
 | SSH (управление) | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | SSH tunnel -R 10022 |
@@ -96,7 +96,7 @@ flowchart TB
 ## 5. Хранилище
 
 ```text
-/mnt/storage                     ← USB HDD, ext4 (нужна разбивка)
+/mnt/storage                     ← target USB storage, ext4 (incident 2026-06-23: not mounted)
 ├── nextcloud/data                ← bind mount → /var/www/html/data
 ├── immich/library                ← Immich photo uploads
 ├── db/
@@ -119,8 +119,8 @@ flowchart TB
 | `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ✅ Running |
 | `docker/compose/docker-compose.immich.yml` | Immich + PostgreSQL + Redis | ✅ Running |
 | `docker/compose/docker-compose.llm-gateway.yml` | LLM Gateway (FastAPI) | ✅ Running |
-| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ✅ Ready |
-| `docker/compose/docker-compose.monitoring.yml` | Netdata + Uptime Kuma + Portainer | 🔜 Stage 1F |
+| `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ⚠️ Storage-dependent |
+| `docker/compose/docker-compose.monitoring.yml` | Netdata + Uptime Kuma + Portainer | ✅ Running |
 | `docker/compose/docker-compose.stage1.yml` | Полный Stage 1 stack draft | draft |
 | `docker/vps/docker-compose.yml` | nginx на VPS (`network_mode: host`) | ✅ Running on VPS |
 
@@ -194,7 +194,8 @@ ADR: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](docs/decisions/ADR-
 2. restic snapshot с данными и дампами
 3. Restore-test в `/tmp/restore-test`
 
-Текущее состояние: `scripts/backup/backup_databases.sh` — placeholder.
+Текущее состояние: `scripts/backup/backup_databases.sh` реализован и работает
+fail-closed: если `/mnt/storage` не смонтирован безопасно, дампы не создаются.
 
 Детали: [docs/12_BACKUP_RESTORE.md](docs/12_BACKUP_RESTORE.md).
 
@@ -208,13 +209,13 @@ Future: Android-клиент восстановления через `services/b
 | Этап | Содержание | Статус |
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ Задокументировано |
-| Stage 1A | Hardware audit, storage, Samba | ✅ Compose + systemd готовы |
-| Stage 1B | Nextcloud | ✅ **Live** |
+| Stage 1A | Hardware audit, storage, Samba | ⚠️ USB storage incident |
+| Stage 1B | Nextcloud | ⚠️ **Degraded until `/mnt/storage` is restored** |
 | Stage 1C | Immich (ML disabled) | ✅ **Live** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Live** |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ **Live** |
-| Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | 🔜 Compose готов |
-| Stage 1G | Backup/restore | 🔜 Scripts draft |
+| Stage 1F | Мониторинг (Netdata, Uptime Kuma, Portainer) | ✅ Live |
+| Stage 1G | Backup/restore | ⚠️ DB dumps fail-closed while storage is missing |
 | Stage 2 | Android backup/restore API | 📋 Архитектура |
 | Stage 3 | RAG, fallback LLM providers | 📋 Будущее |
 
@@ -271,8 +272,9 @@ NASA/
 
 ## 15. Известные технические долги
 
-- HDD пока на одном NTFS-разделе — нужен ext4 раздел для NAS (`scripts/storage/setup_disk.sh`).
-- `backup_databases.sh` — placeholder, требует реализации.
-- Monitoring stack не развёрнут (Stage 1F).
+- USB storage incident 2026-06-23: Realtek RTL9210B-CG / 250 GB device gives
+  `error -71` and is absent from `lsblk`; see `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+- Storage-backed services must pass `sudo bash scripts/storage/storage_preflight.sh`
+  before Nextcloud/Immich/backup operations.
 - HTTPS для VPS nginx не настроен (Let's Encrypt — будущее улучшение).
 - `services/backup-api` — Stage 2, не production.
