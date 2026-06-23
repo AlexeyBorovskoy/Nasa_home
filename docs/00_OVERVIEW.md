@@ -48,9 +48,9 @@ with Android recovery roadmap and privacy-controlled LLM gateway.
 На 2026-06-23 проект находится в Stage 1 partial recovery после USB storage
 incident: Jetson доступен через VPS reverse SSH tunnel, SSD снова смонтирован в
 `/mnt/storage`, `e2fsck -f -n` и `storage_preflight.sh` проходят чисто. Immich,
-LLM Gateway, nasa-api, Samba, мониторинг и backup работают. Nextcloud
-намеренно остановлен (`restart=no`) до отдельного разбора data/app state после
-HTTP 503 и прошлых kernel ext4 ошибок.
+LLM Gateway, nasa-api, Samba, мониторинг, backup и Nextcloud работают.
+Nextcloud прошёл read-only review и controlled start: `status.php` возвращает
+`HTTP 200`, `maintenance=false`, `needsDbUpgrade=false`.
 
 Корневой документ инцидента:
 `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.

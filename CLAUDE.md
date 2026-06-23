@@ -18,9 +18,9 @@
 **Состояние на 2026-06-23:** Jetson жив и доступен через VPS reverse tunnel.
 SSD снова смонтирован в `/mnt/storage` (`/dev/sda1`, ext4, label
 `nasa-storage`), `e2fsck -f -n` и `storage_preflight.sh` проходят чисто.
-Immich, LLM Gateway, nasa-api, Samba, monitoring и DB backup работают.
-Nextcloud намеренно остановлен (`restart=no`) до отдельного разбора data/app
-state после HTTP 503 и прошлых `EXT4-fs error ... comm apache2`.
+Immich, LLM Gateway, nasa-api, Samba, monitoring, DB backup и Nextcloud работают.
+Nextcloud после read-only review поднят controlled start: `status.php` `HTTP 200`,
+`maintenance=false`, `needsDbUpgrade=false`.
 
 ## Железо и доступ
 
@@ -118,7 +118,7 @@ prompts/          — агентные промпты (CODEX_*)
 
 | Сервис | Порт | URL |
 |---|---|---|
-| Nextcloud | 8080 | http://192.168.0.50:8080 · intentionally stopped until data/app review |
+| Nextcloud | 8080 | http://192.168.0.50:8080 · live after controlled start |
 | Immich | 2283 | http://192.168.0.50:2283 |
 | LLM Gateway | 8090 | http://192.168.0.50:8090 |
 | nasa-api + Swagger | 8099 | http://192.168.0.50:8099/docs |
@@ -126,7 +126,7 @@ prompts/          — агентные промпты (CODEX_*)
 | Uptime Kuma | 3001 | http://192.168.0.50:3001 |
 | Portainer | 9000 | http://192.168.0.50:9000 |
 
-VPS (193.8.215.130): Nextcloud :8080 (502/503 while stopped), Immich :2283, LLM Gateway :8090
+VPS (193.8.215.130): Nextcloud :8080, Immich :2283, LLM Gateway :8090
 
 ## Жёсткие правила
 

@@ -12,8 +12,11 @@ enumerate the USB device on `usb 1-2.1` with `error -71`.
 Recovery update 2026-06-23 09:32 UTC: after physical reconnect the SSD appeared
 again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage` with label
 `nasa-storage`, passed `e2fsck -f -n` and `storage_preflight.sh`, and fresh DB
-dumps were created. Nextcloud remains intentionally stopped (`restart=no`) until
-its data/app state is reviewed after the earlier HTTP 503 and ext4 errors.
+dumps were created.
+
+Recovery update 2026-06-23 12:10 UTC: Nextcloud data/app review found no marker,
+ownership, config or DB blocker. Controlled start succeeded; `/status.php`
+returns HTTP 200 locally and through the VPS, and the container is healthy.
 
 ## 2. Observed State
 
@@ -23,7 +26,7 @@ its data/app state is reviewed after the earlier HTTP 503 and ext4 errors.
 | `/mnt/storage` on host | Recovered: ext4 mountpoint after reconnect |
 | Block devices | Recovered: Realtek RTL9210B-CG `/dev/sda1` visible |
 | USB topology | Recovered, but prior `error -71` keeps cable/enclosure/power suspect |
-| Nextcloud | Intentionally stopped after HTTP 503/ext4 errors |
+| Nextcloud | Recovered: controlled start OK, `/status.php` HTTP 200 |
 | Immich | Responds to `/api/server/ping` |
 | LLM Gateway | Responds to `/health` |
 | nasa-api | Responds to `/healthcheck` |
@@ -83,8 +86,8 @@ sudo bash scripts/storage/storage_preflight.sh
 
 4. Only after the disk is stable and preflight is clean, install/start the mount
    unit and restart storage-backed services.
-5. If Nextcloud was stopped after HTTP 503 or ext4 errors, keep it stopped until
-   data/app state is reviewed. Do not create `.ncdata` manually as a shortcut.
+5. If Nextcloud returns HTTP 503 again after an ext4/read-only event, treat it as
+   a storage incident first. Do not create `.ncdata` manually as a shortcut.
 
 ## 6. Follow-Up Changes
 

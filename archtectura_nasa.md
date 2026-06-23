@@ -69,7 +69,7 @@ flowchart TB
 |---|---|---|
 | Jetson Nano 4 GB | Домашний сервер, storage-узел | ✅ Работает в LAN |
 | USB storage | Основное хранилище `/mnt/storage` | ✅ Mounted after 2026-06-23 recovery; `e2fsck -f -n` and preflight clean |
-| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ⚠️ Intentionally stopped until data/app review |
+| Nextcloud | Файлы, WebDAV, Contacts/Calendar | ✅ Live after controlled start, HTTP 200 |
 | Immich | Фото- и видеоархив | ✅ Live, HTTP 200 |
 | Samba | Локальный NAS (SMB2+) | ✅ Live; storage-dependent |
 | PostgreSQL | БД Nextcloud и Immich | ✅ Running |
@@ -85,7 +85,7 @@ flowchart TB
 
 | Сервис | Порт Jetson | Внешний доступ | Механизм |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel; returns 502/503 while container is intentionally stopped |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | VPS nginx → SSH tunnel; `/status.php` HTTP 200 |
 | Immich | 2283 | `http://193.8.215.130:2283/` | VPS nginx → SSH tunnel |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | VPS nginx → SSH tunnel |
 | SSH (управление) | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | SSH tunnel -R 10022 |
@@ -116,7 +116,7 @@ flowchart TB
 
 | Файл | Назначение | Статус |
 |---|---|---|
-| `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ⚠️ App stopped intentionally; DB/Redis running |
+| `docker/compose/docker-compose.nextcloud.yml` | Nextcloud + PostgreSQL + Redis | ✅ Running |
 | `docker/compose/docker-compose.immich.yml` | Immich + PostgreSQL + Redis | ✅ Running |
 | `docker/compose/docker-compose.llm-gateway.yml` | LLM Gateway (FastAPI) | ✅ Running |
 | `docker/compose/docker-compose.samba.yml` | Samba NAS (ARM64, SMB2+) | ✅ Running; storage-dependent |
@@ -212,7 +212,7 @@ Future: Android-клиент восстановления через `services/b
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ Задокументировано |
 | Stage 1A | Hardware audit, storage, Samba | ✅ **Storage recovered; boot guard added** |
-| Stage 1B | Nextcloud | ⚠️ **Stopped intentionally; data/app review pending** |
+| Stage 1B | Nextcloud | ✅ **Recovered; controlled start OK** |
 | Stage 1C | Immich (ML disabled) | ✅ **Live** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Live** |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ **Live** |

@@ -54,7 +54,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | F-08 | MEDIUM | Code | SC2046 в `scripts/fetch_external_docs.sh:182`: неэкранированный `$(find ...)` → word splitting для имён файлов с пробелами. | **Fixed** |
 | F-09 | LOW | Code | SC2016 в `scripts/diagnostics/hardware_audit.sh`: ложное срабатывание — markdown-бэктики внутри одинарных кавычек. | Accepted |
 | F-10 | LOW | Code | SC1090 в скриптах мониторинга: динамический путь для `source` (известное ограничение shellcheck). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB восстановлен как `/dev/sda1` и смонтирован в `/mnt/storage`, но ранее фиксировались `error -71`, I/O errors и ext4 ошибки. Nextcloud остановлен до data/app review; backup работает с fail-closed guard. | Open / recovered / mitigated |
+| F-11 | HIGH | Storage | USB storage 250 GB восстановлен как `/dev/sda1` и смонтирован в `/mnt/storage`, но ранее фиксировались `error -71`, I/O errors и ext4 ошибки. Nextcloud прошёл controlled start и снова `running/healthy`; backup работает с fail-closed guard. | Open / recovered / mitigated |
 
 > **Критические находки F-01 и F-02 связаны между собой:** поведение restart-политики
 > при `docker kill` является багом Docker 20.10. Обновление до Docker 27.x (F-01)
@@ -232,9 +232,10 @@ sudo bash scripts/storage/install_mount_service.sh --start
 
 `backup_databases.sh` теперь сначала проверяет, что `STORAGE_ROOT` является
 mountpoint на внешнем устройстве, не на `/dev/mmcblk*`, и доступен для записи.
-Nextcloud остаётся остановленным до data/app review после HTTP 503 и ext4
-ошибок. Backup timer должен завершаться ошибкой вместо записи дампов на microSD,
-если preflight снова перестанет проходить.
+Nextcloud прошёл data/app review и controlled start после HTTP 503/ext4
+ошибок; `/status.php` снова возвращает HTTP 200. Backup timer должен
+завершаться ошибкой вместо записи дампов на microSD, если preflight снова
+перестанет проходить.
 
 ---
 
@@ -288,8 +289,8 @@ units, iptables persistence, and port availability.
 
 Update 2026-06-23: a USB storage incident added finding F-11. `/mnt/storage` is
 mounted again and read-only `e2fsck -f -n` plus storage preflight pass cleanly.
-Nextcloud remains intentionally stopped until data/app review; database backups
-fail closed if storage preflight fails again.
+Nextcloud passed data/app review and controlled start; `/status.php` returns
+HTTP 200 again. Database backups fail closed if storage preflight fails again.
 
 ---
 
@@ -322,7 +323,7 @@ fail closed if storage preflight fails again.
 | F-08 | MEDIUM | Code | SC2046 in `scripts/fetch_external_docs.sh:182`: unquoted `$(find ...)` → word splitting on filenames with spaces. | **Fixed** |
 | F-09 | LOW | Code | SC2016 in `scripts/diagnostics/hardware_audit.sh`: harmless false positive (markdown backticks inside single-quoted strings). | Accepted |
 | F-10 | LOW | Code | SC1090 in monitoring scripts: dynamic `source` path (known shellcheck limitation). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB recovered as `/dev/sda1` and is mounted at `/mnt/storage`, but previous logs showed `error -71`, I/O errors and ext4 errors. Nextcloud is stopped until data/app review; backups must not write to microSD if preflight fails. | Open / recovered / mitigated |
+| F-11 | HIGH | Storage | USB storage 250 GB recovered as `/dev/sda1` and is mounted at `/mnt/storage`, but previous logs showed `error -71`, I/O errors and ext4 errors. Nextcloud passed controlled start and is `running/healthy`; backups must not write to microSD if preflight fails. | Open / recovered / mitigated |
 
 > **Critical findings F-01 and F-02 are related:** the restart policy misbehaviour
 > under `docker kill` is a Docker 20.10 bug. Upgrading to Docker 27.x (F-01)

@@ -57,7 +57,7 @@ Internet / mobile client
     |
     v (HTTP)
 VPS 193.8.215.130 — nginx (network_mode: host)
-    :8080 Nextcloud (502/503 while intentionally stopped), :2283 Immich,
+    :8080 Nextcloud, :2283 Immich,
     :8090 LLM GW
     |
     v (SSH reverse tunnel, autossh)
@@ -100,7 +100,7 @@ VPS:
 | USB HDD | Working mount | `/mnt/storage` | ADR-0002 + 2026-06-23 incident | Mounted; preflight clean |
 | USB HDD | Existing-data intake mount | `/mnt/hdd-check` read-only | Storage design | Use before migration |
 | USB HDD | Current incident | Realtek RTL9210B-CG / 250 GB recovered as `/dev/sda1`; prior kernel `error -71` and ext4 errors remain hardware risk | Live check 2026-06-23 | Open / recovered |
-| Nextcloud | LAN port | `8080/tcp` | Compose/docs | Intentionally stopped until data/app review |
+| Nextcloud | LAN port | `8080/tcp` | Compose/docs | Live after controlled start |
 | Immich | LAN port | `2283/tcp` | Compose/docs | Live |
 | LLM Gateway | LAN port | `8090/tcp` | Compose/docs | LAN-only |
 | Samba | LAN port | `445/tcp` | Samba design | LAN-only |
@@ -110,7 +110,7 @@ VPS:
 | VPS | SSH key | `VPS_SSH_KEY` | `config/.env` | Secret/local operational value |
 | External access | Implemented path | VPS 193.8.215.130 + autossh | ADR-0005 | ✅ Live |
 | VPS | Host | 193.8.215.130 (Vienna, AEZA) | observed | ✅ Active |
-| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active; Nextcloud upstream stopped intentionally |
+| VPS nginx | Public ports | 8080/2283/8090 (HTTP) | docker/vps/ | ✅ Active; Nextcloud upstream live |
 | SSH tunnel | nasa-tunnel.service | -R 18080/12283/18090/10022 | systemd/nasa-tunnel.service | ✅ Active |
 | Public port forwarding | Home router | none for Stage 1 | ADR-0003 | Required safe default |
 

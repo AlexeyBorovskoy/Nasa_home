@@ -145,9 +145,9 @@ autossh -R 18080:localhost:8080                  sshd: 127.0.0.1:18080
 ```
 
 Статус (2026-06-23): `nasa-tunnel.service` — active (running), enabled.
-Через VPS подтверждены Immich, LLM Gateway и SSH-management path. Nextcloud
-сейчас возвращает 502/503, потому что контейнер намеренно остановлен
-(`restart=no`) до разбора data/app state; это не ошибка туннеля.
+Через VPS подтверждены Nextcloud, Immich, LLM Gateway и SSH-management path.
+Nextcloud после USB-инцидента поднят controlled start; `status.php` через VPS
+возвращает `HTTP 200`.
 
 Проверка: `systemctl status nasa-tunnel.service`
 

@@ -20,9 +20,9 @@ Nextcloud + Immich + Backup + DeepSeek Gateway
 Текущее состояние на 2026-06-23: Jetson доступен через реализованный VPS
 reverse SSH tunnel; SSD снова виден как Realtek RTL9210B-CG `/dev/sda1`,
 смонтирован в `/mnt/storage` и прошёл `e2fsck -f -n` + `storage_preflight.sh`.
-Immich, LLM Gateway, nasa-api, Samba, мониторинг и DB backup отвечают. Nextcloud
-намеренно остановлен (`restart=no`) до отдельного разбора data/app state после
-HTTP 503 и прошлых `EXT4-fs error ... comm apache2`.
+Immich, LLM Gateway, nasa-api, Samba, мониторинг, DB backup и Nextcloud
+отвечают. Nextcloud прошёл data/app review и controlled start; прежний HTTP 503
+был следствием read-only remount `/mnt/storage` во время USB-инцидента.
 
 ## 2. Зафиксированные решения
 

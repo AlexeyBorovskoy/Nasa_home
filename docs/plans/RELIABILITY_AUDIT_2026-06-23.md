@@ -12,8 +12,8 @@ No destructive storage operations were performed during this audit.
 
 | ID | Severity | Area | Finding | Status |
 |---|---|---|---|---|
-| R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, but kernel logged repeated `EXT4-fs error ... comm apache2` while Nextcloud was running. | Open |
-| R-02 | Critical | Nextcloud | HTTP 503 was caused by the storage remounting read-only during the USB incident. Step 2 review found `.ncdata`, config, data ownership and DB state consistent. App container is still stopped pending controlled start. | Review clean / start pending |
+| R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, and stayed `rw` through controlled Nextcloud start. Prior `error -71`/ext4 errors still make the USB chain a hardware risk. | Open / monitored |
+| R-02 | Critical | Nextcloud | HTTP 503 was caused by the storage remounting read-only during the USB incident. Step 2 review found `.ncdata`, config, data ownership and DB state consistent. Controlled start succeeded: `status.php` HTTP 200, container healthy. | Fixed live / monitor |
 | R-03 | High | Boot ordering | Docker can start before `/mnt/storage` is safely mounted, which can create/write bind-mount data under a plain microSD directory after power loss. | Mitigation added in repo |
 | R-04 | High | Runtime drift | Jetson `~/nasa` was behind `origin/main` and had live changes. It is now clean at `6844447`; the pre-sync live diff is preserved as `stash@{0}`. | Fixed live + repo |
 | R-05 | Medium | Reporting | Daily report and nasa-api expected old compose-generated container names, causing false `missing` warnings. | Fixed in repo |
@@ -29,16 +29,17 @@ SSD: /dev/sda1 ext4 label=nasa-storage mounted rw,noatime at /mnt/storage
 Disk: 229G total, 525M used, 217G free
 e2fsck: e2fsck -f -n returned 0, no repairs required
 Preflight: sudo storage_preflight.sh returned errors=0 warnings=0
-Nextcloud: container stopped intentionally, restart=no, HTTP 503 before stop
+Nextcloud: controlled start completed; restart=always, running, healthy
 Nextcloud review: logs show read-only data-dir writes failed; current mount is rw
 Nextcloud data: `.ncdata` present, data dir 33:33 mode 750, no ownership drift
 Nextcloud DB: pg_isready OK; users=1, filecache=76, file_locks=0
+Nextcloud HTTP: local `/status.php` 200, VPS `/status.php` 200, root 302
 Immich: HTTP 200
 LLM Gateway: HTTP 200
 nasa-api: HTTP 200
 Backup: fresh nextcloud and immich DB dumps created at 2026-06-23 09:32 UTC
 Failed units: 0
-New kernel storage errors after stopping Nextcloud: none observed
+New kernel storage errors after controlled Nextcloud start: none observed
 Jetson checkout: clean at 6844447 after `git pull --ff-only origin main`
 Pre-sync live diff: preserved as git stash `stash@{0}`
 ```
@@ -92,16 +93,28 @@ DB: accepting connections, file_locks=0
 homecloud_nextcloud: exited, restart=no
 ```
 
+Step 3 completed on 2026-06-23: controlled Nextcloud start succeeded.
+
+```text
+storage_preflight.sh: errors=0, warnings=0
+docker update --restart=always homecloud_nextcloud: OK
+docker start homecloud_nextcloud: OK
+local /status.php: HTTP 200, maintenance=false, needsDbUpgrade=false
+VPS /status.php: HTTP 200
+container: running, healthy
+kernel storage errors after start: none observed
+```
+
 Path A was completed on 2026-06-23: storage-backed containers were stopped,
 `/mnt/storage` was unmounted, `e2fsck -f -n` returned 0, the filesystem was
 remounted, preflight passed, and non-Nextcloud services were restarted.
 
-Do not start Nextcloud as a blind restart. Use the controlled start below so a
-new read-only remount or HTTP 503 is caught immediately.
+Nextcloud is running again. Keep the controlled start steps below as the rollback
+and recovery procedure if another USB storage event occurs.
 
-### Controlled Nextcloud start
+### Controlled Nextcloud start / restart
 
-Before start:
+Before a future start/restart:
 
 ```bash
 cd ~/nasa
@@ -110,11 +123,11 @@ sudo journalctl -k --since "10 minutes ago" --no-pager \
   | grep -i -E "ext4|I/O error|error -71|read-only" || true
 ```
 
-Start and observe:
+Start/restart and observe:
 
 ```bash
 docker update --restart=always homecloud_nextcloud
-docker start homecloud_nextcloud
+docker start homecloud_nextcloud || docker restart homecloud_nextcloud
 docker logs -f --tail=80 homecloud_nextcloud
 curl -i http://127.0.0.1:8080/status.php
 ```
@@ -144,6 +157,5 @@ LLM Gateway/nasa-api, Samba, Nextcloud last.
   suspect even when the SSD is currently visible.
 - Docker restart policy alone is not enough. Boot ordering must prevent Docker
   from using false bind-mount directories before `/mnt/storage` is mounted.
-- Nextcloud must stay stopped until the previous HTTP 503 and apache2/ext4
-  errors are understood. Creating `.ncdata` manually as a shortcut is not a
-  reliability fix and can hide data inconsistency.
+- Nextcloud is recovered, but any new HTTP 503/read-only log line should be
+  treated as a storage incident first, not as an application-only problem.

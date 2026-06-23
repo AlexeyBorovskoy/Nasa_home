@@ -57,7 +57,7 @@ flowchart TB
 
 | Сервис | Порт Jetson | Внешний доступ | Статус |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ⚠️ Intentionally stopped until data/app review |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ✅ Live after controlled start |
 | Immich | 2283 | `http://193.8.215.130:2283/` | ✅ Live |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | ✅ Live |
 | SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | ✅ tunnel |
@@ -96,7 +96,7 @@ LLM Gateway **не получает**:
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ |
 | Stage 1A | Hardware audit, storage, Samba | ✅ Storage recovered; boot guard added |
-| Stage 1B | Nextcloud | ⚠️ Stopped intentionally; DB/Redis healthy |
+| Stage 1B | Nextcloud | ✅ Recovered; DB/Redis healthy |
 | Stage 1C | Immich (ML disabled) | ✅ Live |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ Live |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ Live |

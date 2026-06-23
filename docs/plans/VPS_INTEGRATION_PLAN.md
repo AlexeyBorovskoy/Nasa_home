@@ -12,14 +12,13 @@
 ## Что работает на VPS (обновлено 2026-06-23)
 
 - `nasa_nginx` контейнер: `network_mode: host`, порты 8080/2283/8090 публичные
-- Nextcloud: `http://193.8.215.130:8080/` → HTTP 502/503 ⚠️ пока контейнер намеренно остановлен
+- Nextcloud: `http://193.8.215.130:8080/status.php` → HTTP 200 ✅
 - Immich: `http://193.8.215.130:2283/` → HTTP 200 ✅
 - LLM Gateway: `http://193.8.215.130:8090/health` → HTTP 200 ✅
 - SSH управление Jetson: `ssh -p 10022 admin@127.0.0.1` с VPS ✅
 
-Nextcloud 502/503 здесь не считается сетевой ошибкой: tunnel/nginx живы, upstream
-намеренно остановлен (`restart=no`) до разбора data/app state после USB storage
-incident 2026-06-23.
+Если Nextcloud снова вернёт 502/503, сначала проверять upstream container и
+storage preflight на Jetson; tunnel/nginx уже подтверждены рабочими.
 
 **Критичный параметр nginx:** `network_mode: host` обязателен.
 В bridge-режиме `127.0.0.1:18080` — это loopback контейнера, а не хоста,
@@ -199,7 +198,7 @@ VPS IP может меняться. При смене:
 
 ## / VPS Integration Plan (English)
 
-**Status:** Implemented (2026-06-21), Nextcloud intentionally stopped after 2026-06-23 USB incident
+**Status:** Implemented (2026-06-21), Nextcloud recovered after 2026-06-23 USB incident
 **VPS:** 193.8.215.130, Vienna Austria (AEZA GROUP) — IP may change  
 
 ### Architecture: Reverse SSH Tunnel
