@@ -123,12 +123,14 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 recovered, hardware watch**
+> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 recovered, reboot verified, hardware watch**
 > Jetson доступен через VPS reverse tunnel. SSD снова смонтирован в `/mnt/storage`,
 > `e2fsck -f -n` и `storage_preflight.sh` проходят чисто. Immich, LLM Gateway,
 > Samba, monitoring, nasa-api, DB backup и Nextcloud работают. Nextcloud
 > поднят controlled start: `status.php` `HTTP 200`, `maintenance=false`,
-> `needsDbUpgrade=false`.
+> `needsDbUpgrade=false`. Reboot/autorecovery test passed: tunnel, storage,
+> Docker containers, HTTP endpoints and `jetson-nas-health.timer` recovered
+> automatically after reboot.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
@@ -423,8 +425,8 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Этап / Stage | Содержание / Content | Статус / Status |
 |---|---|---|
 | Stage 0 | microSD, первый boot, SSH, USB device mode | ✅ Задокументировано |
-| Stage 1A | Hardware audit, DEXP USB storage setup, Samba NAS | ✅ **Storage recovered; boot guard added** |
-| Stage 1B | Nextcloud + PostgreSQL + Redis | ✅ **Recovered; DB/Redis healthy** |
+| Stage 1A | Hardware audit, DEXP USB storage setup, Samba NAS | ✅ **Storage recovered; reboot verified** |
+| Stage 1B | Nextcloud + PostgreSQL + Redis | ✅ **Recovered; DB/Redis healthy; reboot verified** |
 | Stage 1C | Immich (ML отключён для Jetson) | ✅ **Развёрнут и работает** |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ **Развёрнут и работает** |
 | Stage 1E | VPS + reverse SSH tunnel (autossh) | ✅ **Работает, nginx на VPS** |
@@ -493,7 +495,7 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **USB storage incident 2026-06-23** — накопитель снова доступен и смонтирован, но USB-цепочка уже показывала `error -71`; кабель/питание/корпус остаются hardware-рискoм.
+- **USB storage incident 2026-06-23** — накопитель снова доступен и смонтирован; reboot/autorecovery test прошёл, но USB-цепочка уже показывала `error -71`, поэтому кабель/питание/корпус остаются hardware-рискoм.
 - **Nextcloud recovered after controlled start** — `homecloud_nextcloud` снова `running/healthy`; прежний HTTP 503 был следствием read-only remount во время USB-инцидента.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.

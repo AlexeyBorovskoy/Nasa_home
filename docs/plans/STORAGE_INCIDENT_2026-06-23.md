@@ -18,6 +18,12 @@ Recovery update 2026-06-23 12:10 UTC: Nextcloud data/app review found no marker,
 ownership, config or DB blocker. Controlled start succeeded; `/status.php`
 returns HTTP 200 locally and through the VPS, and the container is healthy.
 
+Recovery update 2026-06-23 12:59 UTC: reboot/autorecovery test succeeded.
+After reboot the reverse tunnel returned, `/mnt/storage` remounted as
+`/dev/sda1`, storage preflight passed, storage-backed containers recovered, VPS
+HTTP checks returned 200, and `jetson-nas-health.timer` finished with
+`issues: 0`.
+
 ## 2. Observed State
 
 | Area | Result |
@@ -30,6 +36,7 @@ returns HTTP 200 locally and through the VPS, and the container is healthy.
 | Immich | Responds to `/api/server/ping` |
 | LLM Gateway | Responds to `/health` |
 | nasa-api | Responds to `/healthcheck` |
+| Reboot/autorecovery | Passed: tunnel, storage, containers, HTTP and health timer recovered automatically |
 | Backup timer | Recovered: fresh DB dumps created; fail-closed guard remains |
 
 ## 3. Kernel Evidence

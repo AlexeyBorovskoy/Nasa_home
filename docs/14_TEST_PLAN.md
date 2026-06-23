@@ -78,6 +78,7 @@
 | LLM GW via VPS | `wget -q -O /dev/null -S http://193.8.215.130:8090/health` | HTTP 200 |
 | SSH via tunnel | `ssh -p 10022 admin@127.0.0.1` (с VPS) | prompt |
 | Tunnel restart | `systemctl restart nasa-tunnel.service` | re-establishes within 30s |
+| Reboot autorecovery | `sudo systemctl reboot`, then poll tunnel/storage/HTTP | tunnel returns, `/mnt/storage` is mounted, containers healthy, VPS HTTP 200 |
 
 ## 7. Backup/Restore
 

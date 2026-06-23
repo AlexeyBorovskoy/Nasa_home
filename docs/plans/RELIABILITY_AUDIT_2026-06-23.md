@@ -12,10 +12,10 @@ No destructive storage operations were performed during this audit.
 
 | ID | Severity | Area | Finding | Status |
 |---|---|---|---|---|
-| R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, and stayed `rw` through controlled Nextcloud start. Prior `error -71`/ext4 errors still make the USB chain a hardware risk. | Open / monitored |
-| R-02 | Critical | Nextcloud | HTTP 503 was caused by the storage remounting read-only during the USB incident. Step 2 review found `.ncdata`, config, data ownership and DB state consistent. Controlled start succeeded: `status.php` HTTP 200, container healthy. | Fixed live / monitor |
-| R-03 | High | Boot ordering | Docker can start before `/mnt/storage` is safely mounted, which can create/write bind-mount data under a plain microSD directory after power loss. | Mitigation added in repo |
-| R-04 | High | Runtime drift | Jetson `~/nasa` was behind `origin/main` and had live changes. It is now clean at `6844447`; the pre-sync live diff is preserved as `stash@{0}`. | Fixed live + repo |
+| R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, stayed `rw` through controlled Nextcloud start, and remounted automatically after reboot. Prior `error -71`/ext4 errors still make the USB chain a hardware risk. | Open / reboot verified / monitored |
+| R-02 | Critical | Nextcloud | HTTP 503 was caused by the storage remounting read-only during the USB incident. Step 2 review found `.ncdata`, config, data ownership and DB state consistent. Controlled start and reboot autorecovery succeeded: `status.php` HTTP 200, container healthy. | Fixed live / reboot verified |
+| R-03 | High | Boot ordering | Docker can start before `/mnt/storage` is safely mounted, which can create/write bind-mount data under a plain microSD directory after power loss. The 2026-06-23 reboot test came back clean, but the guard remains required for future drift protection. | Mitigation added / reboot verified |
+| R-04 | High | Runtime drift | Jetson `~/nasa` was behind `origin/main` and had live changes. It is now clean at `2272679`; the pre-sync live diff is preserved as `stash@{0}`. | Fixed live + repo |
 | R-05 | Medium | Reporting | Daily report and nasa-api expected old compose-generated container names, causing false `missing` warnings. | Fixed in repo |
 | R-06 | Medium | Restart policy | `docker-compose.stage1.yml`, Samba and VPS nginx still used `restart: unless-stopped` in repo templates. | Fixed in repo |
 | R-07 | Medium | Failed units | `jetson-nas-health.service` and `nasa-backup.service` were updated and rerun successfully; `systemctl --failed` reports zero failed units. | Fixed live + repo |
@@ -37,10 +37,13 @@ Nextcloud HTTP: local `/status.php` 200, VPS `/status.php` 200, root 302
 Immich: HTTP 200
 LLM Gateway: HTTP 200
 nasa-api: HTTP 200
+Reboot/autorecovery: boot id changed 56addc55 -> 13f68009; tunnel, storage,
+  containers and HTTP endpoints recovered automatically
 Backup: fresh nextcloud and immich DB dumps created at 2026-06-23 09:32 UTC
 Failed units: 0
-New kernel storage errors after controlled Nextcloud start: none observed
-Jetson checkout: clean at 6844447 after `git pull --ff-only origin main`
+New kernel storage errors after controlled Nextcloud start/reboot: none observed
+Post-reboot health timer: jetson-nas-health.service Result=success, issues=0
+Jetson checkout: clean at 2272679 after `git pull --ff-only origin main`
 Pre-sync live diff: preserved as git stash `stash@{0}`
 ```
 
@@ -105,6 +108,21 @@ container: running, healthy
 kernel storage errors after start: none observed
 ```
 
+Step 4 completed on 2026-06-23: reboot/autorecovery test succeeded.
+
+```text
+pre-reboot boot_id: 56addc55-6cc9-467d-9008-a830ea1d2d88
+post-reboot boot_id: 13f68009-36ca-478f-a29b-4b422a9a6d08
+VPS reverse tunnel: recovered automatically
+/mnt/storage: /dev/sda1 ext4 rw,noatime,data=ordered
+storage_preflight.sh: errors=0, warnings=0
+containers: Nextcloud, Immich, LLM Gateway, nasa-api, Samba, Netdata,
+  Uptime Kuma and Portainer recovered automatically
+HTTP: Nextcloud/Immich/LLM Gateway through VPS returned 200
+jetson-nas-health.timer: ran after reboot, SMART OK, issues=0
+kernel storage error scan for this boot: no error -71/I/O/read-only failures
+```
+
 Path A was completed on 2026-06-23: storage-backed containers were stopped,
 `/mnt/storage` was unmounted, `e2fsck -f -n` returned 0, the filesystem was
 remounted, preflight passed, and non-Nextcloud services were restarted.
@@ -155,7 +173,8 @@ LLM Gateway/nasa-api, Samba, Nextcloud last.
 - Jetson Nano USB power/cable stability remains the most likely hardware weak
   point; repeated `error -71` means cable/enclosure/power should be treated as
   suspect even when the SSD is currently visible.
-- Docker restart policy alone is not enough. Boot ordering must prevent Docker
-  from using false bind-mount directories before `/mnt/storage` is mounted.
+- Docker restart policy alone is not enough. The 2026-06-23 reboot test passed,
+  but boot ordering must keep preventing false bind-mount directories before
+  `/mnt/storage` is mounted.
 - Nextcloud is recovered, but any new HTTP 503/read-only log line should be
   treated as a storage incident first, not as an application-only problem.

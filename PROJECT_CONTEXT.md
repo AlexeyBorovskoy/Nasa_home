@@ -23,6 +23,9 @@ reverse SSH tunnel; SSD снова виден как Realtek RTL9210B-CG `/dev/s
 Immich, LLM Gateway, nasa-api, Samba, мониторинг, DB backup и Nextcloud
 отвечают. Nextcloud прошёл data/app review и controlled start; прежний HTTP 503
 был следствием read-only remount `/mnt/storage` во время USB-инцидента.
+Reboot/autorecovery test прошёл: reverse tunnel, `/mnt/storage`, Docker
+containers, HTTP endpoints и `jetson-nas-health.timer` восстановились
+автоматически после перезагрузки.
 
 ## 2. Зафиксированные решения
 

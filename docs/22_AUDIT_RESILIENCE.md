@@ -54,7 +54,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | F-08 | MEDIUM | Code | SC2046 в `scripts/fetch_external_docs.sh:182`: неэкранированный `$(find ...)` → word splitting для имён файлов с пробелами. | **Fixed** |
 | F-09 | LOW | Code | SC2016 в `scripts/diagnostics/hardware_audit.sh`: ложное срабатывание — markdown-бэктики внутри одинарных кавычек. | Accepted |
 | F-10 | LOW | Code | SC1090 в скриптах мониторинга: динамический путь для `source` (известное ограничение shellcheck). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB восстановлен как `/dev/sda1` и смонтирован в `/mnt/storage`, но ранее фиксировались `error -71`, I/O errors и ext4 ошибки. Nextcloud прошёл controlled start и снова `running/healthy`; backup работает с fail-closed guard. | Open / recovered / mitigated |
+| F-11 | HIGH | Storage | USB storage 250 GB восстановлен как `/dev/sda1` и смонтирован в `/mnt/storage`, но ранее фиксировались `error -71`, I/O errors и ext4 ошибки. Nextcloud прошёл controlled start и reboot/autorecovery test; backup работает с fail-closed guard. | Open / reboot verified / mitigated |
 
 > **Критические находки F-01 и F-02 связаны между собой:** поведение restart-политики
 > при `docker kill` является багом Docker 20.10. Обновление до Docker 27.x (F-01)
@@ -70,6 +70,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 | Перезапуск Uptime Kuma | `docker restart` | Running менее чем за 10 сек | Автоматически ✅ |
 | Тест туннеля | (не интерактивный SSH, stop/start не протестировано) | Active, `restart=always` | Ожидается: авто за 30 сек |
 | Правила iptables после перезагрузки | `/etc/iptables/rules.v4` присутствует | Правила сохраняются ✅ | — |
+| Reboot/autorecovery | `sudo systemctl reboot` через VPS tunnel | Tunnel, `/mnt/storage`, containers, HTTP endpoints and health timer recovered | Автоматически ✅ |
 
 ---
 
@@ -323,7 +324,7 @@ HTTP 200 again. Database backups fail closed if storage preflight fails again.
 | F-08 | MEDIUM | Code | SC2046 in `scripts/fetch_external_docs.sh:182`: unquoted `$(find ...)` → word splitting on filenames with spaces. | **Fixed** |
 | F-09 | LOW | Code | SC2016 in `scripts/diagnostics/hardware_audit.sh`: harmless false positive (markdown backticks inside single-quoted strings). | Accepted |
 | F-10 | LOW | Code | SC1090 in monitoring scripts: dynamic `source` path (known shellcheck limitation). | Accepted |
-| F-11 | HIGH | Storage | USB storage 250 GB recovered as `/dev/sda1` and is mounted at `/mnt/storage`, but previous logs showed `error -71`, I/O errors and ext4 errors. Nextcloud passed controlled start and is `running/healthy`; backups must not write to microSD if preflight fails. | Open / recovered / mitigated |
+| F-11 | HIGH | Storage | USB storage 250 GB recovered as `/dev/sda1` and is mounted at `/mnt/storage`, but previous logs showed `error -71`, I/O errors and ext4 errors. Nextcloud passed controlled start and reboot/autorecovery test; backups must not write to microSD if preflight fails. | Open / reboot verified / mitigated |
 
 > **Critical findings F-01 and F-02 are related:** the restart policy misbehaviour
 > under `docker kill` is a Docker 20.10 bug. Upgrading to Docker 27.x (F-01)
@@ -339,6 +340,7 @@ HTTP 200 again. Database backups fail closed if storage preflight fails again.
 | Uptime Kuma restart | `docker restart` | Running in <10s | Automatic ✅ |
 | Tunnel test | (non-interactive SSH; stop/start not tested) | Active, `restart=always` | Expected: auto in 30s |
 | iptables reboot | `/etc/iptables/rules.v4` present | Rules persist across reboots ✅ | — |
+| Reboot/autorecovery | `sudo systemctl reboot` through VPS tunnel | Tunnel, `/mnt/storage`, containers, HTTP endpoints and health timer recovered | Automatic ✅ |
 
 ---
 

@@ -54,6 +54,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Nextcloud controlled start completed: `homecloud_nextcloud` is running,
   `restart=always`, healthcheck is healthy, local and VPS `/status.php` return
   HTTP 200, and no new kernel storage errors were observed after start.
+- Reboot/autorecovery test completed: Jetson returned with a new boot id, the
+  VPS reverse tunnel recovered, `/mnt/storage` mounted as `/dev/sda1`, preflight
+  passed, storage-backed containers became healthy, VPS endpoints returned HTTP
+  200, and `jetson-nas-health.timer` finished with `issues: 0`.
 
 ## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
 

@@ -170,6 +170,8 @@ USB-цепочки. Продолжать эксплуатацию Nextcloud/Immi
 `e2fsck -f -n` и `storage_preflight.sh` чистые, fresh DB dumps созданы. Новых
 kernel storage ошибок после controlled start Nextcloud не наблюдалось.
 Nextcloud снова `running/healthy`, `/status.php` возвращает `HTTP 200`.
+Reboot/autorecovery test прошёл: tunnel, storage, Docker containers, HTTP
+endpoints и `jetson-nas-health.timer` восстановились автоматически.
 
 ## 9. Telegram ежедневный отчёт
 
