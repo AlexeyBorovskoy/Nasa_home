@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Top-level and operational docs now reflect the recovered SSD state, intentional
   Nextcloud stop, live DB backup success, and the remaining hardware risk in the
   USB cable/enclosure/power chain.
+- Jetson `~/nasa` checkout synchronized to `6844447`; the pre-sync live diff is
+  preserved on Jetson as `stash@{0}` for audit/recovery.
 
 ## [1.3.3] — 2026-06-21 · Client setup + HDD hybrid storage
 

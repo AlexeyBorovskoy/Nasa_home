@@ -15,7 +15,7 @@ No destructive storage operations were performed during this audit.
 | R-01 | Critical | Storage | SSD is visible again as Realtek RTL9210B-CG `/dev/sda1`, mounted at `/mnt/storage`, but kernel logged repeated `EXT4-fs error ... comm apache2` while Nextcloud was running. | Open |
 | R-02 | Critical | Nextcloud | `.ncdata` is present when checked as root, but Nextcloud returned HTTP 503 before stop and kernel logged `EXT4-fs error ... comm apache2`; app/data state still needs review before restart. | Open |
 | R-03 | High | Boot ordering | Docker can start before `/mnt/storage` is safely mounted, which can create/write bind-mount data under a plain microSD directory after power loss. | Mitigation added in repo |
-| R-04 | High | Runtime drift | `storage_preflight.sh` is installed on Jetson and passes as root; repo still needs normal git sync after commit/push. | Fixed live / repo pending |
+| R-04 | High | Runtime drift | Jetson `~/nasa` was behind `origin/main` and had live changes. It is now clean at `6844447`; the pre-sync live diff is preserved as `stash@{0}`. | Fixed live + repo |
 | R-05 | Medium | Reporting | Daily report and nasa-api expected old compose-generated container names, causing false `missing` warnings. | Fixed in repo |
 | R-06 | Medium | Restart policy | `docker-compose.stage1.yml`, Samba and VPS nginx still used `restart: unless-stopped` in repo templates. | Fixed in repo |
 | R-07 | Medium | Failed units | `jetson-nas-health.service` and `nasa-backup.service` were updated and rerun successfully; `systemctl --failed` reports zero failed units. | Fixed live + repo |
@@ -36,6 +36,8 @@ nasa-api: HTTP 200
 Backup: fresh nextcloud and immich DB dumps created at 2026-06-23 09:32 UTC
 Failed units: 0
 New kernel storage errors after stopping Nextcloud: none observed
+Jetson checkout: clean at 6844447 after `git pull --ff-only origin main`
+Pre-sync live diff: preserved as git stash `stash@{0}`
 ```
 
 ## 4. Repo Mitigations Added
@@ -60,6 +62,11 @@ New kernel storage errors after stopping Nextcloud: none observed
 - `restart: always` normalized for Samba, Stage 1 compose, and VPS nginx.
 
 ## 5. Required Live Recovery Order
+
+Step 1 completed on 2026-06-23: Jetson `~/nasa` was synchronized with
+`origin/main` without discarding local changes. The dirty pre-sync state was
+saved with `git stash -u` as `stash@{0}: pre-sync live Jetson checkout
+2026-06-23 step1`.
 
 Path A was completed on 2026-06-23: storage-backed containers were stopped,
 `/mnt/storage` was unmounted, `e2fsck -f -n` returned 0, the filesystem was
