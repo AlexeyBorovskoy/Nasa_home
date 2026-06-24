@@ -123,18 +123,16 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-23 / State as of 2026-06-23 · **Stage 1 recovered, reboot verified, hardware watch**
-> Jetson доступен через VPS reverse tunnel. SSD снова смонтирован в `/mnt/storage`,
-> `e2fsck -f -n` и `storage_preflight.sh` проходят чисто. Immich, LLM Gateway,
-> Samba, monitoring, nasa-api, DB backup и Nextcloud работают. Nextcloud
-> поднят controlled start: `status.php` `HTTP 200`, `maintenance=false`,
-> `needsDbUpgrade=false`. Reboot/autorecovery test passed: tunnel, storage,
-> Docker containers, HTTP endpoints and `jetson-nas-health.timer` recovered
-> automatically after reboot.
+> Состояние на 2026-06-24 / State as of 2026-06-24 · **Stage 1 fully operational + USB watchdog deployed**
+> Jetson доступен через VPS reverse tunnel. SSD смонтирован в `/mnt/storage` (229 GB, 217 GB free).
+> `storage_preflight.sh` — errors=0, warnings=0. Все 13 контейнеров `Up (healthy)`.
+> USB autosuspend отключён: udev rules для RTL9210B-CG + хаба + `usbcore.autosuspend=-1`
+> в extlinux.conf. smartd мониторит `/dev/sda`. Beszel Hub на VPS:8091, Agent на Jetson:45876.
+> Reboot/autorecovery test passed: все сервисы восстанавливаются автоматически после ребута.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
-| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ✅ Live, recovered after USB incident |
+| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ✅ Live |
 | Immich | 2283 | VPS `193.8.215.130:2283` + LAN | ✅ Live |
 | LLM Gateway | 8090 | VPS `193.8.215.130:8090` + LAN | ✅ Live |
 | nasa-api (Swagger) | 8099 | LAN `192.168.0.50:8099/docs` | ✅ Live |
@@ -142,10 +140,13 @@ Principles:
 | Netdata | 19999 | LAN `192.168.0.50:19999` | ✅ Live |
 | Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live · 5 monitors configured |
 | Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live · admin configured |
+| Beszel Hub | 8091 | VPS `193.8.215.130:8091` | ✅ Live · unified monitoring |
+| Beszel Agent | 45876 | Jetson internal | ✅ Live · systemd, arm64 |
 | VPS nginx reverse proxy | — | VPS 193.8.215.130 | ✅ Live |
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) |
-| DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard installed |
+| DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard |
+| USB storage watchdog | udev | udev rules + smartd | ✅ Live · autosuspend disabled |
 | Android backup API | — | — | 🔜 Stage 2 |
 
 > **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
@@ -202,6 +203,9 @@ Principles:
         +-- systemd: nasa-daily-report-telegram.timer  (09:00, ежедневно)
         +-- systemd: nasa-backup.timer         (03:00, ежедневно, pg_dump)
         +-- systemd: jetson-nas-health.timer   (SMART мониторинг HDD, 6h)
+        +-- systemd: beszel-agent.service      (мониторинг → Beszel Hub на VPS:8091)
+        +-- udev:    85-nasa-storage-watchdog  (autosuspend=off для RTL9210B-CG + hub)
+        +-- smartd:  /dev/sda monitoring       (S.M.A.R.T., weekly self-test)
 
 /mnt/storage  (DEXP/Realtek 250 ГБ ext4 USB; mounted, fsck/preflight OK; Nextcloud live)
   ├── nextcloud/data
@@ -249,6 +253,7 @@ Principles:
 | Бэкап БД | bash pg_dump + gzip | — | 03:00 ежедневно, ротация 7 дней |
 | Тестирование | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 теста) |
 | Здоровье системы | systemd timers + SMART | — | Диагностика 6ч + HDD health |
+| Unified monitoring | Beszel | 0.18.7 | Hub на VPS, Agent на Jetson — CPU/RAM/disk/net история |
 | Бэкапы файлов | restic | — | Stage 3 (заготовка готова) |
 | Android backup API | services/backup-api | — | Stage 2 placeholder |
 
@@ -464,6 +469,7 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/22_AUDIT_RESILIENCE.md](docs/22_AUDIT_RESILIENCE.md) | Аудит надёжности: goss, shellcheck, итоги |
 | [docs/23_GITHUB_INTEGRATION.md](docs/23_GITHUB_INTEGRATION.md) | GitHub CLI + Claude Code интеграция, AI DevOps workflow |
 | [docs/24_CLIENT_SETUP.md](docs/24_CLIENT_SETUP.md) | **Подключение устройств: Android, Windows, Linux** |
+| [docs/metrics/GITHUB_TRAFFIC.md](docs/metrics/GITHUB_TRAFFIC.md) | Ежедневный мониторинг GitHub трафика, клонов, звёзд — целевые метрики |
 | [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, recovery status, Nextcloud controlled start |
 | [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md) | Live reliability audit: fsck/preflight, boot guard, restart policy, remaining risks |
 | [docs/plans/VPS_INTEGRATION_PLAN.md](docs/plans/VPS_INTEGRATION_PLAN.md) | План интеграции VPS + тоннель |
@@ -495,7 +501,7 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **USB storage incident 2026-06-23** — накопитель снова доступен и смонтирован; reboot/autorecovery test прошёл, но USB-цепочка уже показывала `error -71`, поэтому кабель/питание/корпус остаются hardware-рискoм.
+- **USB autosuspend fix deployed 2026-06-24** — RTL9210B-CG (`0bda:9210`) и Realtek USB hub теперь удерживаются в `power/control=on` через udev rules. `usbcore.autosuspend=-1` добавлен в extlinux.conf (активен после следующего ребута). До ребута уdev rules защищают. SSD стабилен. При повторном `error -71` — физически переподключить USB.
 - **Nextcloud recovered after controlled start** — `homecloud_nextcloud` снова `running/healthy`; прежний HTTP 503 был следствием read-only remount во время USB-инцидента.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
