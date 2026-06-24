@@ -8,21 +8,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.3.4] — 2026-06-24 · Beszel monitoring + USB watchdog
+
 ### Added / Добавлено
 
-- **Beszel monitoring** (2026-06-24): Hub на VPS (порт 8091, Docker host network,
-  SQLite история), Agent на Jetson (binary/systemd, порт 45876, arm64).
-  Заменяет Netdata + Uptime Kuma. Telegram алерты через Shoutrrr (23+ канала).
+- **Beszel monitoring** — Hub на VPS (порт 8091, Docker host network, SQLite история),
+  Agent на Jetson (binary 0.18.7, arm64, systemd, порт 45876).
+  Telegram алерты через Shoutrrr (23+ канала).
   `docker/vps/docker-compose.yml` — beszel-hub сервис.
   `scripts/monitoring/install_beszel_agent.sh` — установщик агента.
-- **USB storage watchdog** (2026-06-24): `scripts/storage/install_usb_watchdog.sh`.
-  udev отключает autosuspend RTL9210B-CG при подключении; Telegram алерт на
-  remove/add `/dev/sda`; smartmontools (smartd) с weekly self-test.
-  Root cause: RTL9210B-CG зависает при USB reset во время активной записи,
-  tegra-xusb входит в ELPG цикл ~82 сек навсегда → только power cycle лечит.
-  Fix: `usbcore.autosuspend=-1` в `/boot/extlinux/extlinux.conf`.
-- **Tunnel port 45876** (2026-06-24): `systemd/nasa-tunnel.service` — добавлен
-  `-R 45876:localhost:45876` для Beszel Hub → Agent связи через VPS.
+- **USB storage watchdog** — `scripts/storage/install_usb_watchdog.sh`:
+  - udev rule: `power/control=on` для RTL9210B-CG (0bda:9210) **и USB-хаба** (0bda:5411 / 0411);
+    хаб в autosuspend убивает дочерние устройства вне зависимости от настроек bridge
+  - `usbcore.autosuspend=-1` в `/boot/extlinux/extlinux.conf` (belt-and-suspenders, после ребута)
+  - smartd с явным `/dev/sda` (DEVICESCAN не работает на Tegra kernel 4.9)
+  - Telegram alert на remove/add `/dev/sda` через VPS SSH relay
+  - Root cause: RTL9210B-CG входит в ELPG цикл при USB reset mid-write →
+    только физический power cycle выводит. Fix предотвращает сам вход.
+- **Tunnel port 45876** — `systemd/nasa-tunnel.service`: добавлен
+  `-R 45876:localhost:45876` для Beszel Agent → Hub через VPS.
+- **GitHub traffic monitoring** — `docs/metrics/GITHUB_TRAFFIC.md`:
+  ежедневный лог просмотров, клонов, источников трафика, звёзд.
+  Первая запись: 2026-06-24 (371 клон / 149 уник. за 14 дней, 0 звёзд).
+
+### Fixed / Исправлено
+
+- `install_usb_watchdog.sh`: добавлены udev-правила для USB-хаба (0bda:5411/0411) —
+  без них хаб мог засыпить шину, роняя SSD
+- `install_usb_watchdog.sh`: `DEVICESCAN` → явный `/dev/sda` в smartd.conf —
+  DEVICESCAN падает на Tegra kernel 4.9 (нет `/dev/discs/disc*`)
+
+### Changed / Изменено
+
+- `README.md`: статус обновлён до 2026-06-24; Beszel Hub/Agent добавлены в таблицу сервисов;
+  USB watchdog в Known Limitations заменён описанием применённого фикса
 
 - `scripts/storage/storage_preflight.sh`: fail-closed sudo storage preflight before
   starting Nextcloud/Immich/backup; checks mountpoint, backing device, fstab UUID,
@@ -296,7 +317,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `.github/workflows/secrets-check.yml` — CI secret scanner on push/PR
   - `.github/workflows/validate-compose.yml` — CI Docker Compose validation
 
-[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.4...HEAD
+[1.3.4]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/AlexeyBorovskoy/Nasa_home/releases/tag/v1.3.0
