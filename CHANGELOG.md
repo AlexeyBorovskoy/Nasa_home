@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Добавлено
+
+- **Beszel: оба агента зарегистрированы и активны** (2026-06-24):
+  - `jetson-nano` (127.0.0.1:45876) → status `up`, CPU 17%, RAM 58%
+  - `vps-vienna` (127.0.0.1:45877) → status `up`, CPU 2%, RAM 27%
+  - `scripts/monitoring/install_beszel_agent_vps.sh` — установщик amd64 агента на VPS;
+    читает Hub pubkey из `/opt/nasa/beszel-hub/data/id_ed25519` автоматически;
+    wrapper-скрипт обходит systemd ExecStart-ограничения при ключе с пробелами
+
 ---
 
 ## [1.3.4] — 2026-06-24 · Beszel monitoring + USB watchdog
