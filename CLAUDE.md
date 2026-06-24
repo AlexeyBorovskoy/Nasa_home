@@ -15,12 +15,19 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-23:** Jetson жив и доступен через VPS reverse tunnel.
-SSD снова смонтирован в `/mnt/storage` (`/dev/sda1`, ext4, label
-`nasa-storage`), `e2fsck -f -n` и `storage_preflight.sh` проходят чисто.
-Immich, LLM Gateway, nasa-api, Samba, monitoring, DB backup и Nextcloud работают.
-Nextcloud после read-only review поднят controlled start: `status.php` `HTTP 200`,
-`maintenance=false`, `needsDbUpgrade=false`.
+**Состояние на 2026-06-24:** Jetson жив, VPS tunnel активен (uptime 16ч+).
+**USB SSD `/dev/sda` ОТКЛЮЧЁН** — повторный `error -71` на RTL9210B-CG с 15:05 UTC 2026-06-23.
+Docker `inactive` (storage guard работает — не даёт стартовать без диска).
+Все storage-backed сервисы (Nextcloud, Immich, Samba, DB) **не работают**.
+VPS tunnel, LLM Gateway, nasa-api (если без storage) — недоступны пока Docker down.
+
+**Beszel Hub** развёрнут на VPS (порт 8091, работает).
+**Beszel Agent** установлен на Jetson как binary/systemd (порт 45876, работает — не зависит от Docker).
+**Что нужно сделать физически:** подключить USB SSD →
+  `sudo bash ~/nasa/scripts/storage/storage_preflight.sh` →
+  `sudo bash ~/nasa/scripts/storage/install_usb_watchdog.sh` →
+  `sudo systemctl start docker` →
+  добавить Jetson в Beszel UI: http://193.8.215.130:8091 (login: admin@nasa.local).
 
 ## Железо и доступ
 
@@ -125,8 +132,11 @@ prompts/          — агентные промпты (CODEX_*)
 | Netdata | 19999 | http://192.168.0.50:19999 |
 | Uptime Kuma | 3001 | http://192.168.0.50:3001 |
 | Portainer | 9000 | http://192.168.0.50:9000 |
+| Beszel Agent | 45876 | внутренний (→ Hub через tunnel) |
 
 VPS (193.8.215.130): Nextcloud :8080, Immich :2283, LLM Gateway :8090
+**Beszel Hub: http://193.8.215.130:8091** (login: admin@nasa.local / ***REMOVED***)
+После подключения SSD → добавить Jetson в Beszel: Host = `127.0.0.1:45876`
 
 ## Жёсткие правила
 
