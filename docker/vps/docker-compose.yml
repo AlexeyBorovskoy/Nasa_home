@@ -19,5 +19,23 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
 
+  # ---------------------------------------------------------------------------
+  # Beszel Hub — централизованный мониторинг Jetson + VPS
+  #
+  # Доступ: http://193.8.215.130:8091
+  # Данные: /opt/nasa/beszel-hub/data (SQLite, метрики, ключи)
+  #
+  # host network — обязателен: Hub коннектится к агенту Jetson через
+  # SSH reverse tunnel на 127.0.0.1:45876 (Jetson nasa-tunnel.service).
+  # ---------------------------------------------------------------------------
+  beszel-hub:
+    image: henrygd/beszel:latest
+    container_name: beszel_hub
+    restart: unless-stopped
+    network_mode: host
+    command: ["./beszel", "serve", "--http", "0.0.0.0:8091"]
+    volumes:
+      - ./beszel-hub/data:/beszel_data
+
 volumes:
   nginx_logs:
