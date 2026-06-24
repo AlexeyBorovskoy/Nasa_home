@@ -10,6 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added / Добавлено
 
+- **Beszel monitoring** (2026-06-24): Hub на VPS (порт 8091, Docker host network,
+  SQLite история), Agent на Jetson (binary/systemd, порт 45876, arm64).
+  Заменяет Netdata + Uptime Kuma. Telegram алерты через Shoutrrr (23+ канала).
+  `docker/vps/docker-compose.yml` — beszel-hub сервис.
+  `scripts/monitoring/install_beszel_agent.sh` — установщик агента.
+- **USB storage watchdog** (2026-06-24): `scripts/storage/install_usb_watchdog.sh`.
+  udev отключает autosuspend RTL9210B-CG при подключении; Telegram алерт на
+  remove/add `/dev/sda`; smartmontools (smartd) с weekly self-test.
+  Root cause: RTL9210B-CG зависает при USB reset во время активной записи,
+  tegra-xusb входит в ELPG цикл ~82 сек навсегда → только power cycle лечит.
+  Fix: `usbcore.autosuspend=-1` в `/boot/extlinux/extlinux.conf`.
+- **Tunnel port 45876** (2026-06-24): `systemd/nasa-tunnel.service` — добавлен
+  `-R 45876:localhost:45876` для Beszel Hub → Agent связи через VPS.
+
 - `scripts/storage/storage_preflight.sh`: fail-closed sudo storage preflight before
   starting Nextcloud/Immich/backup; checks mountpoint, backing device, fstab UUID,
   read-only mounts, critical paths and Nextcloud `.ncdata`.
