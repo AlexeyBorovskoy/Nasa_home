@@ -33,7 +33,7 @@ services:
     container_name: beszel_hub
     restart: unless-stopped
     network_mode: host
-    command: ["./beszel", "serve", "--http", "0.0.0.0:8091"]
+    command: ["serve", "--http", "0.0.0.0:8091"]
     volumes:
       - ./beszel-hub/data:/beszel_data
 
