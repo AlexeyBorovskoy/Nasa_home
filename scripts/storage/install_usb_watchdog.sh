@@ -91,8 +91,15 @@ echo "[1/4] alert script installed → $ALERT_SCRIPT"
 cat > "$RULES_FILE" << 'RULES'
 # NASA Home Cloud — USB storage watchdog rules
 # RTL9210B-CG: Vendor 0bda, Product 9210
+# Realtek USB 3.0 hub: 0bda:5411 (USB 2.0 side) / 0bda:0411 (USB 3.0 side)
 
-# Disable USB autosuspend when device appears (prevents ELPG interference)
+# Disable USB autosuspend on hub that carries the SSD (autosuspend on hub kills child devices)
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="5411", \
+  ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="0411", \
+  ATTR{power/control}="on"
+
+# Disable USB autosuspend on the RTL9210B-CG bridge (prevents ELPG loop → error -71)
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="9210", \
   ATTR{power/autosuspend_delay_ms}="-1", \
   ATTR{power/control}="on"
@@ -114,10 +121,8 @@ fi
 
 cat > "$SMARTD_CONF" << 'SMARTD'
 # NASA Home Cloud — smartd config
-# Monitor /dev/sda, run extended self-test weekly (Sunday 03:30)
-# Alert via custom script on any SMART issue
-
-DEVICESCAN \
+# Monitor /dev/sda explicitly (DEVICESCAN fails on Tegra kernel 4.9)
+/dev/sda \
   -a \
   -o on \
   -S on \
