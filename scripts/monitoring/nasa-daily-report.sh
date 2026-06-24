@@ -5,6 +5,9 @@ set -u
 CONF="/etc/nasa-monitor/nasa-monitor.env"
 [ -f "$CONF" ] && . "$CONF"
 
+VPS_KEY="${VPS_KEY:-/home/admin/.ssh/id_ed25519}"
+VPS_USER="${VPS_USER:-root}"
+
 NOW_UTC="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 NOW_MSK="$(TZ='Europe/Moscow' date '+%Y-%m-%d %H:%M:%S MSK')"
 HOST="$(hostname)"
@@ -91,6 +94,30 @@ HTTP_REPORT="${HTTP_REPORT}\n$(http_check "http://localhost:2283/" "Immich")"
 HTTP_REPORT="${HTTP_REPORT}\n$(http_check "http://localhost:8090/health" "LLM Gateway")"
 HTTP_REPORT="${HTTP_REPORT}\n$(http_check "http://localhost:19999/" "Netdata")"
 
+# Beszel monitoring via SSH to VPS
+BESZEL_REPORT=""
+BESZEL_SCRIPT="/usr/local/sbin/nasa-beszel-report.py"
+if [ -f "$VPS_KEY" ]; then
+    BESZEL_RAW="$(ssh -i "$VPS_KEY" \
+        -o StrictHostKeyChecking=no \
+        -o ConnectTimeout=10 \
+        -o BatchMode=yes \
+        "${VPS_USER}@${SERVER_IP:-193.8.215.130}" \
+        "python3 $BESZEL_SCRIPT 2>/tmp/beszel_warn.txt; cat /tmp/beszel_warn.txt >&2" \
+        2>/tmp/beszel_warn_local.txt || true)"
+    BESZEL_REPORT="$BESZEL_RAW"
+    # harvest __WARN__ lines from stderr
+    if [ -f /tmp/beszel_warn_local.txt ]; then
+        while IFS= read -r line; do
+            case "$line" in
+                __WARN__:*) add_warning "${line#__WARN__:}" ;;
+            esac
+        done < /tmp/beszel_warn_local.txt
+        rm -f /tmp/beszel_warn_local.txt
+    fi
+    [ -z "$BESZEL_REPORT" ] && BESZEL_REPORT="  ⚠️ Beszel Hub unreachable via SSH"
+fi
+
 # External check via VPS (optional)
 EXTERNAL_REPORT=""
 VPS="${SERVER_IP:-193.8.215.130}"
@@ -168,5 +195,8 @@ $(printf "%b" "$HTTP_REPORT")
 
 ☁️  EXTERNAL ACCESS
 $(printf "%b" "$EXTERNAL_REPORT")
+
+🔭 BESZEL MONITORING
+${BESZEL_REPORT}
 ${WARN_SECTION}
 REPORT
