@@ -10,24 +10,18 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.3 — Client setup + HDD hybrid storage
+- Текущий релиз: v1.3.4 — Beszel monitoring + USB watchdog hardening
 - Основная ветка: `main`
 
 ## Операционное состояние
 
-**Состояние на 2026-06-24:** Jetson жив, VPS tunnel активен (uptime 16ч+).
-**USB SSD `/dev/sda` ОТКЛЮЧЁН** — повторный `error -71` на RTL9210B-CG с 15:05 UTC 2026-06-23.
-Docker `inactive` (storage guard работает — не даёт стартовать без диска).
-Все storage-backed сервисы (Nextcloud, Immich, Samba, DB) **не работают**.
-VPS tunnel, LLM Gateway, nasa-api (если без storage) — недоступны пока Docker down.
-
-**Beszel Hub** развёрнут на VPS (порт 8091, работает).
-**Beszel Agent** установлен на Jetson как binary/systemd (порт 45876, работает — не зависит от Docker).
-**Что нужно сделать физически:** подключить USB SSD →
-  `sudo bash ~/nasa/scripts/storage/storage_preflight.sh` →
-  `sudo bash ~/nasa/scripts/storage/install_usb_watchdog.sh` →
-  `sudo systemctl start docker` →
-  добавить Jetson в Beszel UI: http://193.8.215.130:8091 (login: admin@nasa.local).
+**Состояние на 2026-06-24 (вечер): всё работает.**
+- SSD `/dev/sda` смонтирован в `/mnt/storage` (229G), Docker active, 13 контейнеров Up
+- USB watchdog установлен: udev rules (RTL9210B-CG + hub) + `usbcore.autosuspend=-1` в extlinux.conf
+- **Beszel Hub** — VPS:8091 · login: admin@nasa.local / NASAkfqxI7nk8G
+- **Beszel Agent Jetson** — порт 45876, systemd, status **up** (17% CPU, 58% RAM)
+- **Beszel Agent VPS** — порт 45877, systemd, status **up** (2% CPU, 27% RAM)
+- Следующий ребут Jetson активирует `usbcore.autosuspend=-1` на уровне ядра
 
 ## Железо и доступ
 
