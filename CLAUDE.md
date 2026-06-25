@@ -15,12 +15,28 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-25 (утро): всё работает после ребута.**
-- SSD `/dev/sda` смонтирован в `/mnt/storage` (229G), Docker active, 13 контейнеров Up (healthy)
-- USB watchdog активен: udev rules (RTL9210B-CG + hub) + `usbcore.autosuspend=-1` **подтверждено после ребута**
-- **Beszel Hub** — VPS:8091 · login: admin@nasa.local / NASAkfqxI7nk8G
-- **Beszel Agent Jetson** — порт 45876, systemd, status **up** (17% CPU, 55% RAM, GPU 38.5°C)
-- **Beszel Agent VPS** — порт 45877, systemd, status **up** (2% CPU, 27% RAM)
+**Состояние на 2026-06-25 (день): v1.3.5, всё работает, ADB Android setup — следующий шаг.**
+
+| Компонент | Статус | Детали |
+|---|---|---|
+| Jetson Nano | ✅ up | После ребута 2026-06-25 утром |
+| SSD `/dev/sda1` → `/mnt/storage` | ✅ смонтирован | 229G, 217G свободно, rw |
+| `usbcore.autosuspend=-1` | ✅ **kernel confirmed** | `/sys/module/usbcore/parameters/autosuspend = -1` |
+| udev watchdog | ✅ active | `/etc/udev/rules.d/85-nasa-storage-watchdog.rules` |
+| Docker daemon | ✅ active | 13 контейнеров Up (healthy) |
+| Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / NASAkfqxI7nk8G |
+| Beszel Agent Jetson (45876) | ✅ up | v0.18.7, 17% CPU, 55% RAM, GPU 38.5°C |
+| Beszel Agent VPS (45877) | ✅ up | v0.18.7, 2% CPU, 27% RAM |
+| VPS nginx HTTP | ✅ live | :8080 Nextcloud · :2283 Immich · :8090 LLM |
+| VPS nginx HTTPS | ✅ live | :8443 Nextcloud · :2443 Immich · :9443 LLM (self-signed 10y) |
+| Nextcloud trusted proxy | ✅ configured | via occ: trusted_proxies, overwriteprotocol=https |
+| DAVx⁵ endpoint | ✅ live | `https://193.8.215.130:8443/remote.php/dav` → HTTP 401 (корректно) |
+| Android docs | ✅ committed | `docs/android/` — ANDROID_SETUP, GOOGLE_MIGRATION, XIAOMI_MIUI_QUIRKS |
+
+**🔜 Следующий шаг: ADB Android setup**
+Пользователь подключит Xiaomi с включёнными правами разработчика по USB.
+Задача: через ADB установить Immich, Nextcloud, DAVx⁵, настроить battery whitelist, выдать разрешения.
+Гайд: `docs/android/ANDROID_SETUP.md`, `docs/android/XIAOMI_MIUI_QUIRKS.md`.
 
 ## Железо и доступ
 
