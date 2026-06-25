@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # setup_vps_tunnel.sh — establish reverse SSH tunnel from Jetson to VPS
 # Run on JETSON NANO, not on Windows host
 # Requires: apt install autossh
