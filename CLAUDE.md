@@ -15,13 +15,12 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-24 (вечер): всё работает.**
-- SSD `/dev/sda` смонтирован в `/mnt/storage` (229G), Docker active, 13 контейнеров Up
-- USB watchdog установлен: udev rules (RTL9210B-CG + hub) + `usbcore.autosuspend=-1` в extlinux.conf
+**Состояние на 2026-06-25 (утро): всё работает после ребута.**
+- SSD `/dev/sda` смонтирован в `/mnt/storage` (229G), Docker active, 13 контейнеров Up (healthy)
+- USB watchdog активен: udev rules (RTL9210B-CG + hub) + `usbcore.autosuspend=-1` **подтверждено после ребута**
 - **Beszel Hub** — VPS:8091 · login: admin@nasa.local / NASAkfqxI7nk8G
-- **Beszel Agent Jetson** — порт 45876, systemd, status **up** (17% CPU, 58% RAM)
+- **Beszel Agent Jetson** — порт 45876, systemd, status **up** (17% CPU, 55% RAM, GPU 38.5°C)
 - **Beszel Agent VPS** — порт 45877, systemd, status **up** (2% CPU, 27% RAM)
-- Следующий ребут Jetson активирует `usbcore.autosuspend=-1` на уровне ядра
 
 ## Железо и доступ
 
