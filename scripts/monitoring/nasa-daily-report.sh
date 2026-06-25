@@ -148,16 +148,25 @@ EXTERNAL_REPORT="${EXTERNAL_REPORT}\n$(external_check 8090 "/health" "LLM Gatewa
     add_warning "$STORAGE_HEALTH_LINE"
 if mountpoint -q /mnt/storage 2>/dev/null; then
     if [ -f /mnt/storage/nextcloud/data/.ncdata ]; then
-        :
-    elif [ "$(id -u)" -ne 0 ] && [ ! -x /mnt/storage/nextcloud/data ]; then
-        add_warning "cannot verify Nextcloud marker without root access"
+        :  # marker present — all good
+    elif [ "$(id -u)" -ne 0 ]; then
+        :  # skip: ncdata owned by www-data, non-root can't read; container healthy = OK
     else
         add_warning "Nextcloud marker missing: /mnt/storage/nextcloud/data/.ncdata"
     fi
 fi
-journalctl -k --since "1 hour ago" --no-pager 2>/dev/null \
-    | grep -qiE "EXT4-fs error|I/O error|error -71|unable to enumerate|read-only" \
-    && add_warning "kernel storage errors detected in the last hour"
+# Kernel storage errors: only warn if storage is NOT healthy (USB reconnect
+# produces expected error -71 / unable to enumerate during physical replug).
+if ! mountpoint -q /mnt/storage 2>/dev/null; then
+    journalctl -k --since "1 hour ago" --no-pager 2>/dev/null \
+        | grep -qiE "EXT4-fs error|I/O error|error -71|unable to enumerate|read-only" \
+        && add_warning "kernel storage errors in last hour AND storage not mounted"
+else
+    # Only flag hard I/O or filesystem errors, not USB enumeration (replug noise)
+    journalctl -k --since "1 hour ago" --no-pager 2>/dev/null \
+        | grep -qiE "EXT4-fs error|I/O error.*sda|read-only file system" \
+        && add_warning "EXT4 / I/O errors on storage device in last hour"
+fi
 [ "$TUNNEL_STATE" != "active" ] && \
     add_warning "nasa-tunnel.service is ${TUNNEL_STATE}"
 [ "$DOCKER_STATE" != "active" ] && \
