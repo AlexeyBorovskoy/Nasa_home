@@ -5,10 +5,12 @@ on:
     paths:
       - 'scripts/**'
       - 'systemd/**'
+      - '.github/workflows/shellcheck.yml'
   pull_request:
     paths:
       - 'scripts/**'
       - 'systemd/**'
+  workflow_dispatch:
 
 jobs:
   shellcheck:
