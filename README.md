@@ -28,6 +28,19 @@
 ![NASA Home Cloud — реальный стенд](photo/test_sys.jpg)
 *Jetson Nano на роутере + DEXP-плата от сына (232 ГБ) · реальный стенд проекта*
 
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="photo/immich_ui.jpg" alt="Immich — семейный фотоархив" width="100%"/><br/>
+      <sub><b>Immich</b> — семейный фотоархив · заменяет Google Фото</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="photo/nextcloud_ui.jpg" alt="Nextcloud — файловое облако" width="100%"/><br/>
+      <sub><b>Nextcloud</b> — файловое облако · заменяет Google Drive</sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## Зачем это нужно / Why
