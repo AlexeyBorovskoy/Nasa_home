@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added / Добавлено
 
+- **Android mobile module** — `docs/android/`:
+  - `ANDROID_SETUP.md` — пошаговая настройка Immich, Nextcloud, DAVx⁵ на Xiaomi MIUI/HyperOS
+  - `GOOGLE_MIGRATION.md` — миграция с Google Photos/Contacts/Calendar/Drive через Google Takeout;
+    чеклист, инструкция по immich-go для массового импорта с метаданными GPS/дата
+  - `XIAOMI_MIUI_QUIRKS.md` — whitelist батарея, автозапуск, блокировка в RAM для Immich/DAVx⁵
+- **nginx HTTPS на VPS** — `scripts/setup/install_nginx_vps.sh`:
+  добавляет TLS (самоподписанный, 10 лет) к уже работающему `nasa_nginx` Docker контейнеру;
+  открывает порты 8443 (Nextcloud), 2443 (Immich), 9443 (LLM) в ufw;
+  без конфликта с Amnezia (443 занят xray → используются alt-порты)
+
 - **Beszel: оба агента зарегистрированы и активны** (2026-06-24):
   - `jetson-nano` (127.0.0.1:45876) → status `up`, CPU 17%, RAM 58%
   - `vps-vienna` (127.0.0.1:45877) → status `up`, CPU 2%, RAM 27%
