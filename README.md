@@ -11,6 +11,7 @@
 [![Discussions](https://img.shields.io/github/discussions/AlexeyBorovskoy/Nasa_home)](https://github.com/AlexeyBorovskoy/Nasa_home/discussions)
 [![Issues](https://img.shields.io/github/issues/AlexeyBorovskoy/Nasa_home)](https://github.com/AlexeyBorovskoy/Nasa_home/issues)
 [![CI](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml/badge.svg)](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/secrets-check.yml)
+[![Shellcheck](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/AlexeyBorovskoy/Nasa_home/actions/workflows/shellcheck.yml)
 
 > 🇷🇺 В ящике лежал NVIDIA Jetson Nano — купил когда-то для экспериментов, поиграл неделю и забыл.
 > Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Пригодилась.
@@ -40,6 +41,21 @@
     </td>
   </tr>
 </table>
+
+---
+
+## Быстрый старт / Quick Start (TL;DR)
+
+```bash
+git clone https://github.com/AlexeyBorovskoy/Nasa_home.git ~/nasa
+cd ~/nasa
+cp config/.env.example config/.env && nano config/.env   # заполнить пароли
+docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env up -d
+docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.env up -d
+```
+
+> Подробный гайд: [Быстрый старт / Full Quick Start](#быстрый-старт--quick-start-1) ↓  
+> Требования: Jetson Nano / RPi4+ / мини-ПК, Docker Compose v2, VPS для внешнего доступа.
 
 ---
 
@@ -493,6 +509,7 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/android/ANDROID_SETUP.md](docs/android/ANDROID_SETUP.md) | **Настройка Xiaomi MIUI/HyperOS** — Immich, Nextcloud, DAVx⁵, HTTPS через VPS |
 | [docs/android/GOOGLE_MIGRATION.md](docs/android/GOOGLE_MIGRATION.md) | **Миграция с Google** — Google Takeout → Immich/Nextcloud/DAVx⁵, чеклист |
 | [docs/android/XIAOMI_MIUI_QUIRKS.md](docs/android/XIAOMI_MIUI_QUIRKS.md) | Специфика MIUI/HyperOS — battery whitelist, автозапуск, блокировка в RAM |
+| [docs/decisions/ADR-0006-vps-nginx-https.md](docs/decisions/ADR-0006-vps-nginx-https.md) | ADR-0006: HTTPS на VPS nginx — почему self-signed, не Tailscale, не Let's Encrypt |
 | [docs/metrics/GITHUB_TRAFFIC.md](docs/metrics/GITHUB_TRAFFIC.md) | Ежедневный мониторинг GitHub трафика, клонов, звёзд — целевые метрики |
 | [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, recovery status, Nextcloud controlled start |
 | [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md) | Live reliability audit: fsck/preflight, boot guard, restart policy, remaining risks |
