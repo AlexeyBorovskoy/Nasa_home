@@ -55,11 +55,13 @@
 
 | Было / Before | Стало / After |
 |---|---|
-| Google Фото — ваши фото у Google | **Immich** — личный фотоархив дома |
-| Google Drive / Яндекс.Диск | **Nextcloud** — файлы, CalDAV, CardDAV |
+| Google Фото — ваши фото у Google | **Immich** — личный фотоархив дома + Android авто-загрузка |
+| Google Drive / Яндекс.Диск | **Nextcloud** — файлы, WebDAV, Android авто-синхронизация |
+| Google Контакты / Google Calendar | **Nextcloud Contacts + Calendar** — CardDAV/CalDAV через DAVx⁵ |
+| Xiaomi Cloud фото-бэкап | **Immich** — всё хранится дома, не у Xiaomi |
 | DEXP-плата (232 ГБ) — лежала без дела, принёс сын | **Samba NAS + основное хранилище** |
 | ChatGPT / Claude API | **LLM Gateway** — локальный AI-ассистент, данные не уходят |
-| Облачный мониторинг | **Netdata + Uptime Kuma** — всё под рукой |
+| Облачный мониторинг | **Beszel** — история CPU/RAM/Disk/Net + Telegram алерты |
 
 ---
 
@@ -88,7 +90,7 @@
 
 Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Покупать готовый NAS или новое железо не хотелось.
 
-Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. На 2026-06-23 SSD снова смонтирован в `/mnt/storage`, проходит preflight, а Nextcloud после controlled start снова отвечает `HTTP 200`.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. SSD смонтирован в `/mnt/storage` (229 GB), 13 контейнеров `Up (healthy)` после ребута 2026-06-25. USB autosuspend отключён на уровне ядра. HTTPS добавлен на VPS nginx.
 
 **NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
@@ -104,7 +106,7 @@
 
 It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. My son brought a DEXP board with 232 GB storage — "dad, you'll need this". Didn't want to buy a ready-made NAS or new hardware.
 
-Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-23 the SSD is mounted at `/mnt/storage` again, passes preflight, and Nextcloud is back to `HTTP 200` after a controlled start.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-25 the SSD is mounted at `/mnt/storage` (229 GB), all 13 containers are `Up (healthy)` after a clean reboot, USB autosuspend is disabled at kernel level, and HTTPS is live on VPS nginx.
 
 **NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
@@ -136,31 +138,34 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-24 / State as of 2026-06-24 · **Stage 1 fully operational + USB watchdog deployed**
+> Состояние на 2026-06-25 / State as of 2026-06-25 · **Stage 1 fully operational + Android mobile ready**
 > Jetson доступен через VPS reverse tunnel. SSD смонтирован в `/mnt/storage` (229 GB, 217 GB free).
 > `storage_preflight.sh` — errors=0, warnings=0. Все 13 контейнеров `Up (healthy)`.
-> USB autosuspend отключён: udev rules для RTL9210B-CG + хаба + `usbcore.autosuspend=-1`
-> в extlinux.conf. smartd мониторит `/dev/sda`. Beszel Hub на VPS:8091, Agent на Jetson:45876.
-> Reboot/autorecovery test passed: все сервисы восстанавливаются автоматически после ребута.
+> USB autosuspend отключён: `usbcore.autosuspend=-1` **подтверждён после ребута** (`/sys/module/usbcore/parameters/autosuspend = -1`).
+> Beszel Hub на VPS:8091, оба агента Up (Jetson 17% CPU / VPS 2% CPU).
+> nginx HTTPS добавлен: Nextcloud :8443 · Immich :2443 · LLM :9443 (самоподписанный сертификат, 10 лет).
+> Android модуль готов: `docs/android/` — настройка Immich + DAVx⁵ + Nextcloud на Xiaomi + гайд миграции с Google.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
-| Nextcloud | 8080 | VPS `193.8.215.130:8080` + LAN | ✅ Live |
-| Immich | 2283 | VPS `193.8.215.130:2283` + LAN | ✅ Live |
-| LLM Gateway | 8090 | VPS `193.8.215.130:8090` + LAN | ✅ Live |
+| Nextcloud | 8080 / **8443** | VPS `193.8.215.130:8080` · HTTPS `:8443` + LAN | ✅ Live |
+| Immich | 2283 / **2443** | VPS `193.8.215.130:2283` · HTTPS `:2443` + LAN | ✅ Live |
+| LLM Gateway | 8090 / **9443** | VPS `193.8.215.130:8090` · HTTPS `:9443` + LAN | ✅ Live |
+| DAVx⁵ CardDAV/CalDAV | 8443 | `https://193.8.215.130:8443/remote.php/dav` | ✅ Live · Android sync |
 | nasa-api (Swagger) | 8099 | LAN `192.168.0.50:8099/docs` | ✅ Live |
 | Samba NAS | 445/139 | LAN only (192.168.0.0/24) | ✅ Live, storage-backed |
 | Netdata | 19999 | LAN `192.168.0.50:19999` | ✅ Live |
 | Uptime Kuma | 3001 | LAN `192.168.0.50:3001` | ✅ Live · 5 monitors configured |
 | Portainer | 9000 | LAN `192.168.0.50:9000` | ✅ Live · admin configured |
-| Beszel Hub | 8091 | VPS `193.8.215.130:8091` | ✅ Live · unified monitoring |
-| Beszel Agent | 45876 | Jetson internal | ✅ Live · systemd, arm64 |
-| VPS nginx reverse proxy | — | VPS 193.8.215.130 | ✅ Live |
+| Beszel Hub | 8091 | VPS `193.8.215.130:8091` | ✅ Live · Jetson 17% CPU · VPS 2% CPU |
+| Beszel Agent Jetson | 45876 | Jetson internal | ✅ Live · systemd, arm64 v0.18.7 |
+| Beszel Agent VPS | 45877 | VPS internal | ✅ Live · systemd, amd64 v0.18.7 |
+| VPS nginx (HTTP+HTTPS) | — | VPS 193.8.215.130 | ✅ Live · self-signed TLS 10y |
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
-| Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) |
+| Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) + Beszel data |
 | DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard |
-| USB storage watchdog | udev | udev rules + smartd | ✅ Live · autosuspend disabled |
-| Android backup API | — | — | 🔜 Stage 2 |
+| USB storage watchdog | udev | udev rules + smartd | ✅ Live · autosuspend=-1 kernel confirmed |
+| Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud | ✅ Configured · [docs/android/](docs/android/) |
 
 > **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
 > После переподключения он виден как `/dev/sda1`, смонтирован `rw,noatime`,
@@ -181,11 +186,12 @@ Principles:
         v
   [ VPS 193.8.215.130 — Вена / Vienna ]
         |
-        |  nginx (host network, docker)
-        |  :8080  → 127.0.0.1:18080 → tunnel → Jetson:8080  (Nextcloud)
-        |  :2283  → 127.0.0.1:12283 → tunnel → Jetson:2283  (Immich)
-        |  :8090  → 127.0.0.1:18090 → tunnel → Jetson:8090  (LLM Gateway)
-        |  :10022 → tunnel → Jetson:22                       (SSH управление)
+        |  nginx (host network, docker) — HTTP + HTTPS (self-signed TLS)
+        |  :8080 / :8443  → 127.0.0.1:18080 → tunnel → Jetson:8080  (Nextcloud)
+        |  :2283 / :2443  → 127.0.0.1:12283 → tunnel → Jetson:2283  (Immich)
+        |  :8090 / :9443  → 127.0.0.1:18090 → tunnel → Jetson:8090  (LLM Gateway)
+        |  :10022          → tunnel → Jetson:22                       (SSH управление)
+        |  :8443/remote.php/dav → CardDAV/CalDAV (DAVx⁵ Android sync)
         |
         |  ↑ autossh reverse SSH tunnel (обход CGNAT)
         |
@@ -266,7 +272,8 @@ Principles:
 | Бэкап БД | bash pg_dump + gzip | — | 03:00 ежедневно, ротация 7 дней |
 | Тестирование | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 теста) |
 | Здоровье системы | systemd timers + SMART | — | Диагностика 6ч + HDD health |
-| Unified monitoring | Beszel | 0.18.7 | Hub на VPS, Agent на Jetson — CPU/RAM/disk/net история |
+| Unified monitoring | Beszel | 0.18.7 | Hub на VPS:8091, Agent Jetson:45876 + VPS:45877 |
+| Android sync | Immich app + DAVx⁵ + Nextcloud | — | Фото / контакты / календарь / файлы; [docs/android/](docs/android/) |
 | Бэкапы файлов | restic | — | Stage 3 (заготовка готова) |
 | Android backup API | services/backup-api | — | Stage 2 placeholder |
 
@@ -295,8 +302,9 @@ Principles:
 **ПО на VPS:**
 
 - Docker + Docker Compose v2
-- UFW: открыть порты 8080, 2283, 8090, 10022 (и 22 для SSH)
+- UFW: открыть порты 8080, 2283, 8090, **8443, 2443, 9443**, 10022 (и 22 для SSH)
 - SSH: разрешить вход от Jetson-ключа
+- nginx HTTPS: запустить `scripts/setup/install_nginx_vps.sh` после деплоя
 
 ---
 
@@ -452,7 +460,7 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
 | Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
 | Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ✅ **Monitoring + fail-closed backup live** |
-| Stage 2 | Android backup/restore client API | 📋 Архитектура готова |
+| Stage 2 | Android sync: Immich + DAVx⁵ + Nextcloud + миграция с Google | ✅ **Документация готова** · [docs/android/](docs/android/) |
 | Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы |
 | Stage 3.1 | USB HDD: резервное расширение хранилища (NTFS + ext4 гибрид) | 📋 Готово к подключению |
 | Stage 4 | Analytics, RAG, fallback LLM providers | 📋 Будущее |
@@ -482,6 +490,9 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/22_AUDIT_RESILIENCE.md](docs/22_AUDIT_RESILIENCE.md) | Аудит надёжности: goss, shellcheck, итоги |
 | [docs/23_GITHUB_INTEGRATION.md](docs/23_GITHUB_INTEGRATION.md) | GitHub CLI + Claude Code интеграция, AI DevOps workflow |
 | [docs/24_CLIENT_SETUP.md](docs/24_CLIENT_SETUP.md) | **Подключение устройств: Android, Windows, Linux** |
+| [docs/android/ANDROID_SETUP.md](docs/android/ANDROID_SETUP.md) | **Настройка Xiaomi MIUI/HyperOS** — Immich, Nextcloud, DAVx⁵, HTTPS через VPS |
+| [docs/android/GOOGLE_MIGRATION.md](docs/android/GOOGLE_MIGRATION.md) | **Миграция с Google** — Google Takeout → Immich/Nextcloud/DAVx⁵, чеклист |
+| [docs/android/XIAOMI_MIUI_QUIRKS.md](docs/android/XIAOMI_MIUI_QUIRKS.md) | Специфика MIUI/HyperOS — battery whitelist, автозапуск, блокировка в RAM |
 | [docs/metrics/GITHUB_TRAFFIC.md](docs/metrics/GITHUB_TRAFFIC.md) | Ежедневный мониторинг GitHub трафика, клонов, звёзд — целевые метрики |
 | [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md) | USB storage incident: `error -71`, recovery status, Nextcloud controlled start |
 | [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md) | Live reliability audit: fsck/preflight, boot guard, restart policy, remaining risks |
@@ -514,8 +525,8 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Известные ограничения / Known Limitations
 
-- **USB autosuspend fix deployed 2026-06-24** — RTL9210B-CG (`0bda:9210`) и Realtek USB hub теперь удерживаются в `power/control=on` через udev rules. `usbcore.autosuspend=-1` добавлен в extlinux.conf (активен после следующего ребута). До ребута уdev rules защищают. SSD стабилен. При повторном `error -71` — физически переподключить USB.
-- **Nextcloud recovered after controlled start** — `homecloud_nextcloud` снова `running/healthy`; прежний HTTP 503 был следствием read-only remount во время USB-инцидента.
+- **USB autosuspend fix confirmed 2026-06-25 after reboot** — `usbcore.autosuspend=-1` активен на уровне ядра (`/sys/module/usbcore/parameters/autosuspend = -1`). udev rules для RTL9210B-CG + USB hub действуют. SSD стабилен. При повторном `error -71` — физически переподключить USB.
+- **HTTPS self-signed** — VPS nginx обслуживает Nextcloud на :8443, Immich на :2443, LLM на :9443 с самоподписанным сертификатом (10 лет). Let's Encrypt потребует доменное имя.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
 - Immich работает без machine learning (`IMMICH_DISABLE_MACHINE_LEARNING=true`) — Jetson Nano 4 GB с ML не тестировался.
@@ -538,7 +549,7 @@ CI автоматически проверяет секреты: `.github/workfl
 
 Хорошие первые задачи / Good first issues:
 - [#5 Адаптация под Raspberry Pi 4/5](https://github.com/AlexeyBorovskoy/Nasa_home/issues/5) — только документация, без изменения кода.
-- [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — нужен домен и базовый nginx.
+- [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — самоподписанный сертификат готов, нужен домен для Let's Encrypt.
 - [#6 Netdata Telegram alerts](https://github.com/AlexeyBorovskoy/Nasa_home/issues/6) — настроить и описать в docs.
 - CI shellcheck для всех bash-скриптов в `scripts/`.
 - Подключение **USB HDD** как резервного хранилища (Stage 3.1, план готов в `docs/04_STORAGE_DESIGN.md`).

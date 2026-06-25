@@ -10,7 +10,7 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.4 — Beszel monitoring + USB watchdog hardening
+- Текущий релиз: v1.3.5 — Android mobile sync + HTTPS на VPS nginx
 - Основная ветка: `main`
 
 ## Операционное состояние
