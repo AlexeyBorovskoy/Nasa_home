@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.3.5] — 2026-06-25 · Android mobile sync + HTTPS
+
 ### Added / Добавлено
 
 - **Android mobile module** — `docs/android/`:
@@ -19,6 +23,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   добавляет TLS (самоподписанный, 10 лет) к уже работающему `nasa_nginx` Docker контейнеру;
   открывает порты 8443 (Nextcloud), 2443 (Immich), 9443 (LLM) в ufw;
   без конфликта с Amnezia (443 занят xray → используются alt-порты)
+
+### Fixed / Исправлено
+
+- **usbcore.autosuspend=-1 подтверждён** после ребута Jetson (2026-06-25):
+  `/sys/module/usbcore/parameters/autosuspend = -1` — kernel param активен
+- **Nextcloud trusted proxy** настроен через `occ`: `trusted_proxies`, `overwriteprotocol=https`,
+  `forwarded_for_headers` — HTTPS-заголовки корректно проксируются
+
+---
+
+## [1.3.4] — 2026-06-24 · Beszel monitoring + USB watchdog
+
+### Added / Добавлено
 
 - **Beszel: оба агента зарегистрированы и активны** (2026-06-24):
   - `jetson-nano` (127.0.0.1:45876) → status `up`, CPU 17%, RAM 58%
