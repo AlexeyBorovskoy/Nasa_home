@@ -10,6 +10,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.6] — 2026-06-26 · Android Immich backup + USB SSD port fix
+
+### Added / Добавлено
+
+- **Immich Android полностью настроен** (сессия 2026-06-26):
+  - Создан admin-аккаунт через API: `admin@nasa.local`
+  - Приложение авторизовано через VPS: `http://193.8.215.130:2283`
+  - Выбраны все 31 альбом устройства (6710 фото/видео)
+  - Бэкап активирован (toggle "Активировать" = ON)
+  - Включена загрузка фото по мобильному интернету
+  - Включена синхронизация альбомов
+
+### Fixed / Исправлено
+
+- **USB SSD порт 4 (1-2.4) сломан → переткнут в порт 2 (1-2.2)**:
+  error -71 (EPROTO) при каждом boot — аппаратная неисправность порта;
+  смена физического порта решила проблему мгновенно
+- **Watchdog PORT=4 → PORT=2** в `scripts/storage/usb_recovery_watchdog.sh`
+  и на Jetson `/usr/local/sbin/nasa-usb-watchdog.sh`
+- **SCSI timeout 120s подтверждён**: `cat /sys/block/sda/device/timeout` = 120 ✅
+- **usb-storage.quirks=0bda:9210:rw подтверждён**: dmesg показывает
+  `Quirks match for vid 0bda pid 9210: 220` при enumeration
+
+### Validated / Проверено
+
+- Все 13 Docker контейнеров healthy через 3 мин после boot
+- SSD монтируется при каждом boot (7 boot подряд на порту 2)
+- USB watchdog timer active: `nasa-usb-watchdog.timer`
+- Immich API: `GET /api/server/ping` → `{"res":"pong"}`
+
+---
+
 ## [1.3.5] — 2026-06-25 · Android mobile sync + HTTPS
 
 ### Added / Добавлено

@@ -36,13 +36,14 @@
 | Nextcloud trusted proxy | ✅ configured | via occ: trusted_proxies, overwriteprotocol=https |
 | DAVx⁵ endpoint | ✅ live | `https://193.8.215.130:8443/remote.php/dav` → HTTP 401 (корректно) |
 | Android apps | ✅ установлены | Immich + Nextcloud из Play Store, DAVx⁵ APK v4.5.14 |
+| Immich Android | ✅ **настроен** | Логин: admin@nasa.local, сервер: http://193.8.215.130:2283 |
+| Immich backup | ✅ **активирован** | 31 альбом, 6710 фото/видео в очереди, mobile data ON |
 | Android docs | ✅ committed | `docs/android/` — ANDROID_SETUP, GOOGLE_MIGRATION, XIAOMI_MIUI_QUIRKS |
 
-**🔜 Следующий шаг: настройка Android-приложений**
-Immich, Nextcloud, DAVx⁵ установлены — нужно настроить URL сервера и авторизоваться.
-- Immich: `http://192.168.0.50:2283` (дома) / `https://193.8.215.130:2443` (вне сети)
-- Nextcloud: `https://193.8.215.130:8443`
-- DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
+**🔜 Следующий шаг: Nextcloud + DAVx⁵**
+- Nextcloud: войти через `https://193.8.215.130:8443`, логин `admin` / пароль в .env
+- DAVx⁵: добавить аккаунт через `https://193.8.215.130:8443/remote.php/dav`
+- Immich дополнительно: настроить локальный URL `http://192.168.0.50:2283` в Настройки → Сеть (когда подключён к домашнему WiFi)
 
 ## Железо и доступ
 
