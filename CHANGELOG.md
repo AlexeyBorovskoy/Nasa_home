@@ -10,6 +10,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.7] — 2026-06-26 · USB SSD audit + watchdog hardening
+
+### Added / Добавлено
+
+- **`.gitattributes`** — force LF line endings для *.sh, *.service, *.timer, *.yml;
+  предотвращает CRLF-коррупцию скриптов при работе из Windows
+- **`scripts/storage/usb_preboot_cycle.sh`** + **`systemd/nasa-usb-preboot.service`** —
+  power cycle USB порта ДО монтирования SSD при каждом boot;
+  сбрасывает RTL9210B-CG из crashed-состояния (выживает software reboot)
+- **`scripts/monitoring/usb_error_monitor.sh`** + **`systemd/nasa-usb-monitor.service`** —
+  real-time dmesg watcher: Telegram-алерт при первом `error -71` до того,
+  как Docker начнёт падать; немедленно запускает watchdog (не ждать 3 мин)
+- **`scripts/storage/deploy_usb_fix.sh`** — идемпотентный деплой-скрипт
+  с `sed 's/\r$//'` для защиты от CRLF при копировании из git
+
+### Fixed / Исправлено
+
+- **RTL9210B-CG root cause audit**:
+  - CRLF в shebang (`#!/usr/bin/env bash\r`) → systemd 203/EXEC →
+    watchdog не работал 4+ часов → SSD в broken state без recovery
+  - watchdog `POWER_OFF_SECS` увеличен 15s→45s (15s недостаточно для
+    разряда bypass-конденсаторов RTL9210B-CG)
+  - watchdog `WAIT_ENUM_SECS` увеличен 20s→30s
+  - watchdog timer `OnBootSec` уменьшен 5min→2min
+- **dos2unix** установлен на Jetson; деплой-скрипт использует его автоматически
+
+### Root cause / Анализ
+
+Два независимых сбоя:
+1. RTL9210B-CG (Realtek USB-SATA bridge) сохраняет crashed-состояние через
+   software reboot (USB hub остаётся под питанием) и не восстанавливается
+   через uhubctl power cycle (паразитное питание через bypass-конденсаторы).
+   Единственный надёжный сброс — физическое отключение USB кабеля.
+2. Git на Windows конвертировал LF→CRLF в shell-скриптах, что при `cp`
+   из репозитория создавало нерабочие shebang-строки.
+
+**Hardware note**: RTL9210B-CG ненадёжен по дизайну.
+Рекомендация: заменить энклоужер на JMicron JMS578 или ASMedia ASM1153E.
+
+---
+
 ## [1.3.6] — 2026-06-26 · Android Immich backup + USB SSD port fix
 
 ### Added / Добавлено
