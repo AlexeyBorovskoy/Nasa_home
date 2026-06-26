@@ -1,0 +1,18 @@
+[Unit]
+Description=NASA USB SSD Pre-boot Power Cycle (RTL9210B-CG reset)
+Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
+# Запускаем ДО монтирования SSD — сбрасываем RTL9210B-CG
+Before=jetson-nas-mount.service
+After=local-fs.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/local/sbin/nasa-usb-preboot.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nasa-usb-preboot
+
+[Install]
+WantedBy=multi-user.target
