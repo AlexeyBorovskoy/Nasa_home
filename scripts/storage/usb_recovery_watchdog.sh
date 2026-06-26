@@ -2,7 +2,7 @@
 # usb_recovery_watchdog.sh — автовосстановление RTL9210B-CG USB SSD
 #
 # Эскалация:
-#   1. uhubctl power cycle порта 4 (2 попытки по 30с)
+#   1. uhubctl power cycle порта 2 (2 попытки по 30с)
 #   2. Если SSD не поднялся — отправить Telegram, выполнить reboot
 #
 # Запускается systemd таймером каждые 3 минуты.
@@ -16,7 +16,7 @@ MOUNT_POINT="/mnt/storage"
 UHUBCTL="/usr/local/sbin/uhubctl"
 HUB_USB2="1-2"
 HUB_USB3="2-1"
-PORT=4
+PORT=2
 MAX_SOFT_RETRIES=2
 POWER_OFF_SECS=15
 WAIT_ENUM_SECS=20

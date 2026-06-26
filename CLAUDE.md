@@ -15,28 +15,34 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-25 (день): v1.3.5, всё работает, ADB Android setup — следующий шаг.**
+**Состояние на 2026-06-26: v1.3.5 — всё работает. USB SSD восстановлен (порт 2). Watchdog активен. Android apps установлены, конфигурация приложений — следующий шаг.**
 
 | Компонент | Статус | Детали |
 |---|---|---|
-| Jetson Nano | ✅ up | После ребута 2026-06-25 утром |
+| Jetson Nano | ✅ up | После физического power cycle 2026-06-26 |
 | SSD `/dev/sda1` → `/mnt/storage` | ✅ смонтирован | 229G, 217G свободно, rw |
+| USB SSD порт | ✅ **порт 2** (1-2.2) | Ранее порт 4 (1-2.4) был неисправен — переткнут |
+| SCSI timeout | ✅ **120s confirmed** | `cat /sys/block/sda/device/timeout` = 120 |
 | `usbcore.autosuspend=-1` | ✅ **kernel confirmed** | `/sys/module/usbcore/parameters/autosuspend = -1` |
+| `usb-storage.quirks=0bda:9210:rw` | ✅ **kernel confirmed** | `/proc/cmdline` содержит quirk |
+| USB watchdog systemd timer | ✅ active | `nasa-usb-watchdog.timer` — PORT=2, каждые 3 мин |
 | udev watchdog | ✅ active | `/etc/udev/rules.d/85-nasa-storage-watchdog.rules` |
 | Docker daemon | ✅ active | 13 контейнеров Up (healthy) |
 | Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / ***REMOVED*** |
-| Beszel Agent Jetson (45876) | ✅ up | v0.18.7, 17% CPU, 55% RAM, GPU 38.5°C |
-| Beszel Agent VPS (45877) | ✅ up | v0.18.7, 2% CPU, 27% RAM |
+| Beszel Agent Jetson (45876) | ✅ up | v0.18.7 |
+| Beszel Agent VPS (45877) | ✅ up | v0.18.7 |
 | VPS nginx HTTP | ✅ live | :8080 Nextcloud · :2283 Immich · :8090 LLM |
 | VPS nginx HTTPS | ✅ live | :8443 Nextcloud · :2443 Immich · :9443 LLM (self-signed 10y) |
 | Nextcloud trusted proxy | ✅ configured | via occ: trusted_proxies, overwriteprotocol=https |
 | DAVx⁵ endpoint | ✅ live | `https://193.8.215.130:8443/remote.php/dav` → HTTP 401 (корректно) |
+| Android apps | ✅ установлены | Immich + Nextcloud из Play Store, DAVx⁵ APK v4.5.14 |
 | Android docs | ✅ committed | `docs/android/` — ANDROID_SETUP, GOOGLE_MIGRATION, XIAOMI_MIUI_QUIRKS |
 
-**🔜 Следующий шаг: ADB Android setup**
-Пользователь подключит Xiaomi с включёнными правами разработчика по USB.
-Задача: через ADB установить Immich, Nextcloud, DAVx⁵, настроить battery whitelist, выдать разрешения.
-Гайд: `docs/android/ANDROID_SETUP.md`, `docs/android/XIAOMI_MIUI_QUIRKS.md`.
+**🔜 Следующий шаг: настройка Android-приложений**
+Immich, Nextcloud, DAVx⁵ установлены — нужно настроить URL сервера и авторизоваться.
+- Immich: `http://192.168.0.50:2283` (дома) / `https://193.8.215.130:2443` (вне сети)
+- Nextcloud: `https://193.8.215.130:8443`
+- DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
 
 ## Железо и доступ
 
