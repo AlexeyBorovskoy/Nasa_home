@@ -1,129 +1,152 @@
 # Android Mobile Setup — NASA Home Cloud
 
-Практическое руководство по настройке Xiaomi (MIUI / HyperOS) для синхронизации
-с самохостинговыми сервисами: Immich, Nextcloud, CardDAV/CalDAV.
+> 🇷🇺 Практическое руководство по настройке Xiaomi (MIUI / HyperOS) для синхронизации с самохостинговыми сервисами: Immich, Nextcloud, CardDAV/CalDAV.
+>
+> 🇬🇧 Practical guide for setting up Xiaomi (MIUI / HyperOS) to sync with self-hosted services: Immich, Nextcloud, CardDAV/CalDAV.
 
 ---
 
-## Архитектура доступа
+## Архитектура доступа / Access Architecture
 
 ```
-Xiaomi (дома)
-  └── Wi-Fi → 192.168.0.50 (Jetson LAN, напрямую)
+Xiaomi (дома / at home)
+  └── Wi-Fi → 192.168.0.50 (Jetson LAN, прямое подключение / direct)
 
-Xiaomi (вне дома)
-  └── Amnezia VPN → VPS 193.8.215.130
+Xiaomi (вне дома / away from home)
+  └── VPN → VPS 193.8.215.130
         └── nginx reverse proxy → SSH tunnel → Jetson 192.168.0.50
 ```
 
-Оба сценария используют одинаковые URL — приложения умеют работать с двумя серверами
-(home/away) или с постоянным VPN-адресом.
+🇷🇺 Оба сценария используют одинаковые URL — приложения умеют работать с двумя серверами (home/away) или с постоянным VPN-адресом.
 
-**Почему не Tailscale:** Tailscale и Amnezia оба создают VPN-профиль на Android.
-Android позволяет активировать только один VPN одновременно → выбираем Amnezia (уже стоит)
-+ nginx на VPS как прокси-слой.
+🇬🇧 Both scenarios use the same URLs — apps can work with two server addresses (home/away) or a permanent VPN address.
 
 ---
 
-## Требования (серверная сторона)
+## Требования (серверная сторона) / Server-side prerequisites
 
-| Компонент | Статус |
+| Компонент / Component | Статус / Status |
 |---|---|
-| Jetson Nano запущен | ✅ |
-| Immich работает на :2283 | ✅ |
-| Nextcloud работает на :8080 | ✅ |
-| Beszel мониторинг | ✅ |
-| **nginx на VPS (HTTPS)** | ⏳ нужно установить (`scripts/setup/install_nginx_vps.sh`) |
+| Jetson Nano запущен / running | ✅ |
+| Immich работает на / running at :2283 | ✅ |
+| Nextcloud работает на / running at :8080 | ✅ |
+| Beszel мониторинг / monitoring | ✅ |
+| nginx на VPS (HTTPS) | ✅ (`:8443`, `:2443`, `:9443`) |
 
 ---
 
-## Шаг 1. Установить nginx на VPS
+## Шаг 1 / Step 1. nginx на VPS / Install nginx on VPS
 
-> Выполняется один раз. Без этого шага удалённый доступ через Amnezia не работает.
+> 🇷🇺 Выполняется один раз. Без этого шага удалённый доступ не работает.
+> 🇬🇧 Run once. Without this step, remote access does not work.
 
 ```bash
-# На Windows (Git Bash):
+# На Windows (Git Bash) / From Windows (Git Bash):
 ssh -i ~/.ssh/borovskoy_new_ed25519 root@193.8.215.130 \
   "bash -s" < scripts/setup/install_nginx_vps.sh
 ```
 
-После установки сервисы доступны по адресам:
+🇷🇺 После установки сервисы доступны по адресам:
+🇬🇧 After installation, services are available at:
 
-| Сервис | HTTP (уже работает) | HTTPS (после скрипта) |
+| Сервис / Service | HTTP | HTTPS |
 |---|---|---|
 | Nextcloud | `http://193.8.215.130:8080` | `https://193.8.215.130:8443` |
 | Immich | `http://193.8.215.130:2283` | `https://193.8.215.130:2443` |
 | LLM Gateway | `http://193.8.215.130:8090` | `https://193.8.215.130:9443` |
 
-Самоподписанный сертификат — принять предупреждение один раз в браузере/приложении.
+> 🇷🇺 Самоподписанный сертификат — принять предупреждение один раз в браузере/приложении.
+> 🇬🇧 Self-signed certificate — accept the warning once in browser/app.
 
 ---
 
-## Шаг 2. Immich — синхронизация фото
+## Шаг 2 / Step 2. Immich — синхронизация фото / Photo sync
 
-### Установить приложение
+### Установить приложение / Install app
 
-**[Immich](https://play.google.com/store/apps/details?id=app.alextran.immich)** в Google Play
-или APK с [github.com/immich-app/immich/releases](https://github.com/immich-app/immich/releases)
+**[Immich](https://play.google.com/store/apps/details?id=app.alextran.immich)** — Google Play
+or APK from [github.com/immich-app/immich/releases](https://github.com/immich-app/immich/releases)
 
-### Настройка
+### Настройка / Setup
 
+🇷🇺
 1. Открыть Immich → **Войти** → ввести адрес сервера
-2. **Дома (Wi-Fi):** `http://192.168.0.50:2283`  
-   **Вне дома (Amnezia):** `https://193.8.215.130:2443`
-3. Создать пользователя в Immich (или использовать существующего)
+2. **Дома (Wi-Fi):** `http://192.168.0.50:2283`
+   **Вне дома:** `https://193.8.215.130:2443`
+3. Создать пользователя в Immich или использовать существующего
 
-### Настройка автозагрузки
+🇬🇧
+1. Open Immich → **Login** → enter server address
+2. **At home (Wi-Fi):** `http://192.168.0.50:2283`
+   **Away from home:** `https://193.8.215.130:2443`
+3. Create an Immich user or use an existing one
 
-Immich → **Профиль** → **Резервное копирование** → ✅ Включить фоновое резервное копирование
+### Настройка автозагрузки / Configure auto-backup
 
-Рекомендуемые настройки:
-- ✅ Резервное копирование при Wi-Fi (экономия трафика)
-- ✅ Исключить скриншоты (Settings → Excluded Albums)
-- ✅ Видео тоже копировать
-- Начать с **Только дома (Wi-Fi)** → потом включить Amnezia + мобильный интернет
+🇷🇺 Immich → **Профиль** → **Резервное копирование** → ✅ Включить фоновое резервное копирование
 
-### Важно для Xiaomi MIUI/HyperOS
+🇬🇧 Immich → **Profile** → **Backup** → ✅ Enable background backup
 
-> Без этих настроек Immich не будет грузить фото в фоне!
-> Подробности: [XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md)
+Рекомендуемые настройки / Recommended settings:
+- ✅ Резервное копирование при Wi-Fi / Backup on Wi-Fi only (saves data)
+- ✅ Исключить скриншоты / Exclude screenshots (Settings → Excluded Albums)
+- ✅ Видео тоже копировать / Also backup videos
+- 🇷🇺 Начать с Wi-Fi, потом включить мобильный интернет / 🇬🇧 Start Wi-Fi only, then enable mobile data
+
+### Важно для Xiaomi MIUI/HyperOS / Important for Xiaomi
+
+> 🇷🇺 Без этих настроек Immich не будет грузить фото в фоне!
+> 🇬🇧 Without these settings Immich will not upload photos in the background!
+> Details: [XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md)
 
 ---
 
-## Шаг 3. Nextcloud — файловое облако
+## Шаг 3 / Step 3. Nextcloud — файловое облако / File cloud
 
-### Установить приложение
+### Установить приложение / Install app
 
-**[Nextcloud](https://play.google.com/store/apps/details?id=com.nextcloud.client)** в Google Play
+**[Nextcloud](https://play.google.com/store/apps/details?id=com.nextcloud.client)** — Google Play
 
-### Настройка
+### Настройка / Setup
 
+🇷🇺
 1. Nextcloud → **Войти** → ввести адрес сервера:
    - Дома: `http://192.168.0.50:8080`
    - Вне дома: `https://193.8.215.130:8443`
-2. Ввести логин/пароль Nextcloud (admin или персональный аккаунт)
+2. Ввести логин/пароль Nextcloud
 3. Разрешить доступ к файлам
 
-### Автозагрузка файлов (замена Google Drive)
+🇬🇧
+1. Nextcloud → **Login** → enter server address:
+   - At home: `http://192.168.0.50:8080`
+   - Away: `https://193.8.215.130:8443`
+2. Enter Nextcloud login/password
+3. Allow file access
 
-Nextcloud → **⋮** → **Автозагрузка** → выбрать папки:
-- `DCIM/Camera` → альтернатива Immich для резервного (необязательно, если Immich есть)
-- `Documents` → документы
-- `Download` → загрузки
+### Автозагрузка файлов / Auto-upload (replaces Google Drive)
+
+🇷🇺 Nextcloud → **⋮** → **Автозагрузка** → выбрать папки:
+🇬🇧 Nextcloud → **⋮** → **Auto Upload** → select folders:
+
+- `DCIM/Camera` → optional alternative to Immich
+- `Documents` → документы / documents
+- `Download` → загрузки / downloads
 
 ---
 
-## Шаг 4. Контакты и Календарь (DAVx⁵)
+## Шаг 4 / Step 4. Контакты и Календарь / Contacts & Calendar (DAVx⁵)
 
-DAVx⁵ — мост между стандартными контактами/календарями Android и Nextcloud (CardDAV/CalDAV).
+🇷🇺 DAVx⁵ — мост между стандартными контактами/календарями Android и Nextcloud (CardDAV/CalDAV).
+🇬🇧 DAVx⁵ is the bridge between standard Android contacts/calendars and Nextcloud (CardDAV/CalDAV).
 
-### Установить DAVx⁵
+### Установить DAVx⁵ / Install DAVx⁵
 
-**[DAVx⁵](https://play.google.com/store/apps/details?id=at.bitfire.davdroid)** в Google Play  
-(платное) или бесплатно через **[F-Droid](https://f-droid.org/packages/at.bitfire.davdroid/)**
+**[DAVx⁵](https://play.google.com/store/apps/details?id=at.bitfire.davdroid)** — Google Play (paid)
+or free via **[F-Droid](https://f-droid.org/packages/at.bitfire.davdroid/)**
 
-### Настройка
+### Настройка / Setup
 
+🇷🇺
 1. DAVx⁵ → **+** → **Войти с URL**
 2. **Base URL:**
    - Дома: `http://192.168.0.50:8080/remote.php/dav`
@@ -132,54 +155,61 @@ DAVx⁵ — мост между стандартными контактами/к
 4. DAVx⁵ найдёт: адресную книгу (CardDAV) и календари (CalDAV)
 5. ✅ Включить синхронизацию нужных коллекций
 
-### Частота синхронизации
+🇬🇧
+1. DAVx⁵ → **+** → **Login with URL**
+2. **Base URL:**
+   - At home: `http://192.168.0.50:8080/remote.php/dav`
+   - Away: `https://193.8.215.130:8443/remote.php/dav`
+3. Nextcloud login/password → **Next**
+4. DAVx⁵ will find: address book (CardDAV) and calendars (CalDAV)
+5. ✅ Enable sync for needed collections
 
-DAVx⁵ → Аккаунт → ⚙️ → **Интервал синхронизации**: 15 минут (рекомендуется)
-
----
-
-## Шаг 5. Настройки Xiaomi для фоновой работы
-
-> Это критически важно — MIUI/HyperOS агрессивно убивает фоновые приложения.
-
-Краткий чеклист:
-- ⬜ Immich: снять ограничения батареи + разрешить автозапуск
-- ⬜ DAVx⁵: снять ограничения батареи + разрешить автозапуск  
-- ⬜ Nextcloud: снять ограничения батареи + разрешить автозапуск
-- ⬜ Amnezia VPN: снять ограничения батареи (иначе VPN разрывается)
-
-Подробно: **[XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md)**
+🇷🇺 DAVx⁵ → Аккаунт → ⚙️ → **Интервал синхронизации**: 15 минут (рекомендуется)
+🇬🇧 DAVx⁵ → Account → ⚙️ → **Sync interval**: 15 minutes (recommended)
 
 ---
 
-## Сетевые профили в приложениях
+## Шаг 5 / Step 5. Настройки Xiaomi / Xiaomi Background Settings
 
-Immich и Nextcloud поддерживают **разные адреса** для LAN и WAN:
+> 🇷🇺 Это критически важно — MIUI/HyperOS агрессивно убивает фоновые приложения.
+> 🇬🇧 This is critical — MIUI/HyperOS aggressively kills background apps.
 
-**Immich** (v1.90+):
-- Настройки → Server URL → `http://192.168.0.50:2283`
-- Автоматически переключается на VPN-адрес при недоступности LAN (НЕ поддерживается нативно — нужен один постоянный адрес)
+Краткий чеклист / Quick checklist:
+- ⬜ Immich: снять ограничения батареи + разрешить автозапуск / remove battery restrictions + allow autostart
+- ⬜ DAVx⁵: снять ограничения батареи + разрешить автозапуск / remove battery restrictions + allow autostart
+- ⬜ Nextcloud: снять ограничения батареи + разрешить автозапуск / remove battery restrictions + allow autostart
+- ⬜ VPN app: снять ограничения батареи / remove battery restrictions (otherwise VPN disconnects)
 
-**Рекомендация:** использовать постоянный HTTPS-адрес (через nginx/VPS) как основной — работает и дома (через Amnezia), и вне дома. Либо настроить локальный DNS на роутере.
+Details / Подробно: **[XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md)**
 
 ---
 
-## Что НЕ синхронизируется без root
+## Сетевые профили / Network profiles in apps
 
-| Данные | Статус |
+🇷🇺 Immich и Nextcloud поддерживают разные адреса для LAN и WAN.
+🇬🇧 Immich and Nextcloud support separate addresses for LAN and WAN.
+
+🇷🇺 **Рекомендация:** использовать постоянный HTTPS-адрес через VPS как основной — работает и дома, и вне дома.
+🇬🇧 **Recommendation:** use the permanent HTTPS address via VPS as the main one — works both at home and away.
+
+---
+
+## Что НЕ синхронизируется без root / What does NOT sync without root
+
+| Данные / Data | Статус / Status |
 |---|---|
-| SMS / MMS | ❌ без root (Stage 4) |
-| Журнал звонков | ❌ без root |
-| Wi-Fi пароли | ❌ только системный бекап |
-| Данные приложений | ❌ без root |
-| Настройки системы | ❌ без root |
-| APK (список) | ✅ можно экспортировать список |
+| SMS / MMS | ❌ requires root (Stage 4) |
+| Журнал звонков / Call log | ❌ requires root |
+| Wi-Fi пароли / Wi-Fi passwords | ❌ system backup only |
+| Данные приложений / App data | ❌ requires root |
+| Настройки системы / System settings | ❌ requires root |
+| APK (список / list) | ✅ can export list |
 
 ---
 
-## Ссылки
+## Ссылки / Links
 
-- [GOOGLE_MIGRATION.md](GOOGLE_MIGRATION.md) — пошаговая миграция с Google
-- [XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md) — специфика MIUI
-- [install_nginx_vps.sh](../../scripts/setup/install_nginx_vps.sh) — скрипт nginx
-- [09_ANDROID_STAGE2_ARCHITECTURE.md](../09_ANDROID_STAGE2_ARCHITECTURE.md) — план кастомного приложения
+- [GOOGLE_MIGRATION.md](GOOGLE_MIGRATION.md) — пошаговая миграция с Google / step-by-step Google migration
+- [XIAOMI_MIUI_QUIRKS.md](XIAOMI_MIUI_QUIRKS.md) — специфика MIUI / MIUI specifics
+- [install_nginx_vps.sh](../../scripts/setup/install_nginx_vps.sh) — nginx setup script
+- [09_ANDROID_STAGE2_ARCHITECTURE.md](../09_ANDROID_STAGE2_ARCHITECTURE.md) — план кастомного приложения / custom app plan
