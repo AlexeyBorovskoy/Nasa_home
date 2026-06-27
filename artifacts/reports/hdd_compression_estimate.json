@@ -1,0 +1,275 @@
+{
+  "summary": {
+    "root": "G:\\",
+    "scan_seconds": 294.9,
+    "visible_files": 439728,
+    "visible_gib": 1399.95,
+    "archive_estimate_best_gib": 1283.32,
+    "archive_estimate_conservative_gib": 1392.42,
+    "fits_250gb_best": false,
+    "fits_250gib_best": false,
+    "errors": 0
+  },
+  "categories": [
+    {
+      "category": "photo_already_compressed",
+      "files": 169813,
+      "gib": 796.88,
+      "share_pct": 56.9,
+      "ratio_range": [
+        0.95,
+        1.0
+      ],
+      "archive_best_gib": 757.03,
+      "archive_cons_gib": 796.88
+    },
+    {
+      "category": "video_already_compressed",
+      "files": 1471,
+      "gib": 269.58,
+      "share_pct": 19.3,
+      "ratio_range": [
+        0.98,
+        1.0
+      ],
+      "archive_best_gib": 264.19,
+      "archive_cons_gib": 269.58
+    },
+    {
+      "category": "other_unknown",
+      "files": 176235,
+      "gib": 147.41,
+      "share_pct": 10.5,
+      "ratio_range": [
+        0.7,
+        1.0
+      ],
+      "archive_best_gib": 103.18,
+      "archive_cons_gib": 147.41
+    },
+    {
+      "category": "archives_installers_images",
+      "files": 7124,
+      "gib": 102.97,
+      "share_pct": 7.4,
+      "ratio_range": [
+        0.99,
+        1.0
+      ],
+      "archive_best_gib": 101.94,
+      "archive_cons_gib": 102.97
+    },
+    {
+      "category": "office_pdf_mixed",
+      "files": 49405,
+      "gib": 67.63,
+      "share_pct": 4.8,
+      "ratio_range": [
+        0.65,
+        0.9
+      ],
+      "archive_best_gib": 43.96,
+      "archive_cons_gib": 60.87
+    },
+    {
+      "category": "audio_already_compressed",
+      "files": 1329,
+      "gib": 12.17,
+      "share_pct": 0.9,
+      "ratio_range": [
+        0.95,
+        1.0
+      ],
+      "archive_best_gib": 11.56,
+      "archive_cons_gib": 12.17
+    },
+    {
+      "category": "disk_vm_backup_images",
+      "files": 1919,
+      "gib": 2.04,
+      "share_pct": 0.1,
+      "ratio_range": [
+        0.6,
+        0.95
+      ],
+      "archive_best_gib": 1.23,
+      "archive_cons_gib": 1.94
+    },
+    {
+      "category": "text_source_logs",
+      "files": 32335,
+      "gib": 1.13,
+      "share_pct": 0.1,
+      "ratio_range": [
+        0.15,
+        0.45
+      ],
+      "archive_best_gib": 0.17,
+      "archive_cons_gib": 0.51
+    },
+    {
+      "category": "audio_raw_moderate",
+      "files": 97,
+      "gib": 0.15,
+      "share_pct": 0.0,
+      "ratio_range": [
+        0.45,
+        0.75
+      ],
+      "archive_best_gib": 0.07,
+      "archive_cons_gib": 0.11
+    }
+  ],
+  "top_extensions": [
+    {
+      "ext": ".nef",
+      "files": 19948,
+      "gib": 395.17
+    },
+    {
+      "ext": ".jpg",
+      "files": 84265,
+      "gib": 222.83
+    },
+    {
+      "ext": ".tif",
+      "files": 5201,
+      "gib": 169.25
+    },
+    {
+      "ext": ".avi",
+      "files": 892,
+      "gib": 125.83
+    },
+    {
+      "ext": ".mkv",
+      "files": 10,
+      "gib": 70.49
+    },
+    {
+      "ext": ".mp4",
+      "files": 340,
+      "gib": 40.01
+    },
+    {
+      "ext": ".rar",
+      "files": 2867,
+      "gib": 38.51
+    },
+    {
+      "ext": ".exe",
+      "files": 2379,
+      "gib": 26.92
+    },
+    {
+      "ext": ".doc",
+      "files": 27091,
+      "gib": 25.02
+    },
+    {
+      "ext": ".pdf",
+      "files": 13114,
+      "gib": 23.44
+    },
+    {
+      "ext": ".cwr",
+      "files": 295,
+      "gib": 22.22
+    },
+    {
+      "ext": "[no extension]",
+      "files": 25698,
+      "gib": 16.93
+    },
+    {
+      "ext": ".mov",
+      "files": 96,
+      "gib": 16.32
+    },
+    {
+      "ext": ".zip",
+      "files": 1746,
+      "gib": 16.24
+    },
+    {
+      "ext": ".iso",
+      "files": 15,
+      "gib": 15.97
+    },
+    {
+      "ext": ".mdx",
+      "files": 2,
+      "gib": 13.2
+    },
+    {
+      "ext": ".mp3",
+      "files": 1327,
+      "gib": 12.16
+    },
+    {
+      "ext": ".dwg",
+      "files": 32275,
+      "gib": 11.38
+    },
+    {
+      "ext": ".pptx",
+      "files": 331,
+      "gib": 9.9
+    },
+    {
+      "ext": ".wmv",
+      "files": 63,
+      "gib": 9.69
+    },
+    {
+      "ext": ".bmp",
+      "files": 2144,
+      "gib": 8.01
+    },
+    {
+      "ext": ".dat",
+      "files": 4049,
+      "gib": 7.25
+    },
+    {
+      "ext": ".psd",
+      "files": 95,
+      "gib": 6.48
+    },
+    {
+      "ext": ".docx",
+      "files": 5204,
+      "gib": 5.96
+    },
+    {
+      "ext": ".nrg",
+      "files": 2,
+      "gib": 4.66
+    },
+    {
+      "ext": ".mts",
+      "files": 7,
+      "gib": 4.43
+    },
+    {
+      "ext": ".dll",
+      "files": 5051,
+      "gib": 4.14
+    },
+    {
+      "ext": ".7z",
+      "files": 3,
+      "gib": 4.11
+    },
+    {
+      "ext": ".sldprt",
+      "files": 9415,
+      "gib": 3.16
+    },
+    {
+      "ext": ".pln",
+      "files": 86,
+      "gib": 3.15
+    }
+  ]
+}

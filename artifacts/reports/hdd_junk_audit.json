@@ -1,0 +1,311 @@
+{
+  "summary": {
+    "drive": "G:\\",
+    "scan_seconds": 43.5,
+    "visible_files": 439728,
+    "visited_dirs": 48591,
+    "visible_gib": 1399.95,
+    "access_error_sample_count": 0,
+    "duplicate_size_ext_groups": 2309,
+    "duplicate_size_ext_upper_bound_gib": 199.0,
+    "notes": [
+      "duplicate estimate is size+extension only, not content hash",
+      "no files were modified or deleted",
+      "personal paths are intentionally omitted"
+    ]
+  },
+  "junk_categories": [
+    {
+      "category": "raw_photo_large",
+      "files": 20407,
+      "gib": 401.13
+    },
+    {
+      "category": "video_large",
+      "files": 1471,
+      "gib": 269.58
+    },
+    {
+      "category": "bitmap_working_files",
+      "files": 7440,
+      "gib": 183.74
+    },
+    {
+      "category": "archives",
+      "files": 4631,
+      "gib": 59.0
+    },
+    {
+      "category": "installers_executables",
+      "files": 2481,
+      "gib": 28.01
+    },
+    {
+      "category": "disk_images",
+      "files": 658,
+      "gib": 20.76
+    },
+    {
+      "category": "temp_cache_dirs",
+      "files": 29986,
+      "gib": 17.76
+    },
+    {
+      "category": "temp_files",
+      "files": 5673,
+      "gib": 5.44
+    },
+    {
+      "category": "dev_dependency_dirs",
+      "files": 125,
+      "gib": 0.01
+    },
+    {
+      "category": "vcs_dirs",
+      "files": 110,
+      "gib": 0.0
+    },
+    {
+      "category": "macos_junk_dirs",
+      "files": 6,
+      "gib": 0.0
+    },
+    {
+      "category": "windows_recycle_bin",
+      "files": 1,
+      "gib": 0.0
+    }
+  ],
+  "top_extensions": [
+    {
+      "ext": ".nef",
+      "files": 19948,
+      "gib": 395.17
+    },
+    {
+      "ext": ".jpg",
+      "files": 84265,
+      "gib": 222.83
+    },
+    {
+      "ext": ".tif",
+      "files": 5201,
+      "gib": 169.25
+    },
+    {
+      "ext": ".avi",
+      "files": 892,
+      "gib": 125.83
+    },
+    {
+      "ext": ".mkv",
+      "files": 10,
+      "gib": 70.49
+    },
+    {
+      "ext": ".mp4",
+      "files": 340,
+      "gib": 40.01
+    },
+    {
+      "ext": ".rar",
+      "files": 2867,
+      "gib": 38.51
+    },
+    {
+      "ext": ".exe",
+      "files": 2379,
+      "gib": 26.92
+    },
+    {
+      "ext": ".doc",
+      "files": 27091,
+      "gib": 25.02
+    },
+    {
+      "ext": ".pdf",
+      "files": 13114,
+      "gib": 23.44
+    },
+    {
+      "ext": ".cwr",
+      "files": 295,
+      "gib": 22.22
+    },
+    {
+      "ext": "[no extension]",
+      "files": 25698,
+      "gib": 16.93
+    },
+    {
+      "ext": ".mov",
+      "files": 96,
+      "gib": 16.32
+    },
+    {
+      "ext": ".zip",
+      "files": 1746,
+      "gib": 16.24
+    },
+    {
+      "ext": ".iso",
+      "files": 15,
+      "gib": 15.97
+    },
+    {
+      "ext": ".mdx",
+      "files": 2,
+      "gib": 13.2
+    },
+    {
+      "ext": ".mp3",
+      "files": 1327,
+      "gib": 12.16
+    },
+    {
+      "ext": ".dwg",
+      "files": 32275,
+      "gib": 11.38
+    },
+    {
+      "ext": ".pptx",
+      "files": 331,
+      "gib": 9.9
+    },
+    {
+      "ext": ".wmv",
+      "files": 63,
+      "gib": 9.69
+    },
+    {
+      "ext": ".bmp",
+      "files": 2144,
+      "gib": 8.01
+    },
+    {
+      "ext": ".dat",
+      "files": 4049,
+      "gib": 7.25
+    },
+    {
+      "ext": ".psd",
+      "files": 95,
+      "gib": 6.48
+    },
+    {
+      "ext": ".docx",
+      "files": 5204,
+      "gib": 5.96
+    },
+    {
+      "ext": ".nrg",
+      "files": 2,
+      "gib": 4.66
+    },
+    {
+      "ext": ".mts",
+      "files": 7,
+      "gib": 4.43
+    },
+    {
+      "ext": ".dll",
+      "files": 5051,
+      "gib": 4.14
+    },
+    {
+      "ext": ".7z",
+      "files": 3,
+      "gib": 4.11
+    },
+    {
+      "ext": ".sldprt",
+      "files": 9415,
+      "gib": 3.16
+    },
+    {
+      "ext": ".pln",
+      "files": 86,
+      "gib": 3.15
+    },
+    {
+      "ext": ".lrprev",
+      "files": 13647,
+      "gib": 2.93
+    },
+    {
+      "ext": ".mpg",
+      "files": 55,
+      "gib": 2.81
+    },
+    {
+      "ext": ".png",
+      "files": 14617,
+      "gib": 2.68
+    },
+    {
+      "ext": ".ppsx",
+      "files": 15,
+      "gib": 2.63
+    },
+    {
+      "ext": ".arw",
+      "files": 161,
+      "gib": 2.53
+    },
+    {
+      "ext": ".cr2",
+      "files": 236,
+      "gib": 2.52
+    },
+    {
+      "ext": ".sldasm",
+      "files": 1868,
+      "gib": 2.08
+    },
+    {
+      "ext": ".cab",
+      "files": 355,
+      "gib": 2.04
+    },
+    {
+      "ext": ".tmp",
+      "files": 4099,
+      "gib": 1.99
+    },
+    {
+      "ext": ".bak",
+      "files": 1276,
+      "gib": 1.91
+    }
+  ],
+  "special_dirs": {
+    "windows_recycle_bin": {
+      "entries": 1,
+      "bytes": 129
+    },
+    "windows_system_volume": {
+      "entries": 1,
+      "bytes": 0
+    },
+    "dev_dependency_dirs": {
+      "entries": 4,
+      "bytes": 6686951
+    },
+    "temp_cache_dirs": {
+      "entries": 75,
+      "bytes": 19071046779
+    },
+    "vcs_dirs": {
+      "entries": 3,
+      "bytes": 204144
+    },
+    "macos_junk_dirs": {
+      "entries": 5,
+      "bytes": 2328
+    },
+    "lost_found_dirs": {
+      "entries": 0,
+      "bytes": 0
+    }
+  }
+}

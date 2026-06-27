@@ -515,8 +515,8 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md) | Live reliability audit: fsck/preflight, boot guard, restart policy, remaining risks |
 | [docs/plans/VPS_INTEGRATION_PLAN.md](docs/plans/VPS_INTEGRATION_PLAN.md) | План интеграции VPS + тоннель |
 | [AGENTS.md](AGENTS.md) | Правила для Codex/агентов |
-| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | Зафиксированные решения и ограничения |
-| [archtectura_nasa.md](archtectura_nasa.md) | Полная архитектурная карта (Mermaid) |
+| [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) | Зафиксированные решения и ограничения |
+| [docs/architecture_nasa.md](docs/architecture_nasa.md) | Полная архитектурная карта (Mermaid) |
 
 ---
 

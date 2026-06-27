@@ -14,13 +14,26 @@ secrets/
 config/secrets.json
 config/*.local.yaml
 config/*.local.yml
-ethernet_home/
 
 # Runtime data
-external_docs/
 data/
-runtime/
 volumes/
+
+# Reference docs cache (large HTML files, not for git)
+docs/references/external_docs/
+
+# VPN client configs (contain private keys)
+archive/legacy/wg-*.conf
+archive/legacy/wg-*.png
+
+# Legacy untracked dirs (now reorganised into docs/prompts/ and artifacts/)
+prodaction/
+test_systems/
+
+# Personal documents (not project files)
+*.odt
+*.docx
+photo/
 logs/
 backups/
 *.sqlite
