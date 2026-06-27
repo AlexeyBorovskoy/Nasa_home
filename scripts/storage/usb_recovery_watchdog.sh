@@ -20,7 +20,7 @@ PORT=2
 MAX_SOFT_RETRIES=2
 POWER_OFF_SECS=45
 WAIT_ENUM_SECS=30
-STATE_FILE="/run/nasa-usb-watchdog.state"
+STATE_FILE="/var/lib/nasa-usb-watchdog.state"
 LOG_TAG="nasa-usb-watchdog"
 
 # --- Telegram (опционально — берём из env если есть) ---
@@ -63,8 +63,14 @@ hub_power_cycle() {
 
 # SSD в порядке — выходим сразу
 if ssd_ok; then
-    # Сбросить счётчик неудачных попыток если был
     rm -f "$STATE_FILE"
+    exit 0
+fi
+
+# Не рестартовать в первые 5 мин после загрузки — SSD ещё инициализируется
+UPTIME_SECS=$(awk '{print int($1)}' /proc/uptime)
+if [[ "$UPTIME_SECS" -lt 300 ]]; then
+    warn "SSD not ready but system uptime is only ${UPTIME_SECS}s — skipping escalation"
     exit 0
 fi
 
