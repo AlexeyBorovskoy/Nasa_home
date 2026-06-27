@@ -1,7 +1,7 @@
-# NVMe USB Box — Исследование для Jetson NAS
+# NVMe USB Box — Исследование для Jetson NAS / Research for Jetson NAS
 
-> Дата: 2026-06-27 | Контекст: замена DEXP бокса (RTL9210B-CG) на надёжное решение.
-> Магазин: DNS (dns-shop.ru).
+> 🇷🇺 Дата: 2026-06-27 | Контекст: замена DEXP бокса (RTL9210B-CG) на надёжное решение. Магазин: DNS (dns-shop.ru).
+> 🇬🇧 Date: 2026-06-27 | Context: replacing the DEXP enclosure (RTL9210B-CG) with a reliable alternative. Store: DNS (dns-shop.ru).
 
 ---
 

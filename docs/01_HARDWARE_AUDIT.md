@@ -1,8 +1,12 @@
-# 01. Аппаратный аудит
+# 01. Аппаратный аудит / Hardware Audit
 
-## 1. Цель
+> 🇷🇺 До развёртывания сервисов необходимо зафиксировать фактическое состояние Jetson Nano, HDD, сети и ОС.
+> 🇬🇧 Before deploying services, document the actual state of Jetson Nano, HDD, network, and OS.
 
-До развёртывания сервисов необходимо зафиксировать фактическое состояние Jetson Nano, HDD, сети и ОС.
+## 1. Цель / Purpose
+
+🇷🇺 До развёртывания сервисов необходимо зафиксировать фактическое состояние Jetson Nano, HDD, сети и ОС.
+🇬🇧 Before deploying services, document the actual state of Jetson Nano, HDD, network, and OS.
 
 ## 2. Исходное оборудование
 

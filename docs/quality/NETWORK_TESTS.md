@@ -1,4 +1,4 @@
-# Network Tests: NASA Home Cloud
+﻿# Сетевые тесты / Network Tests: NASA Home Cloud
 
 **Version:** 1.0  
 **Date:** 2026-06-27

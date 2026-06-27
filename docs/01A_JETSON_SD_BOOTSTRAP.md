@@ -1,9 +1,12 @@
 # 01A. Jetson SD Bootstrap
 
-## 1. Цель
+> 🇷🇺 Подготовить Jetson Nano к первому запуску, если готовой загрузочной microSD карты ещё нет, а USB HDD пока недоступен.
+> 🇬🇧 Prepare Jetson Nano for first boot when a bootable microSD is not yet ready and USB HDD is not yet available.
 
-Подготовить Jetson Nano к первому запуску, если готовой загрузочной microSD
-карты ещё нет, а USB HDD пока недоступен.
+## 1. Цель / Purpose
+
+🇷🇺 Подготовить Jetson Nano к первому запуску, если готовой загрузочной microSD карты ещё нет.
+🇬🇧 Prepare Jetson Nano for first boot when no bootable microSD is ready yet.
 
 Этот шаг предшествует `docs/01_HARDWARE_AUDIT.md`: сначала нужно получить
 загружаемый Jetson, настроить первый вход и сеть, и только потом выполнять

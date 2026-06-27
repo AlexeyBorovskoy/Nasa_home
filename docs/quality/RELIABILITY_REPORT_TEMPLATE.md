@@ -1,4 +1,4 @@
-# Reliability Report Template: NASA Home Cloud
+﻿# Шаблон отчёта надёжности / Reliability Report Template: NASA Home Cloud
 
 **Report date:** YYYY-MM-DD  
 **Version tested:** vX.Y.Z  

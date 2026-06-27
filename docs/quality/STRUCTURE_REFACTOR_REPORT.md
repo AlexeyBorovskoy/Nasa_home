@@ -1,4 +1,4 @@
-# Structure Refactor Report
+﻿# Отчёт рефакторинга структуры / Structure Refactor Report
 
 **Date:** 2026-06-27
 **Performed by:** Claude Sonnet 4.6 + AlexeyBorovskoy

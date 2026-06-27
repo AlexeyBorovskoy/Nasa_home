@@ -1,8 +1,12 @@
-# PROJECT_CONTEXT
+# PROJECT_CONTEXT / Контекст проекта
 
-## 1. Назначение
+> 🇷🇺 Проект предназначен для создания домашней семейной облачной платформы на доступном оборудовании.
+> 🇬🇧 The project aims to build a home family cloud platform on affordable hardware.
 
-Проект предназначен для создания домашней семейной облачной платформы на доступном оборудовании.
+## 1. Назначение / Purpose
+
+🇷🇺 Проект предназначен для создания домашней семейной облачной платформы на доступном оборудовании.
+🇬🇧 The project aims to build a home family cloud platform on affordable hardware.
 
 Базовый сценарий:
 

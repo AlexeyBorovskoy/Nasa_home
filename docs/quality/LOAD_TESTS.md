@@ -1,4 +1,4 @@
-# Load Tests: NASA Home Cloud
+﻿# Нагрузочные тесты / Load Tests: NASA Home Cloud
 
 **Version:** 1.0  
 **Date:** 2026-06-27
