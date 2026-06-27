@@ -76,6 +76,7 @@ services:
     container_name: homecloud_immich_microservices
     command: ['start.sh', 'microservices']
     restart: always
+    mem_limit: 512m
     depends_on:
       immich-db:
         condition: service_healthy

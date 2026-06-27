@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # NASA Home Cloud — daily health report (Jetson Nano)
-set -u
+# shellcheck disable=SC2034  # variables used in printf %b heredoc expansions
+set -uo pipefail
 
 CONF="/etc/nasa-monitor/nasa-monitor.env"
 [ -f "$CONF" ] && . "$CONF"
@@ -98,22 +99,24 @@ HTTP_REPORT="${HTTP_REPORT}\n$(http_check "http://localhost:19999/" "Netdata")"
 BESZEL_REPORT=""
 BESZEL_SCRIPT="/usr/local/sbin/nasa-beszel-report.py"
 if [ -f "$VPS_KEY" ]; then
+    # Use mktemp to avoid predictable temp file names (security hardening)
+    _BESZEL_WARN_LOCAL="$(mktemp /tmp/nasa-beszel-warn.XXXXXXXXXX)"
     BESZEL_RAW="$(ssh -i "$VPS_KEY" \
         -o StrictHostKeyChecking=no \
         -o ConnectTimeout=10 \
         -o BatchMode=yes \
         "${VPS_USER}@${SERVER_IP:-193.8.215.130}" \
-        "python3 $BESZEL_SCRIPT 2>/tmp/beszel_warn.txt; cat /tmp/beszel_warn.txt >&2" \
-        2>/tmp/beszel_warn_local.txt || true)"
+        "python3 $BESZEL_SCRIPT 2>/tmp/beszel_warn_\$\$.txt; cat /tmp/beszel_warn_\$\$.txt >&2; rm -f /tmp/beszel_warn_\$\$.txt" \
+        2>"$_BESZEL_WARN_LOCAL" || true)"
     BESZEL_REPORT="$BESZEL_RAW"
     # harvest __WARN__ lines from stderr
-    if [ -f /tmp/beszel_warn_local.txt ]; then
+    if [ -f "$_BESZEL_WARN_LOCAL" ]; then
         while IFS= read -r line; do
             case "$line" in
                 __WARN__:*) add_warning "${line#__WARN__:}" ;;
             esac
-        done < /tmp/beszel_warn_local.txt
-        rm -f /tmp/beszel_warn_local.txt
+        done < "$_BESZEL_WARN_LOCAL"
+        rm -f "$_BESZEL_WARN_LOCAL"
     fi
     [ -z "$BESZEL_REPORT" ] && BESZEL_REPORT="  ⚠️ Beszel Hub unreachable via SSH"
 fi

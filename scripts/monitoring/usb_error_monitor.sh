@@ -8,7 +8,7 @@
 #
 # Запускается: systemd (nasa-usb-monitor.service) как persistent daemon
 
-set -uo pipefail
+set -euo pipefail
 
 LOG_TAG="nasa-usb-monitor"
 SSD_DEV="/dev/sda"

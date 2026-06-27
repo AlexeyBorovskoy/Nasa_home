@@ -1,0 +1,161 @@
+name: Quality Checks
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # ShellCheck + bash syntax check
+  # ---------------------------------------------------------------------------
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Bash syntax check (bash -n)
+        run: |
+          echo "=== Bash syntax check ==="
+          ERRORS=0
+          while IFS= read -r f; do
+            bash -n "$f" || { echo "SYNTAX ERROR: $f"; ERRORS=$((ERRORS+1)); }
+          done < <(find scripts/ tests/ -name "*.sh" -type f | sort)
+          echo "Syntax check complete: errors=$ERRORS"
+          exit "$ERRORS"
+
+      - name: ShellCheck (warning level)
+        run: |
+          echo "=== ShellCheck warnings ==="
+          find scripts/ tests/ -name "*.sh" -type f | sort | while read -r f; do
+            echo "--- $f ---"
+            shellcheck --severity=warning --shell=bash "$f" || true
+          done
+
+      - name: ShellCheck (error level, enforced)
+        run: |
+          echo "=== ShellCheck errors (enforced) ==="
+          find scripts/ tests/ -name "*.sh" -type f | \
+            xargs shellcheck --severity=error --shell=bash --format=gcc
+
+  # ---------------------------------------------------------------------------
+  # Docker Compose validation
+  # ---------------------------------------------------------------------------
+  compose-validate:
+    name: Docker Compose Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Compose version
+        run: docker compose version
+
+      - name: Prepare stub .env for CI
+        run: cp config/.env.example config/.env
+
+      - name: Validate stage1
+        run: docker compose -f docker/compose/docker-compose.stage1.yml --env-file config/.env config --quiet
+
+      - name: Validate nextcloud
+        run: docker compose -f docker/compose/docker-compose.nextcloud.yml --env-file config/.env config --quiet
+
+      - name: Validate immich
+        run: docker compose -f docker/compose/docker-compose.immich.yml --env-file config/.env config --quiet
+
+      - name: Validate llm-gateway
+        run: docker compose -f docker/compose/docker-compose.llm-gateway.yml --env-file config/.env config --quiet
+
+      - name: Validate samba
+        run: docker compose -f docker/compose/docker-compose.samba.yml --env-file config/.env config --quiet
+
+      - name: Validate monitoring
+        run: docker compose -f docker/compose/docker-compose.monitoring.yml --env-file config/.env config --quiet
+
+      - name: Validate nasa-api
+        run: docker compose -f docker/compose/docker-compose.nasa-api.yml --env-file config/.env config --quiet || true
+
+      - name: Validate VPS compose
+        run: docker compose -f docker/vps/docker-compose.yml --env-file config/.env config --quiet
+
+  # ---------------------------------------------------------------------------
+  # Security: secrets scan + Trivy
+  # ---------------------------------------------------------------------------
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for gitleaks full history scan
+
+      - name: Local secrets check
+        run: bash scripts/security/check_no_secrets.sh
+
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin/ gitleaks
+          gitleaks version
+
+      - name: Gitleaks secrets scan
+        run: |
+          gitleaks detect \
+            --source . \
+            --config .gitleaks.toml \
+            --redact \
+            --no-git \
+            --exit-code 1 \
+            || gitleaks detect \
+              --source . \
+              --redact \
+              --no-git \
+              --exit-code 1
+
+      - name: Install Trivy
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.50.0
+          trivy --version
+
+      - name: Trivy filesystem scan
+        run: |
+          trivy fs . \
+            --severity HIGH,CRITICAL \
+            --scanners secret,misconfig \
+            --exit-code 0 \
+            --format table \
+            --ignore-unfixed
+
+      - name: Trivy config scan (misconfigurations)
+        run: |
+          trivy fs . \
+            --severity MEDIUM,HIGH,CRITICAL \
+            --scanners misconfig \
+            --exit-code 0 \
+            --format table \
+            --ignorefile .trivyignore 2>/dev/null || true
+
+  # ---------------------------------------------------------------------------
+  # actionlint: validate GitHub Actions workflow files
+  # ---------------------------------------------------------------------------
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv actionlint /usr/local/bin/
+
+      - name: Run actionlint
+        run: |
+          echo "=== actionlint: validating GitHub Actions workflows ==="
+          actionlint .github/workflows/*.yml

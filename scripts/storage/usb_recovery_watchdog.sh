@@ -8,7 +8,7 @@
 # Запускается systemd таймером каждые 3 минуты.
 # При успехе — молчит. При эскалации — пишет в журнал и Telegram.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Конфиг ---
 SSD_DEV="/dev/sda"

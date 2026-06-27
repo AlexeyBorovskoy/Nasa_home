@@ -8,7 +8,7 @@
 #
 # Запускается: systemd (nasa-usb-preboot.service) до монтирования SSD
 
-set -uo pipefail
+set -euo pipefail
 
 UHUBCTL="/usr/local/sbin/uhubctl"
 HUB_USB2="1-2"
