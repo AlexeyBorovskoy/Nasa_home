@@ -11,6 +11,7 @@
 *.p12
 *.pfx
 secrets/
+config/secrets.json
 config/*.local.yaml
 config/*.local.yml
 ethernet_home/

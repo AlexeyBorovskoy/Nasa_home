@@ -15,41 +15,42 @@
 
 ## Операционное состояние
 
-**Состояние на 2026-06-26: v1.3.7 — USB аудит готов. SSD сейчас DOWN (нужно физически переткнуть кабель). Docker down. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳.**
+**Состояние на 2026-06-27: v1.3.7 — SSD ✅ смонтирован, Docker ✅ все 13 контейнеров up. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳.**
 
 | Компонент | Статус | Детали |
 |---|---|---|
-| Jetson Nano | ✅ up | Перезагружен 2026-06-26 ~12:04 UTC |
-| SSD `/dev/sda1` → `/mnt/storage` | ❌ **NOT mounted** | RTL9210B-CG error -71, нужно физически переткнуть USB |
-| USB SSD порт | ⚠️ **порт 2** (1-2.2) | RTL9210B-CG crashed — не реагирует на uhubctl power cycle |
-| SCSI timeout | ✅ **120s confirmed** | udev правило активно |
-| `usbcore.autosuspend=-1` | ✅ **kernel confirmed** | `/proc/cmdline` |
-| `usb-storage.quirks=0bda:9210:rw` | ✅ **kernel confirmed** | `/proc/cmdline` |
+| Jetson Nano | ✅ up | 192.168.0.50 |
+| SSD `/dev/sda1` → `/mnt/storage` | ✅ **mounted** | 229G, 2% use |
+| USB SSD порт | ✅ **порт 2** (1-2.2) | preboot service делает power cycle при boot |
+| SCSI timeout | ✅ **120s** | udev правило активно |
+| `usbcore.autosuspend=-1` | ✅ **kernel** | `/proc/cmdline` |
+| `usb-storage.quirks=0bda:9210:rw` | ✅ **kernel** | `/proc/cmdline` |
 | USB watchdog timer | ✅ active | `nasa-usb-watchdog.timer` — PORT=2, OnBootSec=2min |
-| USB pre-boot service | ✅ **NEW** | `nasa-usb-preboot.service` — power cycle до монтирования |
-| USB error monitor | ✅ **NEW** | `nasa-usb-monitor.service` — Telegram при error -71 |
-| Docker daemon | ❌ **inactive** | Dependency failed — SSD не смонтирован |
-| Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / ***REMOVED*** |
-| Beszel Agent Jetson (45876) | ❌ down | Docker не запущен |
+| USB pre-boot service | ✅ active | `nasa-usb-preboot.service` — power cycle до монтирования |
+| USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при error -71 |
+| Docker daemon | ✅ **active** | 13 контейнеров up, healthy |
+| Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / `$BESZEL_ADMIN_PASSWORD` (config/.env) |
+| Beszel Agent Jetson (45876) | ✅ up | status=up, CPU~17%, RAM~56% |
 | Beszel Agent VPS (45877) | ✅ up | v0.18.7 |
 | VPS nginx HTTP | ✅ live | :8080 Nextcloud · :2283 Immich · :8090 LLM |
 | VPS nginx HTTPS | ✅ live | :8443 Nextcloud · :2443 Immich · :9443 LLM (self-signed 10y) |
-| Nextcloud контейнер | ❌ **down** | SSD недоступен |
+| Nextcloud контейнер | ✅ **up, healthy** | |
 | Android apps | ✅ установлены | Immich + Nextcloud из Play Store, DAVx⁵ APK v4.5.14 |
 | Immich Android | ✅ **настроен** | Логин: admin@nasa.local, сервер: http://193.8.215.130:2283 |
 | Immich backup | ✅ **активирован** | 31 альбом, 6710 фото/видео в очереди |
 
-**🔧 Чтобы восстановить систему (немедленно):**
+**🔧 Чтобы восстановить систему (если SSD упал снова):**
 1. Физически отключить USB кабель SSD от хаба — подождать 30 сек — воткнуть обратно
-2. После reconnect: `ssh admin@192.168.0.50 "echo ***REMOVED*** | sudo -S bash ~/nasa/scripts/storage/storage_preflight.sh"`
-3. Затем Docker: `ssh admin@192.168.0.50 "echo ***REMOVED*** | sudo -S systemctl start docker"`
+2. После reconnect: `ssh admin@192.168.0.50 "echo $JETSON_SUDO_PASS | sudo -S bash ~/nasa/scripts/storage/storage_preflight.sh"`
+3. Затем Docker: `ssh admin@192.168.0.50 "echo $JETSON_SUDO_PASS | sudo -S systemctl start docker"`
+   > Переменная `JETSON_SUDO_PASS` — брать из `config/.env` (не коммитить!).
 
-**🔜 После восстановления SSD:**
-- Nextcloud Android: войти через `https://193.8.215.130:8443`, логин `admin` / пароль в .env
+**🔜 Android (pending):**
+- Nextcloud Android: войти через `https://193.8.215.130:8443`, логин `admin` / `$NEXTCLOUD_ADMIN_PASSWORD` (config/.env)
 - DAVx⁵: добавить аккаунт `https://193.8.215.130:8443/remote.php/dav`
 - Immich: настроить локальный URL `http://192.168.0.50:2283` в Настройки → Сеть (домашний WiFi)
 
-**⚠️ Hardware note**: RTL9210B-CG ненадёжен. Купить замену: JMicron JMS578 или ASMedia ASM1153E
+**⚠️ Hardware note**: RTL9210B-CG ненадёжен. Купить замену: Orient 3502 U3 (~865р, ASM1153E/JMS578)
 
 ## Железо и доступ
 
@@ -157,8 +158,8 @@ prompts/          — агентные промпты (CODEX_*)
 | Beszel Agent | 45876 | внутренний (→ Hub через tunnel) |
 
 VPS (193.8.215.130): Nextcloud :8080, Immich :2283, LLM Gateway :8090
-**Beszel Hub: http://193.8.215.130:8091** (login: admin@nasa.local / ***REMOVED***)
-После подключения SSD → добавить Jetson в Beszel: Host = `127.0.0.1:45876`
+**Beszel Hub: http://193.8.215.130:8091** (login: admin@nasa.local / `$BESZEL_ADMIN_PASSWORD` — см. config/secrets.json)
+Jetson уже добавлен: `jetson-nano` → `127.0.0.1:45876`, status=up
 
 ## Жёсткие правила
 
