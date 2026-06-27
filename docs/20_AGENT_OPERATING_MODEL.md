@@ -1,19 +1,30 @@
-﻿# 20. Agent Operating Model
+﻿# 20. Agent Operating Model / Операционная модель агентов
 
-## 1. Purpose
+> 🇬🇧 This document describes how subagents are used in the NASA Home Cloud project: roles, safety boundaries, and workflow.
+>
+> 🇷🇺 Документ описывает модель работы с субагентами в проекте NASA Home Cloud: роли, границы безопасности и рабочий процесс.
 
-Subagents are the default way to work on risky or multi-domain changes in NASA
-Home Cloud. The main agent remains the coordinator, but focused subagents are
-used to separate analysis, safety review, implementation, verification, and
-documentation.
+## 1. Purpose / Назначение
 
-The goal is to:
+🇬🇧 Subagents are the default way to work on risky or multi-domain changes in NASA Home Cloud. The main agent remains the coordinator, but focused subagents are used to separate analysis, safety review, implementation, verification, and documentation.
+
+🇷🇺 Субагенты — стандартный способ работы с рискованными или многодоменными изменениями в NASA Home Cloud. Основной агент остаётся координатором, а субагенты используются для разделения анализа, проверки безопасности, реализации, верификации и документирования.
+
+🇬🇧 The goal is to:
 
 - reduce the chance of destructive infrastructure actions;
 - keep each step small and verifiable;
 - separate read-only inventory from write operations;
 - keep `README.md`, `AGENTS.md`, ADRs, plans, and runtime evidence aligned;
 - protect secrets and personal data from accidental publication.
+
+🇷🇺 Цели:
+
+- снизить риск деструктивных действий с инфраструктурой;
+- делать каждый шаг маленьким и верифицируемым;
+- разделять read-only инвентаризацию от write-операций;
+- держать `README.md`, `AGENTS.md`, ADR, планы и runtime-свидетельства согласованными;
+- защищать секреты и персональные данные от случайной публикации.
 
 ## 2. Base Rule
 

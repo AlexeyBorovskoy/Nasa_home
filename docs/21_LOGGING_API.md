@@ -1,13 +1,14 @@
 # 21. Логирование и Status API / Logging & Status API
 
-> Актуализировано: 2026-06-21.
+> 🇷🇺 Описание подсистемы структурированного логирования и REST API статуса NASA Home Cloud. Актуализировано: 2026-06-27.
 >
-> Описание подсистемы структурированного логирования и REST API статуса
-> NASA Home Cloud. Сервис: `services/nasa-api/`. Compose: `docker/compose/docker-compose.nasa-api.yml`.
+> 🇬🇧 Structured logging subsystem and Status REST API for NASA Home Cloud. Updated: 2026-06-27.
+>
+> Сервис / Service: `services/nasa-api/`. Compose: `docker/compose/docker-compose.nasa-api.yml`.
 
 ---
 
-## РУССКАЯ СЕКЦИЯ
+## 🇷🇺 Русская секция / Russian section
 
 ---
 
@@ -289,7 +290,7 @@ curl "http://192.168.0.50:8099/v1/metrics" | jq .services_http
 ---
 ---
 
-## ENGLISH SECTION
+## 🇬🇧 English section / Английская секция
 
 ---
 

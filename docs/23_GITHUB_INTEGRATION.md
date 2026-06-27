@@ -1,14 +1,16 @@
 ﻿# 23. GitHub Integration — Claude Code + gh CLI
 
-> Этот документ описывает полный рабочий процесс проекта NASA Home Cloud:
-> как Claude Code взаимодействует с GitHub через `gh` CLI на Windows-машине.
+> 🇷🇺 Этот документ описывает полный рабочий процесс проекта NASA Home Cloud: как Claude Code взаимодействует с GitHub через `gh` CLI на Windows-машине.
 >
-> **Фишка проекта:** весь жизненный цикл (задача → код → тест → commit → PR → release)
-> выполняется одним агентом (Claude Code) без переключения инструментов.
+> 🇬🇧 This document describes the complete NASA Home Cloud workflow: how Claude Code interacts with GitHub via `gh` CLI on a Windows machine.
+>
+> 🇷🇺 **Фишка проекта:** весь жизненный цикл (задача → код → тест → commit → PR → release) выполняется одним агентом (Claude Code) без переключения инструментов.
+>
+> 🇬🇧 **Project highlight:** the entire lifecycle (task → code → test → commit → PR → release) is handled by a single agent (Claude Code) without tool switching.
 
 ---
 
-## Установка gh CLI
+## Установка gh CLI / Install gh CLI
 
 ```bash
 # gh CLI распакован в C:\tools\gh\bin\ (в PATH пользователя)
@@ -27,7 +29,7 @@ Expand-Archive "$env:TEMP\gh.zip" -DestinationPath "C:\tools\gh" -Force
 # Добавить C:\tools\gh\bin в PATH
 ```
 
-## Авторизация
+## Авторизация / Authentication
 
 ```bash
 # Первичная авторизация (нужен PAT с правами repo):
@@ -46,9 +48,9 @@ echo "ghp_restored_token" | gh auth login --with-token
 > Рекомендуемый срок: No expiration  
 > Хранить в Windows keyring через `gh auth login` — НЕ в файлах репозитория.
 
-## Что умеет gh в этом проекте
+## Что умеет gh в этом проекте / What gh can do in this project
 
-### Issues — задачи и баги
+### Issues — задачи и баги / Issues — tasks and bugs
 
 ```bash
 # Создать issue:
@@ -108,7 +110,7 @@ EOF
 )"
 ```
 
-### Управление репозиторием
+### Управление репозиторием / Repository management
 
 ```bash
 # Обновить описание:
@@ -145,7 +147,7 @@ gh run rerun <run-id>
 gh run view <run-id> --log
 ```
 
-## Стандартный workflow сессии
+## Стандартный workflow сессии / Standard session workflow
 
 ```
 1. Начало сессии:
@@ -173,9 +175,10 @@ gh run view <run-id> --log
    - При крупных изменениях: обновить README и CHANGELOG
 ```
 
-## Почему это фишка проекта
+## Почему это фишка проекта / Why this is the project's highlight
 
-Проект NASA Home Cloud демонстрирует **полный AI-assisted DevOps цикл**:
+🇷🇺 Проект NASA Home Cloud демонстрирует **полный AI-assisted DevOps цикл**:
+🇬🇧 NASA Home Cloud demonstrates a **complete AI-assisted DevOps cycle**:
 
 | Этап | Инструмент | Кто делает |
 |---|---|---|
@@ -188,10 +191,13 @@ gh run view <run-id> --log
 | Документация | Edit README/CHANGELOG | Claude |
 | Мониторинг | Telegram daily report | Автономно |
 
-**Человек формулирует цели. Claude Code реализует, тестирует и документирует.**  
-Все решения задокументированы в ADR (`docs/decisions/`) и промптах (`docs/prompts/`).
+🇷🇺 **Человек формулирует цели. Claude Code реализует, тестирует и документирует.**
+🇬🇧 **The human defines goals. Claude Code implements, tests, and documents.**
 
-## Безопасность токена
+🇷🇺 Все решения задокументированы в ADR (`docs/decisions/`) и промптах (`docs/prompts/`).
+🇬🇧 All decisions are documented in ADRs (`docs/decisions/`) and prompts (`docs/prompts/`).
+
+## Безопасность токена / Token security
 
 - **Хранится:** Windows keyring (через `gh auth login`)
 - **НЕ хранится:** в файлах репозитория, `.env`, коммитах

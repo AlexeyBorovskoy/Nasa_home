@@ -1,51 +1,41 @@
 # ADR-0005: VPS + autossh reverse SSH tunnel для внешнего доступа
+# ADR-0005: VPS + autossh Reverse SSH Tunnel for External Access
 
-## Статус
+## Статус / Status
 
-**Реализовано** (2026-06-21).
+🇷🇺 **Реализовано** (2026-06-21). / 🇬🇧 **Implemented** (2026-06-21).
 
-## Контекст
+## Контекст / Context
 
-Jetson Nano находится за домашним провайдером с CGNAT (публичный IP не назначается
-домашнему роутеру — трафик проходит через провайдерский NAT). Прямой port
-forwarding невозможен. Amnezia VPN на VPS не трогать (обслуживает ~25 клиентов).
+🇷🇺 Jetson Nano находится за CGNAT — прямой port forwarding невозможен. Amnezia VPN на VPS не трогать (~25 клиентов). Требования: CGNAT-proof, без Amnezia, автостарт, SSH-управление Jetson с VPS.
+🇬🇧 Jetson Nano is behind CGNAT — direct port forwarding is impossible. Amnezia VPN on VPS must not be touched (~25 clients). Requirements: CGNAT-proof, no Amnezia impact, autostart, SSH management of Jetson from VPS.
 
-Требования:
-- Доступ к Nextcloud / Immich / LLM Gateway снаружи (мобильный интернет, командировки).
-- CGNAT-proof.
-- Независимость от Amnezia-контейнеров.
-- Автоматический старт при подключении Jetson к LAN-роутеру.
-- Управление Jetson по SSH с VPS без отдельного канала.
+## Рассмотренные варианты / Options considered
 
-## Рассмотренные варианты
-
-| Вариант | CGNAT | Независим от Amnezia | Сложность | Решение |
+| Вариант / Option | CGNAT | Без Amnezia / No Amnezia | Сложность / Complexity | Решение / Decision |
 |---|---|---|---|---|
-| WireGuard через тот же VPS | ✗ (ядро L4T 4.9 = DKMS) | да | высокая | ❌ откачено ADR-0003 |
-| Tailscale | ✓ DERP-relay | да | низкая | ❌ третья сторона, данные через DERP |
-| ngrok / cloudflared | ✓ | да | очень низкая | ❌ трафик через чужой сервер |
-| **Reverse SSH + autossh** | ✓ | да | средняя | ✅ **выбрано** |
+| WireGuard через VPS / via VPS | ✗ (DKMS, L4T 4.9) | да / yes | высокая / high | ❌ откачено / rolled back (ADR-0003) |
+| Tailscale | ✓ DERP-relay | да / yes | низкая / low | ❌ третья сторона / third party |
+| ngrok / cloudflared | ✓ | да / yes | очень низкая / very low | ❌ чужой сервер / foreign server |
+| **Reverse SSH + autossh** | ✓ | да / yes | средняя / medium | ✅ **выбрано / chosen** |
 
-## Решение
+## Решение / Decision
 
-Jetson инициирует исходящее SSH-соединение к VPS (`root@193.8.215.130`).
-CGNAT не блокирует исходящие соединения. VPS sshd принимает и удерживает
-reverse-порты на `127.0.0.1`. nginx на VPS (в `network_mode: host`) проксирует
-публичные запросы на эти localhost-порты.
+🇷🇺 Jetson инициирует исходящее SSH-соединение к VPS. CGNAT не блокирует исходящие. VPS sshd держит reverse-порты на `127.0.0.1`. nginx на VPS проксирует публичные запросы на эти порты.
+🇬🇧 Jetson initiates an outgoing SSH connection to VPS. CGNAT doesn't block outgoing connections. VPS sshd holds reverse ports at `127.0.0.1`. nginx on VPS proxies public requests to these ports.
 
 ```
 Internet → VPS:8080 → nginx → 127.0.0.1:18080 → SSH tunnel → Jetson:8080
 Internet → VPS:2283 → nginx → 127.0.0.1:12283 → SSH tunnel → Jetson:2283
 Internet → VPS:8090 → nginx → 127.0.0.1:18090 → SSH tunnel → Jetson:8090
-VPS → ssh -p 10022 admin@127.0.0.1  → SSH tunnel → Jetson:22
+VPS → ssh -p 10022 admin@127.0.0.1 → SSH tunnel → Jetson:22
 ```
 
-## Реализация
+## Реализация / Implementation
 
-**На Jetson:**
+**На Jetson / On Jetson:**
 
 ```bash
-# SSH-ключ
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 
 # /opt/nasa/config/.env
@@ -76,25 +66,13 @@ Restart=always
 RestartSec=10
 ```
 
-**На VPS — nginx (`/opt/nasa/docker-compose.yml`):**
+> 🇷🇺 **Важно:** nginx на VPS должен работать в `network_mode: host` — иначе `127.0.0.1` внутри контейнера — это loopback контейнера, а не хоста.
+>
+> 🇬🇧 **Important:** nginx on VPS must run in `network_mode: host` — otherwise `127.0.0.1` inside the container is the container's loopback, not the host where the SSH tunnel listens.
 
-```yaml
-services:
-  nginx:
-    image: nginx:alpine
-    network_mode: host   # обязательно! иначе 127.0.0.1:18080 = loopback контейнера
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-```
+## Последствия / Consequences
 
-**Важная деталь:** nginx должен работать в `network_mode: host`. В bridge-режиме
-`127.0.0.1` внутри контейнера — это loopback самого контейнера, а не хоста, где
-слушает SSH тоннель. Именно это стало основной ошибкой при первоначальной настройке.
-
-## Последствия
-
-- VPS публично открыт на портах 8080/2283/8090 (HTTP, без TLS пока).
-- При изменении IP VPS: обновить `VPS_HOST` в `/opt/nasa/config/.env` на Jetson,
-  перезапустить `nasa-tunnel.service`.
-- Amnezia VPN не затронут (работает на своих портах 36571/443/37238/40568).
-- Управление Jetson из любой точки мира: `ssh -p 10022 admin@127.0.0.1` с VPS.
+- 🇷🇺 VPS публично открыт на портах 8080/2283/8090 (HTTP) и 8443/2443/9443 (HTTPS, self-signed). / 🇬🇧 VPS publicly open on ports 8080/2283/8090 (HTTP) and 8443/2443/9443 (HTTPS, self-signed).
+- 🇷🇺 При изменении IP VPS: обновить `VPS_HOST` в `.env` на Jetson, перезапустить `nasa-tunnel.service`. / 🇬🇧 If VPS IP changes: update `VPS_HOST` in `.env` on Jetson, restart `nasa-tunnel.service`.
+- 🇷🇺 Amnezia VPN не затронут (работает на своих портах). / 🇬🇧 Amnezia VPN not affected (runs on its own ports).
+- 🇷🇺 Управление Jetson из любой точки мира: `ssh -p 10022 admin@127.0.0.1` с VPS. / 🇬🇧 Jetson management from anywhere: `ssh -p 10022 admin@127.0.0.1` from VPS.

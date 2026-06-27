@@ -1,13 +1,10 @@
-# 19. Network Inventory
+# 19. Network Inventory / Инвентаризация сети
 
-## 1. Purpose
-
-This document records the home network layout for the NASA Home Cloud test stand.
-It is a sanitized public inventory: real Wi-Fi passwords, router serial numbers,
-router MAC addresses, and private credentials must stay in `config/.env`
-(gitignored).
-
-Updated: 2026-06-23.
+> 🇬🇧 This document records the home network layout for the NASA Home Cloud test stand. It is a sanitized public inventory: real Wi-Fi passwords, router serial numbers, router MAC addresses, and private credentials must stay in `config/.env` (gitignored).
+>
+> 🇷🇺 Документ фиксирует сетевую топологию тестового стенда NASA Home Cloud. Публичная версия: реальные пароли Wi-Fi, серийные номера, MAC-адреса и учётные данные хранятся только в `config/.env` (gitignored).
+>
+> Updated / Обновлено: 2026-06-27.
 
 Scope of this step:
 

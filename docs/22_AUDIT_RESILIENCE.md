@@ -1,16 +1,12 @@
 # 22. Аудит надёжности и устойчивости / Resilience Audit
 
-> Актуализировано: 2026-06-23.
+> 🇷🇺 Документ фиксирует результаты аудита инфраструктуры NASA Home Cloud (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): тесты состояния через goss, статический анализ скриптов и Dockerfile, симуляцию отказов контейнеров и туннеля. Всего зафиксировано 11 находок. Актуализировано: 2026-06-27.
 >
-> Документ фиксирует результаты аудита инфраструктуры NASA Home Cloud
-> (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): тесты состояния через goss,
-> статический анализ скриптов и Dockerfile, симуляцию отказов контейнеров
-> и туннеля. После USB storage incident добавлена storage-находка F-11.
-> Всего зафиксировано 11 находок.
+> 🇬🇧 This document records the results of a NASA Home Cloud infrastructure audit (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): goss state tests, static analysis of scripts and Dockerfiles, container/tunnel failure simulation. 11 findings total. Updated: 2026-06-27.
 
 ---
 
-## РУССКАЯ СЕКЦИЯ
+## 🇷🇺 Русская секция / Russian section
 
 ---
 
@@ -275,7 +271,7 @@ goss -g tests/goss/goss.yaml validate --format json
 ---
 ---
 
-## ENGLISH SECTION
+## 🇬🇧 English section / Английская секция
 
 ---
 
