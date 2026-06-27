@@ -1,6 +1,7 @@
-# 13. Monitoring / Runbook
+﻿# 13. Monitoring / Runbook
 
-> Состояние на 2026-06-21: **мониторинг-стек развёрнут и работает**.
+> 🇷🇺 Состояние на 2026-06-27: **мониторинг-стек развёрнут и работает**.
+> 🇬🇧 Status 2026-06-27: **monitoring stack is deployed and operational**.
 >
 > Подробный анализ инструментов: `docs/17_MONITORING_OBSERVABILITY.md`.  
 > Логирование и API: `docs/21_LOGGING_API.md`.  
@@ -8,7 +9,7 @@
 
 ---
 
-## 1. Быстрая проверка состояния кластера
+## 1. Быстрая проверка состояния кластера / Quick Cluster Health Check
 
 ```bash
 # Все контейнеры с healthcheck-статусом:
@@ -25,7 +26,7 @@ cd ~/nasa
 sudo bash scripts/storage/storage_preflight.sh
 ```
 
-## 2. Ежедневные проверки
+## 2. Ежедневные проверки / Daily Checks
 
 ```bash
 df -h /mnt/storage          # место на диске данных
@@ -35,22 +36,22 @@ docker ps --format "{{.Names}}\t{{.Status}}"  # healthcheck-статусы
 sudo dmesg | grep -i -E "error|reset|fail|i/o" | tail -20
 ```
 
-## 3. Проверка HDD
+## 3. Проверка HDD / HDD Check
 
 ```bash
 sudo smartctl -a /dev/sda || sudo smartctl -a -d sat /dev/sda
 ```
 
-## 4. Веб-интерфейсы мониторинга
+## 4. Веб-интерфейсы мониторинга / Monitoring Web UIs
 
-| Инструмент | URL | Назначение |
+| Инструмент / Tool | URL | Назначение / Purpose |
 |---|---|---|
 | nasa-api Swagger | `http://192.168.0.50:8099/docs` | Метрики, логи, контейнеры, report/now |
 | Netdata | `http://192.168.0.50:19999` | CPU, RAM, Disk, Docker, темп Jetson |
 | Uptime Kuma | `http://192.168.0.50:3001` | HTTP uptime, Telegram-уведомления |
 | Portainer | `http://192.168.0.50:9000` | Docker management UI |
 
-## 5. Управление сервисами
+## 5. Управление сервисами / Service Management
 
 ```bash
 # Запуск стека (если контейнер упал и не поднялся сам):
@@ -66,7 +67,7 @@ docker compose -f docker/compose/docker-compose.nasa-api.yml    --env-file confi
 docker compose -f docker/compose/docker-compose.monitoring.yml --env-file config/.env down
 ```
 
-## 6. Если Nextcloud не открывается
+## 6. Если Nextcloud не открывается / If Nextcloud is unreachable
 
 1. Проверить healthcheck-статус:
 
@@ -95,7 +96,7 @@ mountpoint /mnt/storage
 cd ~/nasa && sudo bash scripts/storage/storage_preflight.sh
 ```
 
-## 7. Если Immich тормозит
+## 7. Если Immich тормозит / If Immich is slow
 
 1. Проверить RAM и CPU:
 
@@ -111,7 +112,7 @@ docker stats --no-stream | grep immich
 docker logs homecloud_immich_db --tail=30
 ```
 
-## 8. Если USB storage отваливается
+## 8. Если USB storage отваливается / If USB storage drops
 
 Симптомы: `/mnt/storage` не является mountpoint, `lsblk` не показывает диск,
 Nextcloud отдаёт `503` / `data directory is invalid`, в `journalctl -k`
@@ -173,7 +174,7 @@ Nextcloud снова `running/healthy`, `/status.php` возвращает `HTTP
 Reboot/autorecovery test прошёл: tunnel, storage, Docker containers, HTTP
 endpoints и `jetson-nas-health.timer` восстановились автоматически.
 
-## 9. Telegram ежедневный отчёт
+## 9. Telegram ежедневный отчёт / Telegram Daily Report
 
 ```bash
 # Статус таймера:
@@ -190,7 +191,7 @@ cat /var/log/nasa-monitor/last-telegram-send.json
 systemctl list-timers nasa-daily-report-telegram.timer
 ```
 
-## 10. Что смотреть в Netdata
+## 10. Что смотреть в Netdata / What to watch in Netdata
 
 - **System → CPU** — при 19%+ постоянно: возможно утечка или ML в Immich
 - **System → RAM** — при < 300 MB свободно: смотреть `docker stats --no-stream`
@@ -198,16 +199,16 @@ systemctl list-timers nasa-daily-report-telegram.timer
 - **Docker → Containers** — состояние всех контейнеров
 - **Temperature** — тепловые зоны Jetson; алерт при > 85°C
 
-## 11. Что делать при уведомлении Uptime Kuma
+## 11. Что делать при уведомлении / What to do when Uptime Kuma alerts
 
-| Уведомление | Действие |
+| Уведомление / Alert | Действие / Action |
 |---|---|
-| Nextcloud недоступен | Раздел 6 настоящего runbook |
-| Immich недоступен | Раздел 7 настоящего runbook |
-| LLM Gateway недоступен | `docker logs homecloud_llm_gateway --tail=50` |
-| nasa-api недоступен | `docker logs homecloud_nasa_api --tail=50` |
+| Nextcloud недоступен / unreachable | Section 6 of this runbook |
+| Immich недоступен / unreachable | Section 7 of this runbook |
+| LLM Gateway недоступен / unreachable | `docker logs homecloud_llm_gateway --tail=50` |
+| nasa-api недоступен / unreachable | `docker logs homecloud_nasa_api --tail=50` |
 
-## 12. Автоматический бэкап БД — установка таймера
+## 12. Автоматический бэкап БД / Automated DB Backup — timer setup
 
 Скрипт `scripts/backup/backup_databases.sh` уже реализован (pg_dump + gzip + ротация 7 дней).
 Таймер запускает его каждый день в 03:00 (±15 мин).
@@ -232,13 +233,13 @@ journalctl -u nasa-backup.service -n 40 --no-pager
 ls -lh /mnt/storage/backups/database-dumps/
 ```
 
-## 13. Uptime Kuma — начальная настройка мониторов
+## 13. Uptime Kuma — начальная настройка / Initial monitor setup
 
 **Первый запуск** → открыть `http://192.168.0.50:3001` и создать admin-аккаунт.
 
 Добавить 5 мониторов (Add New Monitor → HTTP(s)):
 
-| Имя | URL | Интервал | Expected Status |
+| Имя / Name | URL | Интервал / Interval | Expected Status |
 |---|---|---|---|
 | Nextcloud | `http://192.168.0.50:8080/status.php` | 60 сек | 200 |
 | Immich | `http://192.168.0.50:2283/api/server/ping` | 60 сек | 200 |
@@ -252,7 +253,7 @@ ls -lh /mnt/storage/backups/database-dumps/
 - Chat ID: значение из `TELEGRAM_CHAT_ID`
 - Включить на всех 5 мониторах
 
-## 14. Netdata — Telegram-алерты
+## 14. Netdata — Telegram-алерты / Telegram alerts
 
 Конфиг живёт внутри Docker-тома `homecloud_netdata_config` → `/etc/netdata/health_alarm_notify.conf`.
 
@@ -285,7 +286,7 @@ docker exec homecloud_netdata /usr/libexec/netdata/plugins.d/alarm-notify.sh tes
 > **Какие алерты приходят:** CPU > 80%, RAM < 300 MB, Disk > 80%, температура > 85°C,
 > контейнер упал. Настроить пороги можно в `/etc/netdata/health.d/` внутри контейнера.
 
-## 15. nasa-api — полезные запросы
+## 15. nasa-api — полезные запросы / Useful API queries
 
 ```bash
 # Метрики системы (RAM, CPU load, диски, температура):

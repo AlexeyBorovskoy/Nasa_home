@@ -1,17 +1,17 @@
-# 14. Test Plan
+﻿# 14. Test Plan
 
 ## 1. Hardware tests
 
-| Тест | Команда | Критерий |
+| Тест / Test | Команда / Command | Критерий / Criterion |
 |---|---|---|
-| RAM | `free -h` | система не в swap storm |
-| Storage preflight | `sudo bash scripts/storage/storage_preflight.sh` | `/mnt/storage` — отдельный ext4 mountpoint, не microSD |
-| Storage | `df -h /mnt/storage && mountpoint /mnt/storage` | диск доступен и смонтирован |
-| USB errors | `dmesg` | нет I/O/reset loop |
-| SMART | `smartctl -a` | нет критичных ошибок |
-| Stage 0 direct-link | `nmap -sn 192.168.1.0/24` | Jetson виден как отдельный host |
-| Stage 0 SSH | `ssh <user>@<jetson-direct-link-ip>` | вход с ноутбука работает |
-| Target LAN после переноса | `ping 192.168.0.50` | доступен после подключения к роутеру |
+| RAM | `free -h` | no swap storm / система не в swap storm |
+| Storage preflight | `sudo bash scripts/storage/storage_preflight.sh` | `/mnt/storage` is a separate ext4 mountpoint, not microSD |
+| Storage | `df -h /mnt/storage && mountpoint /mnt/storage` | disk accessible and mounted / доступен и смонтирован |
+| USB errors | `dmesg` | no I/O/reset loop / нет I/O/reset loop |
+| SMART | `smartctl -a` | no critical errors / нет критичных ошибок |
+| Stage 0 direct-link | `nmap -sn 192.168.1.0/24` | Jetson visible as separate host |
+| Stage 0 SSH | `ssh <user>@<jetson-direct-link-ip>` | SSH login from laptop works |
+| Target LAN после переноса | `ping 192.168.0.50` | accessible after connecting to router |
 
 ### 1.1. Existing data HDD intake
 
@@ -20,7 +20,7 @@
 форматируется, не добавляется в `/etc/fstab` и не монтируется сразу в
 `/mnt/storage`.
 
-| Тест | Команда | Критерий |
+| Тест / Test | Команда / Command | Критерий / Criterion |
 |---|---|---|
 | Services stopped before storage check | `docker ps` + `docker compose ... stop` | Nextcloud/Immich не пишут в `/mnt/storage` |
 | No false `/mnt/storage` mount | `mountpoint /mnt/storage` | понятно, смонтирован ли внешний диск или это каталог на microSD |
@@ -33,7 +33,7 @@
 
 ## 2. Samba/SFTP
 
-| Тест | Критерий |
+| Тест / Test | Критерий / Criterion |
 |---|---|
 | Windows открывает шару | Да |
 | Linux подключается по SFTP | Да |
@@ -68,7 +68,7 @@
 
 ## 6. VPS + Reverse SSH Tunnel
 
-| Тест | Команда | Критерий |
+| Тест / Test | Команда / Command | Критерий / Criterion |
 |---|---|---|
 | Tunnel service active | `systemctl status nasa-tunnel.service` | active (running) |
 | Tunnel ports on VPS | `ss -tlnp \| grep -E '18080\|12283\|18090\|10022'` | 4 порта на 127.0.0.1 |

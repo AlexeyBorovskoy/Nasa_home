@@ -171,13 +171,11 @@ Principles:
 | USB storage watchdog | udev | udev rules + smartd | ⚠️ Timer STOPPED · JMS583 swap pending 2026-06-28 |
 | Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud | Immich ✅ (6710 фото) · Nextcloud/DAVx⁵ ⏳ |
 
-> **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
-> После переподключения он виден как `/dev/sda1`, смонтирован `rw,noatime`,
-> `e2fsck -f -n` вернул `0`, `storage_preflight.sh` завершился без ошибок.
-> История инцидента и порядок восстановления:
-> [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md),
-> текущий reliability-аудит:
-> [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md).
+> **Хранилище / Storage:** `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB.
+> После переподключения / After reconnect: виден как / visible as `/dev/sda1`, смонтирован / mounted `rw,noatime`.
+> `e2fsck -f -n` вернул `0`, `storage_preflight.sh` завершился без ошибок / completed without errors.
+> История инцидента / Incident log: [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md).
+> Аудит надёжности / Reliability audit: [docs/plans/RELIABILITY_AUDIT_2026-06-23.md](docs/plans/RELIABILITY_AUDIT_2026-06-23.md).
 
 ---
 
@@ -194,13 +192,13 @@ Principles:
         |  :8080 / :8443  → 127.0.0.1:18080 → tunnel → Jetson:8080  (Nextcloud)
         |  :2283 / :2443  → 127.0.0.1:12283 → tunnel → Jetson:2283  (Immich)
         |  :8090 / :9443  → 127.0.0.1:18090 → tunnel → Jetson:8090  (LLM Gateway)
-        |  :10022          → tunnel → Jetson:22                       (SSH управление)
+        |  :10022          → tunnel → Jetson:22                       (SSH management / SSH управление)
         |  :8443/remote.php/dav → CardDAV/CalDAV (DAVx⁵ Android sync)
         |
-        |  ↑ autossh reverse SSH tunnel (обход CGNAT)
+        |  ↑ autossh reverse SSH tunnel (CGNAT bypass / обход CGNAT)
         |
   [ Домашний роутер / Home router ]
-        |  (статический DHCP: 192.168.0.50)
+        |  (static DHCP / статический DHCP: 192.168.0.50)
         v
   [ Jetson Nano 4GB · Ubuntu 18.04 · 192.168.0.50 ]
         |
@@ -210,34 +208,34 @@ Principles:
         |   IMMICH_DISABLE_MACHINE_LEARNING=true (Jetson Nano 4GB safe mode)
         |
         +-- LLM Gateway / FastAPI (8090)
-        |     +-- [ DeepSeek API ] — privacy-filtered (редакция персданных)
+        |     +-- [ DeepSeek API ] — privacy-filtered (PII redaction / редакция персданных)
         |
         +-- nasa-api / FastAPI (8099) · Swagger UI /docs
         |     · /v1/metrics · /v1/containers · /v1/logs · POST /v1/report/now
         |
         +-- Samba NAS (445, LAN only)
-        |     iptables: разрешён только 192.168.0.0/24
+        |     iptables: LAN only / разрешён только 192.168.0.0/24
         |
-        +-- Netdata (19999)    — CPU, RAM, Disk, Docker, темп Jetson
-        +-- Uptime Kuma (3001) — 5 HTTP мониторов + Telegram alerts
-        +-- Portainer (9000)   — Docker management UI (admin настроен)
+        +-- Netdata (19999)    — CPU, RAM, Disk, Docker, Jetson temp / темп Jetson
+        +-- Uptime Kuma (3001) — 5 HTTP monitors / мониторов + Telegram alerts
+        +-- Portainer (9000)   — Docker management UI (admin configured / настроен)
         |
         +-- systemd: nasa-tunnel.service       (autossh, restart=always)
-        +-- systemd: nasa-daily-report-telegram.timer  (09:00, ежедневно)
-        +-- systemd: nasa-backup.timer         (03:00, ежедневно, pg_dump)
-        +-- systemd: jetson-nas-health.timer   (SMART мониторинг HDD, 6h)
-        +-- systemd: beszel-agent.service      (мониторинг → Beszel Hub на VPS:8091)
-        +-- udev:    85-nasa-storage-watchdog  (autosuspend=off для RTL9210B-CG + hub)
+        +-- systemd: nasa-daily-report-telegram.timer  (09:00 daily / ежедневно)
+        +-- systemd: nasa-backup.timer         (03:00 daily / ежедневно, pg_dump)
+        +-- systemd: jetson-nas-health.timer   (SMART HDD monitoring / мониторинг HDD, 6h)
+        +-- systemd: beszel-agent.service      (monitoring → Beszel Hub at / на VPS:8091)
+        +-- udev:    85-nasa-storage-watchdog  (autosuspend=off for / для RTL9210B-CG + hub)
         +-- smartd:  /dev/sda monitoring       (S.M.A.R.T., weekly self-test)
 
-/mnt/storage  (DEXP/Realtek 250 ГБ ext4 USB; mounted, fsck/preflight OK; Nextcloud live)
+/mnt/storage  (DEXP/Realtek 250 GB ext4 USB; mounted, fsck/preflight OK; Nextcloud live)
   ├── nextcloud/data
   ├── immich/library
   ├── db/
   │   ├── nextcloud-postgres    (~373 MB)
   │   └── immich-postgres
   ├── backups/
-  │   └── database-dumps/       (pg_dump · gzip · ротация 7 дней)
+  │   └── database-dumps/       (pg_dump · gzip · 7-day rotation / ротация 7 дней)
   └── samba/public
 ```
 
@@ -257,28 +255,28 @@ Principles:
 
 ## Стек / Stack
 
-| Область / Area | Компонент | Версия | Роль |
+| Область / Area | Компонент / Component | Версия / Version | Роль / Role |
 |---|---|---|---|
-| Файлы и документы | Nextcloud | latest (apache) | File cloud, WebDAV, CalDAV, CardDAV |
-| Фото и видео | Immich | release | Photo/video archive, Android sync |
-| Базы данных | PostgreSQL | 16 / pgvecto-rs | Nextcloud DB + Immich DB |
-| Кэш / Очереди | Redis | 7-alpine | Nextcloud cache + Immich queue |
-| Локальный NAS | Samba (crazymax/samba) | latest ARM64 | SMB2+ для Windows/Android/macOS |
-| LLM-шлюз | FastAPI LLM Gateway | — | Privacy shim, редакция персданных |
-| LLM API | DeepSeek API | deepseek-chat | Помощник администратора |
-| Admin API | nasa-api (FastAPI) | — | Метрики, логи, контейнеры, Swagger UI |
-| Тоннель | autossh + systemd | — | Reverse SSH через CGNAT → VPS |
-| VPS прокси | nginx:alpine | — | Reverse proxy на публичный порт |
-| Мониторинг | Netdata | latest ARM64 | CPU, RAM, Disk, Docker, Jetson temp |
-| Uptime | Uptime Kuma | 1 | HTTP uptime + Telegram алерты (5 мониторов) |
-| Docker UI | Portainer CE | latest | Web UI для Docker management |
-| Ежедневный отчёт | bash + SSH relay + Telegram | — | 09:00 отчёт о здоровье кластера |
-| Бэкап БД | bash pg_dump + gzip | — | 03:00 ежедневно, ротация 7 дней |
-| Тестирование | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 теста) |
-| Здоровье системы | systemd timers + SMART | — | Диагностика 6ч + HDD health |
-| Unified monitoring | Beszel | 0.18.7 | Hub на VPS:8091, Agent Jetson:45876 + VPS:45877 |
-| Android sync | Immich app + DAVx⁵ + Nextcloud | — | Фото / контакты / календарь / файлы; [docs/android/](docs/android/) |
-| Бэкапы файлов | restic | — | Stage 3 (заготовка готова) |
+| Файлы и документы / Files & docs | Nextcloud | latest (apache) | File cloud, WebDAV, CalDAV, CardDAV |
+| Фото и видео / Photos & video | Immich | release | Photo/video archive, Android sync |
+| Базы данных / Databases | PostgreSQL | 16 / pgvecto-rs | Nextcloud DB + Immich DB |
+| Кэш / Cache & queues | Redis | 7-alpine | Nextcloud cache + Immich queue |
+| Локальный NAS / Local NAS | Samba (crazymax/samba) | latest ARM64 | SMB2+ for Windows/Android/macOS |
+| LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Privacy shim, PII redaction / редакция персданных |
+| LLM API | DeepSeek API | deepseek-chat | Admin assistant / Помощник администратора |
+| Admin API | nasa-api (FastAPI) | — | Metrics, logs, containers, Swagger UI |
+| Тоннель / Tunnel | autossh + systemd | — | Reverse SSH via CGNAT → VPS |
+| VPS прокси / VPS proxy | nginx:alpine | — | Reverse proxy to public ports |
+| Мониторинг / Monitoring | Netdata | latest ARM64 | CPU, RAM, Disk, Docker, Jetson temp |
+| Uptime | Uptime Kuma | 1 | HTTP uptime + Telegram alerts (5 monitors) |
+| Docker UI | Portainer CE | latest | Web UI for Docker management |
+| Ежедневный отчёт / Daily report | bash + SSH relay + Telegram | — | 09:00 cluster health report |
+| Бэкап БД / DB backup | bash pg_dump + gzip | — | 03:00 daily, 7-day rotation |
+| Тестирование / Testing | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 tests) |
+| Здоровье системы / System health | systemd timers + SMART | — | 6h diagnostics + HDD health |
+| Unified monitoring | Beszel | 0.18.7 | Hub at VPS:8091, Agent Jetson:45876 + VPS:45877 |
+| Android sync | Immich app + DAVx⁵ + Nextcloud | — | Photos / contacts / calendar / files; [docs/android/](docs/android/) |
+| Бэкапы файлов / File backups | restic | — | Stage 3 (scripts ready / заготовка готова) |
 | Android backup API | services/backup-api | — | Stage 2 placeholder |
 
 ---
@@ -287,28 +285,28 @@ Principles:
 
 **Железо / Hardware:**
 
-| Компонент | Рекомендация |
+| Компонент / Component | Рекомендация / Recommendation |
 |---|---|
-| Вычислительный узел | NVIDIA Jetson Nano Developer Kit (4 GB) · или Raspberry Pi 4/5 · или любой мини-ПК |
-| Системный диск | microSD 64 GB (Class 10 / A2) |
-| Диск данных | USB SSD/HDD — любой USB-накопитель; в проекте: DEXP 232 ГБ (от сына) |
-| Сеть | Домашняя LAN, статический DHCP lease |
-| Внешний доступ | VPS (любой; проверено на Ubuntu 24.04, 1 vCPU, 2 GB RAM) |
+| Вычислительный узел / Compute node | NVIDIA Jetson Nano Developer Kit (4 GB) · or Raspberry Pi 4/5 · or any mini-PC |
+| Системный диск / System disk | microSD 64 GB (Class 10 / A2) |
+| Диск данных / Data disk | USB SSD/HDD — any USB drive; in this project: DEXP 232 GB (son's old board) |
+| Сеть / Network | Home LAN, static DHCP lease |
+| Внешний доступ / External access | VPS (any; tested on Ubuntu 24.04, 1 vCPU, 2 GB RAM) |
 
 **ПО на Jetson / Software on Jetson:**
 
-- L4T / JetPack 4.x (Ubuntu 18.04) · или Ubuntu 22.04 (на RPi/мини-ПК)
+- L4T / JetPack 4.x (Ubuntu 18.04) · or Ubuntu 22.04 (on RPi / mini-PC)
 - Docker Engine 20.10+, Docker Compose v2
 - autossh (`apt install autossh`)
 - curl, openssl (`apt install curl openssl`)
-- SSH-ключ для VPS в `~/.ssh/`
+- SSH-ключ для VPS в `~/.ssh/` / SSH key for VPS in `~/.ssh/`
 
-**ПО на VPS:**
+**ПО на VPS / Software on VPS:**
 
 - Docker + Docker Compose v2
-- UFW: открыть порты 8080, 2283, 8090, **8443, 2443, 9443**, 10022 (и 22 для SSH)
-- SSH: разрешить вход от Jetson-ключа
-- nginx HTTPS: запустить `scripts/setup/install_nginx_vps.sh` после деплоя
+- UFW: открыть порты / open ports 8080, 2283, 8090, **8443, 2443, 9443**, 10022 (и / and 22 для SSH / for SSH)
+- SSH: разрешить вход от Jetson-ключа / allow login from Jetson key
+- nginx HTTPS: запустить / run `scripts/setup/install_nginx_vps.sh` после деплоя / after deploy
 
 ---
 
@@ -413,15 +411,15 @@ Web UI:
 - **Uptime Kuma:** http://192.168.0.50:3001
 - **Portainer:** http://192.168.0.50:9000
 
-Полный план тестирования: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).  
-Подготовка microSD: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).  
-Операционный runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
+Полный план тестирования / Full test plan: [docs/14_TEST_PLAN.md](docs/14_TEST_PLAN.md).  
+Подготовка microSD / microSD setup: [docs/01A_JETSON_SD_BOOTSTRAP.md](docs/01A_JETSON_SD_BOOTSTRAP.md).  
+Операционный runbook / Operations runbook: [docs/13_MONITORING_RUNBOOK.md](docs/13_MONITORING_RUNBOOK.md).
 
 ---
 
 ## Конфигурация / Configuration
 
-Все переменные — в `config/.env` (не коммитится). Шаблон: `config/.env.example`.
+Все переменные — в `config/.env` (не коммитится) / All variables go in `config/.env` (not committed). Шаблон / Template: `config/.env.example`.
 
 ```bash
 # Хранилище
@@ -446,7 +444,7 @@ DEEPSEEK_MODEL=deepseek-chat
 IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Nano 4GB
 ```
 
-Никогда не коммитьте реальный `config/.env`. Он в `.gitignore`.
+Никогда не коммитьте реальный `config/.env`. Он в `.gitignore`. / Never commit the real `config/.env`. It is listed in `.gitignore`.
 
 ---
 

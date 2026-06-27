@@ -1,16 +1,17 @@
-# 03. Архитектура
+# 03. Архитектура / Architecture
 
-> Актуализировано: 2026-06-23. Полная карта — [archtectura_nasa.md](../archtectura_nasa.md).
+> 🇷🇺 Актуализировано: 2026-06-27. Полная карта — [architecture_nasa.md](../docs/architecture_nasa.md).
+> 🇬🇧 Updated: 2026-06-27. Full map — [architecture_nasa.md](../docs/architecture_nasa.md).
 
-## 1. Логическая схема
+## 1. Логическая схема / Logical Diagram
 
 ```mermaid
 flowchart TB
-    Client[Android / браузер]
+    Client[Android / браузер / browser]
     VPS["VPS 193.8.215.130\nnginx :8080/:2283/:8090"]
     Tunnel["SSH reverse tunnel\nnasa-tunnel.service (autossh)"]
     Jetson[Jetson Nano 4GB\n192.168.0.50]
-    HDD[USB HDD]
+    HDD[USB SSD/HDD]
 
     Nextcloud[Nextcloud :8080]
     Immich[Immich :2283]
@@ -39,35 +40,37 @@ flowchart TB
     LLM --> DeepSeek
 ```
 
-## 2. Слои
+## 2. Слои / Layers
 
-| Слой | Назначение |
+| Слой / Layer | Назначение / Purpose |
 |---|---|
-| External relay | VPS nginx (host network) + SSH reverse tunnel через CGNAT |
-| Storage | USB SSD/HDD, ext4, `/mnt/storage`; mounted after 2026-06-23 recovery, preflight required before storage-backed services |
+| External relay | VPS nginx (host network) + SSH reverse tunnel via CGNAT / через CGNAT |
+| Storage | USB SSD/HDD, ext4, `/mnt/storage`; preflight required before storage-backed services |
 | NAS | Samba/SMB2+ (LAN only) |
 | Cloud | Nextcloud |
 | Photo archive | Immich |
 | Databases | PostgreSQL 16 (Nextcloud + Immich/pgvecto-rs), Redis 7 |
-| AI | LLM Gateway → DeepSeek API (privacy-filtered) |
+| AI | LLM Gateway → DeepSeek API (privacy-filtered / с редакцией персданных) |
 | Backup | pg_dump + restic |
 | Future Android | Backup API + Android client (Stage 2) |
 
-## 3. Порты
+## 3. Порты / Ports
 
-| Сервис | Порт Jetson | Внешний доступ | Статус |
+| Сервис / Service | Порт Jetson / Jetson Port | Внешний доступ / External access | Статус / Status |
 |---|---|---|---|
-| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ✅ Live after controlled start |
+| Nextcloud | 8080 | `http://193.8.215.130:8080/` | ✅ Live |
 | Immich | 2283 | `http://193.8.215.130:2283/` | ✅ Live |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` | ✅ Live |
-| SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS | ✅ tunnel |
-| Samba | 445/139 | LAN only (192.168.0.0/24) | ✅ Live; storage preflight required |
+| SSH управление / management | 22 | `ssh -p 10022 admin@127.0.0.1` from VPS | ✅ tunnel |
+| Samba | 445/139 | LAN only (192.168.0.0/24) | ✅ Live |
 
-Прямого проброса портов на домашнем роутере нет.
+🇷🇺 Прямого проброса портов на домашнем роутере нет.
+🇬🇧 No direct port forwarding on the home router.
 
 ## 4. VPS + reverse SSH tunnel
 
-Обход CGNAT через исходящий SSH от Jetson:
+🇷🇺 Обход CGNAT через исходящий SSH от Jetson:
+🇬🇧 CGNAT bypass via outgoing SSH from Jetson:
 
 ```
 Jetson → autossh -R 18080:localhost:8080
@@ -77,22 +80,26 @@ Jetson → autossh -R 18080:localhost:8080
                  root@193.8.215.130
 ```
 
-VPS nginx (`network_mode: host`) проксирует публичные порты на `127.0.0.1:18xxx`.  
-Подробнее: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
+🇷🇺 VPS nginx (`network_mode: host`) проксирует публичные порты на `127.0.0.1:18xxx`.
+🇬🇧 VPS nginx (`network_mode: host`) proxies public ports to `127.0.0.1:18xxx`.
 
-## 5. Принцип изоляции LLM
+Details / Подробнее: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
 
-LLM Gateway получает только:
-- обезличенные логи и статусы сервисов
-- фрагменты проектной документации
-- результаты диагностики без секретов
+## 5. Принцип изоляции LLM / LLM Isolation Principle
 
-LLM Gateway **не получает**:
-фото, видео, контакты, календарь, личные документы, ключи, backup-архивы.
+🇷🇺 LLM Gateway получает только:
+🇬🇧 LLM Gateway receives only:
 
-## 6. Этапы
+- обезличенные логи и статусы сервисов / anonymized logs and service statuses
+- фрагменты проектной документации / project documentation excerpts
+- результаты диагностики без секретов / diagnostics results without secrets
 
-| Этап | Содержание | Статус |
+🇷🇺 LLM Gateway **не получает**: фото, видео, контакты, календарь, личные документы, ключи, backup-архивы.
+🇬🇧 LLM Gateway **does not receive**: photos, videos, contacts, calendars, personal documents, keys, or backup archives.
+
+## 6. Этапы / Stages
+
+| Этап / Stage | Содержание / Content | Статус / Status |
 |---|---|---|
 | Stage 0 | microSD, first boot, SSH | ✅ |
 | Stage 1A | Hardware audit, storage, Samba | ✅ Storage recovered; boot guard added |
@@ -100,7 +107,7 @@ LLM Gateway **не получает**:
 | Stage 1C | Immich (ML disabled) | ✅ Live |
 | Stage 1D | LLM Gateway + DeepSeek | ✅ Live |
 | Stage 1E | VPS + reverse SSH tunnel | ✅ Live |
-| Stage 1F | Monitoring | ✅ |
-| Stage 1G | Backup/restore | ✅ DB dumps working; fail-closed guard remains |
-| Stage 2 | Android backup API | 📋 |
-| Stage 3 | RAG, fallback LLM | 📋 |
+| Stage 1F | Monitoring | ✅ Live |
+| Stage 1G | Backup/restore | ✅ DB dumps working; fail-closed guard |
+| Stage 2 | Android backup API | 📋 Planned |
+| Stage 3 | RAG, fallback LLM | 📋 Planned |

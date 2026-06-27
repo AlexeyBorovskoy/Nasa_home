@@ -1,30 +1,28 @@
-# 04. Дизайн хранилища
+# 04. Дизайн хранилища / Storage Design
 
-## 1. Цель
+## 1. Цель / Purpose
 
-USB HDD является основным хранилищем данных. microSD используется для ОС и минимального runtime.
+🇷🇺 USB HDD является основным хранилищем данных. microSD используется для ОС и минимального runtime.
 
-Статус 2026-06-23: целевой 250 GB USB storage после переподключения снова
-перечисляется как Realtek RTL9210B-CG `/dev/sda1`, смонтирован как
-`/mnt/storage` (`ext4`, label `nasa-storage`) и проходит `e2fsck -f -n` +
-`storage_preflight.sh`. До этого USB-цепочка давала `error -71` и ext4 ошибки,
-поэтому кабель/питание/корпус остаются hardware-риском. См. инцидент:
-`docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+🇬🇧 USB HDD/SSD is the primary data storage. microSD is used for the OS and minimal runtime only.
 
-## 2. Рекомендуемая файловая система
+> 🇷🇺 Статус 2026-06-27: 250 GB USB SSD смонтирован как `/mnt/storage` (ext4, label `nasa-storage`). USB-мост RTL9210B-CG деградирует USB 3.0→2.0 и блокирует SMART. Замена JMS583 ожидается. Инцидент: `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+> 🇬🇧 Status 2026-06-27: 250 GB USB SSD mounted at `/mnt/storage` (ext4, label `nasa-storage`). RTL9210B-CG USB bridge degrades USB 3.0→2.0 and blocks SMART. JMS583 replacement pending. Incident: `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
 
-Рекомендуется `ext4`, если диск постоянно используется с Linux-сервером.
+## 2. Рекомендуемая файловая система / Recommended Filesystem
 
-NTFS допустим только как временный режим, если диск нужно регулярно подключать к Windows. Для БД Immich/Nextcloud NTFS не рекомендуется.
+🇷🇺 Рекомендуется `ext4`, если диск постоянно используется с Linux-сервером. NTFS допустим только как временный режим, если диск нужно регулярно подключать к Windows. Для БД Immich/Nextcloud NTFS не рекомендуется.
 
-## 3. Существующий HDD с данными
+🇬🇧 `ext4` is recommended if the disk is used permanently with a Linux server. NTFS is acceptable only as a temporary mode if the disk is regularly connected to Windows. NTFS is not recommended for Immich/Nextcloud databases.
 
-Частый сценарий: пользователь подключает к Jetson уже используемый USB HDD, часто
-с файловой системой NTFS и личными данными. Такой диск нельзя сразу превращать в
-рабочий `/mnt/storage` и нельзя запускать `scripts/storage/setup_disk.sh`, пока
-не подтверждено, что данные сохранены и есть отдельный план миграции.
+## 3. Существующий HDD с данными / Existing HDD with data
 
-Безопасный порядок:
+🇷🇺 Частый сценарий: пользователь подключает к Jetson уже используемый USB HDD, часто с файловой системой NTFS и личными данными. Такой диск нельзя сразу превращать в рабочий `/mnt/storage` и нельзя запускать `scripts/storage/setup_disk.sh`, пока не подтверждено, что данные сохранены и есть отдельный план миграции.
+
+🇬🇧 Common scenario: user connects a previously-used USB HDD, often with NTFS and personal data. Never immediately convert such a disk to `/mnt/storage` and never run `scripts/storage/setup_disk.sh` until data is confirmed safe and a migration plan is in place.
+
+🇷🇺 Безопасный порядок:
+🇬🇧 Safe procedure:
 
 1. Остановить сервисы, которые могут писать в `/mnt/storage`, если они уже
    запущены. Использовать только `stop`; не использовать `down -v`.
