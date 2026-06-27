@@ -1,6 +1,10 @@
-# Аналитический отчет по open-source проектам NAS и file-server для Jetson Nano и одноплатных ПК
+# Аналитический отчет по NAS-проектам / NAS & File-server Research Report for Jetson Nano and SBCs
 
-## Executive summary
+> 🇷🇺 Аналитический обзор open-source проектов NAS и файловых серверов для Jetson Nano и одноплатных ПК. Документ обосновывает выбор архитектурного подхода.
+>
+> 🇬🇧 Analytical review of open-source NAS and file-server projects for Jetson Nano and single-board computers. The document justifies the chosen architectural approach.
+
+## Executive summary / Резюме
 
 Для проекта NAS на базе **Jetson Nano первого поколения + старый HDD** существует реалистичная и технически оправданная ниша: не как «еще один NAS-дистрибутив», а как **воспроизводимый инженерный DIY-проект по продлению жизни старого оборудования** с прозрачной автоматизацией, диагностикой и минимальным стеком. В изученных источниках Jetson Nano почти никогда не используется с полноценным NAS-OS; практические сборки чаще строятся вокруг **стандартного Ubuntu/L4T, внешнего USB-накопителя и Samba**, тогда как более зрелые SBC-ориентированные решения реализованы на Raspberry Pi / Armbian / Debian в виде OpenMediaVault, NextcloudPi, RetroNAS, NasberryPi и контейнерных Samba-образов. Это означает, что ваш проект может привлечь внимание именно как **узко сфокусированная, аккуратно документированная Jetson-сборка**, а не как клон существующего продукта. citeturn39search0turn39search1turn17search0turn29search0turn25view0turn11view0
 

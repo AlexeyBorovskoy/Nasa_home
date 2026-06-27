@@ -1,8 +1,9 @@
-# Project Plans
+# Project Plans / Планы проекта
 
-## 1. Назначение
+## 1. Назначение / Purpose
 
-Эта папка содержит стратегические планы развития и публичной упаковки проекта.
+🇷🇺 Эта папка содержит стратегические планы развития и публичной упаковки проекта.
+🇬🇧 This folder contains strategic development plans and public packaging plans.
 Документы перенесены из:
 
 ```text

@@ -1,6 +1,9 @@
-﻿# План: интеграция VPS в NASA Home Cloud
+﻿# План: интеграция VPS в NASA Home Cloud / VPS Integration Plan
 
-**Статус:** ✅ **Завершено (2026-06-21)**  
+> 🇷🇺 Завершено 2026-06-21. Реализован VPS reverse SSH tunnel (ADR-0005).
+> 🇬🇧 Completed 2026-06-21. VPS reverse SSH tunnel implemented (ADR-0005).
+
+**Статус / Status:** ✅ **Завершено / Completed (2026-06-21)**  
 **VPS:** 193.8.215.130 (hostname: borovskoy-new.ptr.network)  
 **Расположение:** Вена, Австрия (AEZA GROUP)  
 **Важно:** IP-адрес VPS может измениться — при смене обновить `VPS_HOST` в `/opt/nasa/config/.env` на Jetson и перезапустить `nasa-tunnel.service`.

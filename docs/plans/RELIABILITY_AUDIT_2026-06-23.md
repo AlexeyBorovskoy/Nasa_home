@@ -1,4 +1,7 @@
-# Reliability Audit 2026-06-23
+# Reliability Audit 2026-06-23 / Аудит надёжности 2026-06-23
+
+> 🇬🇧 Live reliability audit through VPS reverse SSH tunnel after 250 GB SSD recovery.
+> 🇷🇺 Живой аудит надёжности через VPS reverse SSH tunnel после восстановления 250 GB SSD.
 
 ## 1. Scope
 

@@ -1,8 +1,8 @@
 # Тестовый стенд NASA — чекпойнт и разбор сбоя (2026-05-31)
+# NASA Test Stand — Checkpoint and Incident Review (2026-05-31)
 
-> Точка фиксации проекта после сессии развёртывания тестового стенда на реальном
-> Jetson Nano. Особое внимание — разбору сбоя пользовательского VPN (§4.2).
-> Секретов в этом файле нет (все реквизиты — в `config/.env` и `.master.env`).
+> 🇷🇺 Точка фиксации проекта после сессии развёртывания тестового стенда на реальном Jetson Nano. Особое внимание — разбору сбоя пользовательского VPN (§4.2). Секретов в этом файле нет.
+> 🇬🇧 Project checkpoint after the test stand deployment session on real Jetson Nano hardware. Key focus: analysis of the user VPN outage (§4.2). No secrets in this file.
 
 ## 1. Резюме
 

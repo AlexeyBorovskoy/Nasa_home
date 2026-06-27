@@ -1,4 +1,7 @@
-# Storage Incident 2026-06-23
+# Storage Incident 2026-06-23 / Инцидент с хранилищем 2026-06-23
+
+> 🇬🇧 Post-mortem of the USB SSD outage caused by RTL9210B-CG USB bridge instability.
+> 🇷🇺 Разбор инцидента с USB SSD (нестабильность моста RTL9210B-CG).
 
 ## 1. Summary
 

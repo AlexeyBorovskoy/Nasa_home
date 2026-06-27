@@ -1,8 +1,7 @@
-# План: Tailscale внешний доступ к Jetson Nano
+# План: Tailscale внешний доступ к Jetson Nano / Tailscale External Access Plan
 
-> ⚠️ **УСТАРЕЛО (2026-06-21).** Tailscale не реализован.
-> Вместо него выбран VPS + autossh reverse SSH tunnel (ADR-0005).
-> Этот файл сохранён как исторический референс.
+> ⚠️ 🇷🇺 **УСТАРЕЛО (2026-06-21).** Tailscale не реализован. Вместо него выбран VPS + autossh reverse SSH tunnel (ADR-0005). Файл сохранён как исторический референс.
+> ⚠️ 🇬🇧 **OBSOLETE (2026-06-21).** Tailscale was not implemented. Replaced by VPS + autossh reverse SSH tunnel (ADR-0005). File kept as historical reference.
 >
 > Актуальный план внешнего доступа: [docs/plans/VPS_INTEGRATION_PLAN.md](VPS_INTEGRATION_PLAN.md)  
 > Архитектурное решение: [docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](../decisions/ADR-0005-vps-autossh-reverse-tunnel.md)
