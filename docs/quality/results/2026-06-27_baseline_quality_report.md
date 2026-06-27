@@ -172,19 +172,45 @@ Per CLAUDE.md (2026-06-27 operational status):
 
 ---
 
-## 7. Storage Checks (Manual Required)
+## 7. Storage Checks
 
-**Status: NOT RUN** -- requires Jetson SSH.
+**Status: PARTIAL RUN** -- `tests/storage/smart_check.sh` executed on Jetson 2026-06-27.
 
-Per CLAUDE.md (2026-06-27):
-- /dev/sda1 -> /mnt/storage: mounted (229G, 2% use)
-- USB SSD port: port 2 (1-2.2)
-- SCSI timeout: 120s
-- Autosuspend: disabled (kernel level)
-- USB watchdog timer: active
-- Preboot service: active
+### 7.1 Mount Status
 
-SMART status: UNKNOWN (not run; RTL9210B-CG has limited SMART passthrough).
+| Check | Result |
+|---|---|
+| /dev/sda1 mounted | YES → /mnt/storage |
+| Capacity | 229G, 2% used |
+| Filesystem | EXT4 |
+| USB SSD port | port 2 (1-2.2) |
+| SCSI timeout | 120s (udev rule active) |
+| Autosuspend | disabled (usbcore.autosuspend=-1, kernel cmdline) |
+| Watchdog timer | active (nasa-usb-watchdog.timer) |
+| Preboot service | active (nasa-usb-preboot.service) |
+
+### 7.2 SMART Check Results (2026-06-27)
+
+| Check | Result | Details |
+|---|---|---|
+| Device | INFO | /dev/sda -- KINGSTON SA2000M8250G, 250 GB NVMe |
+| USB Bridge | WARN | 0x0bda:0x9210 (RTL9210B-CG) |
+| SMART Health | SKIP | RTL9210B-CG blocks ATA passthrough -- smartctl returns "Unknown USB bridge" |
+| Temperature | SKIP | Not readable via RTL9210B-CG |
+| USB Bus Speed | **WARN** | **480 Mbps (USB 2.0) -- degraded from expected 5000 Mbps (USB 3.0)** |
+| Read Speed | PASS | **38.9 MB/s** (100 MB sequential, dd) -- drive responds, expected cap for USB 2.0 |
+| dmesg errors | WARN | error -71 on port 1-2.3 (old port, SSD now on 1-2.2 which is healthy) |
+| I/O errors current | OK | No current I/O errors in dmesg |
+
+**Critical finding:** USB speed is locked at 480 Mbps (USB 2.0) instead of 5000 Mbps (USB 3.0). This is a RTL9210B-CG hardware bug causing ~10x throughput penalty (38.9 MB/s vs ~400 MB/s expected). Replacing the enclosure with JMS583 (ordered, arriving 2026-06-28) will restore full USB 3.0 speed.
+
+**SMART availability:** The RTL9210B-CG chip completely blocks SMART ATA passthrough. `smartctl -d sat -T permissive` still returns "A mandatory SMART command failed". Drive health can only be assessed via read speed + dmesg monitoring. The updated `tests/storage/smart_check.sh` now handles this gracefully: detects the chip, skips SMART, reports USB speed and read throughput.
+
+Manual test commands for full storage check:
+```bash
+sudo bash tests/storage/smart_check.sh --device /dev/sda --output /tmp/smart-report.md
+sudo bash tests/storage/mount_check.sh --mount-point /mnt/storage
+```
 
 ---
 
@@ -285,7 +311,7 @@ None found.
 
 3. **No off-site backup**: Restic to VPS is planned but not configured. Single point of failure if SSD dies between dumps.
 
-4. **SMART passthrough limited**: RTL9210B-CG doesn't reliably pass SMART data. Drive health monitoring is limited.
+4. **SMART passthrough blocked + USB 2.0 speed degradation**: RTL9210B-CG completely blocks SMART passthrough. Additionally, SSD operates at USB 2.0 speed (480 Mbps / ~40 MB/s) instead of USB 3.0 (5000 Mbps / ~400 MB/s) -- 10x throughput penalty. Resolved by replacing enclosure with JMS583-based unit (ordered 2026-06-28).
 
 5. **microSD as OS disk**: Jetson boots from microSD. OS disk failure would take down the system even with SSD healthy.
 
