@@ -1,47 +1,38 @@
-# 05. Сеть и VPN
+# 05. Сеть и VPN / Networking & VPN
 
-## 1. LAN-схема
+## 1. LAN-схема / LAN layout
 
 ```text
-Домашний роутер: TP-Link EC220-G5
-├── 192.168.0.1       роутер (gateway/admin UI, observed)
-├── 192.168.0.50      Jetson Nano, статический DHCP lease (назначается позже)
-├── 192.168.0.x       телефоны
-└── 192.168.0.x       ноутбуки
+Домашний роутер / Home router: TP-Link EC220-G5
+├── 192.168.0.1       роутер / router (gateway/admin UI)
+├── 192.168.0.50      Jetson Nano, статический IP / static IP
+├── 192.168.0.x       телефоны / phones
+└── 192.168.0.x       ноутбуки / laptops
 ```
 
-> Gateway `192.168.0.1` и модель роутера подтверждены текущей инвентаризацией.
-> Jetson использует профиль `nasa-lan` со статикой `192.168.0.50/24`; профиль
-> не удалять. DHCP range, static lease в UI роутера, UPnP и port forwarding ещё
-> требуют read-only проверки после входа в админку роутера.
+> 🇷🇺 Gateway `192.168.0.1` и модель роутера подтверждены инвентаризацией. Jetson использует профиль `nasa-lan` со статикой `192.168.0.50/24`; профиль не удалять.
+>
+> 🇬🇧 Gateway `192.168.0.1` and router model confirmed by current inventory. Jetson uses the `nasa-lan` profile with static `192.168.0.50/24`; do not remove this profile.
 
-## 1.1. Stage 0 direct-link схема
+## 1.1. Stage 0 — прямое подключение / Direct link
 
-> Источник истины по первому подключению — **официальная документация NVIDIA**
-> (локально: `external_docs/jetson/get-started-jetson-nano-devkit.html` и
-> `external_docs/jatson/NV_Jetson_Nano_Developer_Kit_User_Guide.pdf`). По ней
-> первичная настройка свежего Jetson Nano в headless-режиме идёт через
-> **serial console по Micro-USB** (`/dev/ttyACM0`, скорость `115200`,
-> `sudo screen /dev/ttyACM0 115200`), где проходит штатный first-boot setup
-> Ubuntu (oem-config). Только после этого Jetson доступен по сети.
+> 🇷🇺 Первичная настройка свежего Jetson Nano в headless-режиме идёт через **serial console по Micro-USB** (`/dev/ttyACM0`, скорость `115200`). Только после этого Jetson доступен по сети.
+>
+> 🇬🇧 Initial headless setup of a fresh Jetson Nano goes through the **Micro-USB serial console** (`/dev/ttyACM0`, speed `115200`). Only after that is Jetson accessible over the network.
 
-Для аппаратного аудита и SSH после first-boot используется прямое подключение
-Jetson к ноутбуку по Ethernet. Это основная схема Stage 0 (после serial-настройки),
-а не fallback:
+🇷🇺 Для аппаратного аудита и SSH после first-boot используется прямое подключение Jetson к ноутбуку по Ethernet:
+🇬🇧 For hardware audit and SSH after first-boot, Jetson is connected directly to the laptop via Ethernet:
 
 ```text
-Ноутбук
-├── обычный интернет/LAN интерфейс
+Ноутбук / Laptop
+├── обычный интернет/LAN интерфейс / normal internet/LAN interface
 └── USB-Ethernet adapter, ens37, 192.168.1.2/24
         |
-        └── Jetson Nano, временный IP в 192.168.1.0/24
+        └── Jetson Nano, временный IP / temporary IP in 192.168.1.0/24
 ```
 
-Домашний роутер в Stage 0 не используется. Эта схема нужна для bootstrap, SSH и
-диагностики. Она не предназначена для публикации Nextcloud, Immich, Samba или
-LLM Gateway.
-
-Команды обнаружения:
+🇷🇺 Домашний роутер в Stage 0 не используется. Эта схема нужна для bootstrap, SSH и диагностики.
+🇬🇧 The home router is not used in Stage 0. This scheme is for bootstrap, SSH and diagnostics only.
 
 ```bash
 ip -br addr
@@ -51,86 +42,68 @@ nmap -sn 192.168.1.0/24
 ssh <user>@<jetson-direct-link-ip>
 ```
 
-После завершения Stage 0 Jetson переносится в основную LAN-схему через роутер,
-где ему назначается static DHCP lease, например `192.168.0.50`.
+## 1.2. USB device-mode доступ с Windows / USB device-mode access from Windows (recovery/admin)
 
-Конкретная модель домашнего роутера и gateway теперь зафиксированы в
-`docs/19_NETWORK_INVENTORY.md`. На Stage 0 роутер вообще не трогаем: не менять
-firewall, port forwarding, DHCP reservations или Wi-Fi параметры. Эти настройки
-актуальны только на этапе переноса Jetson в домашнюю LAN и проверяются read-only
-через админку роутера.
+> 🇷🇺 Проверено 2026-06-13. Если Jetson подключён по micro-USB к Windows-хосту, L4T device mode поднимает 4 интерфейса одновременно.
+>
+> 🇬🇧 Verified 2026-06-13. When Jetson is connected via micro-USB to a Windows host, L4T device mode brings up 4 interfaces simultaneously.
 
-## 1.2. USB device-mode доступ с Windows-хоста (recovery/admin, проверено 2026-06-13)
+- RNDIS Ethernet — в `Get-NetAdapter` / in `Get-NetAdapter`
+- NCM Ethernet — второй / second Ethernet
+- USB-serial (`COMx`, `VID_0955` NVIDIA) — консоль / console
+- USB Mass Storage (`L4T-README`)
 
-Если Jetson подключён по micro-USB к **Windows-хосту** (не к Linux-VM), L4T
-device mode поднимает одновременно **4 интерфейса**:
+🇷🇺 На стороне Jetson все интерфейсы объединены в бридж `l4tbr0` (`192.168.55.1/24`).
+**IPv4 `192.168.55.1` обычно недоступен с Windows-хоста** — рабочий вариант — **IPv6 link-local**:
 
-- RNDIS Ethernet (в `Get-NetAdapter` — отдельный `Ethernet N`);
-- NCM Ethernet (второй `Ethernet M`);
-- USB-serial (`COMx`, `VID_0955` NVIDIA) — консоль `ttyGS0`/`ttyACM0`;
-- USB Mass Storage (`L4T-README`, диск с инструкцией NVIDIA).
-
-На стороне Jetson все эти интерфейсы объединены в бридж `l4tbr0`
-(`192.168.55.1/24`).
-
-**IPv4 `192.168.55.1` обычно недоступен с Windows-хоста** — у Windows нет
-маршрута на `192.168.55.0/24` (IPv4 на RNDIS-адаптере не настраивается
-автоматически). Рабочий вариант — **IPv6 link-local**:
+🇬🇧 On Jetson side all interfaces are bridged as `l4tbr0` (`192.168.55.1/24`).
+**IPv4 `192.168.55.1` is usually unreachable from Windows** — working approach is **IPv6 link-local**:
 
 ```powershell
-Get-NetAdapter                                   # найти ifIndex RNDIS-адаптера
+Get-NetAdapter                                   # найти ifIndex / find ifIndex of RNDIS adapter
 ping -6 fe80::1%<ifIndex>
 Test-NetConnection -ComputerName "fe80::1%<ifIndex>" -Port 22
 ssh admin@fe80::1%<ifIndex>
 ```
 
-`<ifIndex>` меняется между подключениями USB — каждый раз смотреть в
-`Get-NetAdapter`.
+🇷🇺 `<ifIndex>` меняется между подключениями USB — каждый раз смотреть в `Get-NetAdapter`.
 
-Настройка ключевого SSH-доступа (на Windows нет `ssh-copy-id`):
+🇬🇧 `<ifIndex>` changes between USB connections — always check `Get-NetAdapter` first.
+
+🇷🇺 Настройка SSH-ключа (на Windows нет `ssh-copy-id`) / SSH key setup (no `ssh-copy-id` on Windows):
 
 ```powershell
 Get-Content ~/.ssh/id_ed25519.pub | ssh admin@fe80::1%<ifIndex> `
   "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo DONE"
 ```
 
-После этого `ssh admin@fe80::1%<ifIndex>` работает без пароля.
+## 2. Правило публикации сервисов / Service publication rule
 
-> На Jetson `sudo` для пользователя `admin` требует пароль (NOPASSWD не
-> настроен) — для административных команд (`systemctl`, `nmcli`, правки в
-> `/etc/`) пароль нужен отдельно от SSH-ключа.
+🇷🇺 Прямой публичный port forwarding на домашнем роутере отсутствует. Внешний доступ — через обратный SSH-тоннель от Jetson к VPS.
+🇬🇧 No direct public port forwarding on the home router. External access is via reverse SSH tunnel from Jetson to VPS.
 
-Эта схема — **recovery/admin-доступ** на время, пока Jetson не в домашней LAN
-или для диагностики. Основной канал для сервисов — `nasa-lan` (eth0, см.
-§1).
-
-## 2. Правило публикации сервисов
-
-Прямой публичный port forwarding на домашнем роутере отсутствует. Внешний
-доступ реализован через обратный SSH-тоннель от Jetson к VPS (см. §3.4).
-
-| Сервис | Jetson порт | Внешний доступ |
+| Сервис / Service | Jetson порт / Port | Внешний доступ / External access |
 |---|---|---|
 | Nextcloud | 8080 | `http://193.8.215.130:8080/` (VPS nginx) |
 | Immich | 2283 | `http://193.8.215.130:2283/` (VPS nginx) |
 | LLM Gateway | 8090 | `http://193.8.215.130:8090/` (VPS nginx) |
-| SSH управление | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS |
+| SSH управление / SSH management | 22 | `ssh -p 10022 admin@127.0.0.1` с VPS / from VPS |
 | Samba | 445/139 | **LAN only** — iptables 192.168.0.0/24 |
 
-## 3. VPN-варианты (обзор)
+## 3. VPN-варианты / VPN options (overview)
 
-| Вариант | Назначение | Оценка |
+| Вариант / Option | Назначение / Purpose | Оценка / Assessment |
 |---|---|---|
-| **Reverse SSH + autossh** | CGNAT-proof, свой VPS | ✅ **Реализовано (ADR-0005)** |
-| Tailscale | быстрый старт без белого IP | ❌ Заменён ADR-0005 |
-| ZeroTier | mesh-сеть | не рассматривался |
-| WireGuard через VPS | контролируемая схема | ❌ DKMS проблемы на L4T 4.9 (ADR-0003) |
-| AmneziaVPN | уже используется для семейного VPN | НЕ ТРОГАТЬ |
+| **Reverse SSH + autossh** | CGNAT-proof, свой VPS / own VPS | ✅ **Реализовано / Implemented (ADR-0005)** |
+| Tailscale | быстрый старт / quick start without white IP | ❌ Заменён / Replaced by ADR-0005 |
+| ZeroTier | mesh-сеть / mesh network | не рассматривался / not evaluated |
+| WireGuard через VPS / via VPS | контролируемая схема / controlled scheme | ❌ DKMS проблемы / issues on L4T 4.9 (ADR-0003) |
+| AmneziaVPN | уже используется для семейного VPN / family VPN | ⚠️ НЕ ТРОГАТЬ / DO NOT TOUCH |
 
-## 3.4. Реализованная схема: VPS + autossh reverse tunnel (2026-06-21)
+## 3.4. Реализованная схема / Active scheme: VPS + autossh reverse tunnel (2026-06-21)
 
-Выбранное и работающее решение. Описание и обоснование:
-[docs/decisions/ADR-0005-vps-autossh-reverse-tunnel.md](decisions/ADR-0005-vps-autossh-reverse-tunnel.md).
+🇷🇺 Выбранное и работающее решение. Обоснование: [ADR-0005](decisions/ADR-0005-vps-autossh-reverse-tunnel.md)
+🇬🇧 Chosen and operational solution. Details: [ADR-0005](decisions/ADR-0005-vps-autossh-reverse-tunnel.md)
 
 ```
 Jetson (CGNAT) ──────────────────────────────→ VPS 193.8.215.130
@@ -144,149 +117,46 @@ autossh -R 18080:localhost:8080                  sshd: 127.0.0.1:18080
                                                   :8090 → 127.0.0.1:18090
 ```
 
-Статус (2026-06-23): `nasa-tunnel.service` — active (running), enabled.
-Через VPS подтверждены Nextcloud, Immich, LLM Gateway и SSH-management path.
-Nextcloud после USB-инцидента поднят controlled start; `status.php` через VPS
-возвращает `HTTP 200`.
+🇷🇺 Статус (2026-06-27): `nasa-tunnel.service` — active (running), enabled.
+🇬🇧 Status (2026-06-27): `nasa-tunnel.service` — active (running), enabled.
 
-Проверка: `systemctl status nasa-tunnel.service`
+🇷🇺 Что нельзя менять / What must not be changed:
+- **Amnezia-контейнеры на VPS** — не трогать (семейный VPN ~25 клиентов) / do not touch (family VPN ~25 clients)
+- **`nasa-lan` профиль** на Jetson (eth0, 192.168.0.50/24) — не удалять / do not remove
 
-Что нельзя менять:
-- **Amnezia-контейнеры на VPS** — не трогать (семейный VPN ~25 клиентов).
-- **`nasa-lan` профиль** на Jetson (eth0, 192.168.0.50/24) — не удалять.
-
-## 3.1. Доступный VPS/VPN контур (исторический референс)
-
-В `/home/alexey/work/Amnezia` уже есть рабочий WireGuard-контур:
+## 3.1. WireGuard контур (исторический референс) / WireGuard circuit (historical reference)
 
 ```text
 Yandex VM                 WireGuard                 EU VPS
 wg-eu 10.210.0.1/30  <-------------------->  wg-yandex 10.210.0.2/30
 ```
 
-Проверено 2026-05-31:
+🇷🇺 Возможно использование для NASA позже как controlled admin path. Не открывать без отдельного risk-документа.
+🇬🇧 Could be used for NASA later as a controlled admin path. Do not use without a separate risk document.
 
-- интерфейс `wg-eu` поднят на Yandex VM;
-- интерфейс `wg-yandex` поднят на EU VPS;
-- WireGuard handshake есть;
-- default route на Yandex VM не меняется;
-- full tunnel не включён;
-- NAT на EU VPS относится к WireGuard-подсети, а не к домашним сервисам NASA.
+## 3.2. EU VPS — VPN-endpoint
 
-Как можно использовать для NASA позже:
-
-1. Как controlled admin path: доступ администратора к домашнему контуру через
-   VPN без публикации Nextcloud/Immich/LLM Gateway напрямую в интернет.
-2. Как будущий relay/bastion для SSH после отдельного risk-документа и
-   отдельной настройки ключей.
-3. Как внешний endpoint для WireGuard, если домашний провайдер не даёт белый IP.
-
-Что не делать на Stage 0/Stage 1:
-
-- не направлять весь домашний трафик через VPS без отдельного плана;
-- не открывать Nextcloud, Immich, LLM Gateway или SSH на публичном IP;
-- не смешивать текущий Yandex VM ↔ EU VPS туннель с домашним Jetson без
-  отдельной схемы маршрутизации, firewall policy и rollback.
-
-Минимальная будущая схема:
-
-```text
-Laptop admin client
-        |
-        | VPN
-        v
-VPS / VPN endpoint
-        |
-        | encrypted route only to admin ports
-        v
-Home router / Jetson LAN
-        |
-        v
-Jetson: SSH, Nextcloud, Immich, LLM Gateway
-```
-
-Перед включением этой схемы нужно подготовить отдельный документ риска:
-
-- какие порты доступны через VPN;
-- какие ключи используются;
-- какие маршруты добавляются;
-- как отключить доступ;
-- как проверить, что прямой public exposure отсутствует.
-
-## 3.2. EU VPS — VPN-endpoint для NASA
-
-Внешний WireGuard-endpoint, выбранный для удалённого админ-доступа к домашнему
-контуру NASA. Это конец туннеля с белым IP; через него администратор заходит в
-LAN к Jetson, не публикуя сервисы наружу.
-
-| Параметр | Значение |
+| Параметр / Parameter | Значение / Value |
 |---|---|
-| Роль | Внешний VPN/WireGuard endpoint (admin path) |
-| Публичный IP | `45.95.2.49` |
-| Hostname | `weaselcloud-27011` |
-| SSH-пользователь | `sshadmin` |
-| SSH-alias | `vps-de` |
-| SOCKS5-прокси | `45.95.2.49:40099` |
-| WireGuard-порт | `51830/udp` |
-| Туннельная подсеть | `10.210.0.0/30` |
-| WG-адрес на EU VPS | `10.210.0.2/30` (интерфейс `wg-yandex`) |
-| WG-адрес на втором конце (Yandex VM) | `10.210.0.1/30` (интерфейс `wg-eu`) |
+| Роль / Role | Внешний VPN/WireGuard endpoint (admin path) |
+| Публичный IP / Public IP | `45.95.2.49` |
+| SSH-пользователь / user | `sshadmin` |
+| SOCKS5-прокси / proxy | `45.95.2.49:40099` |
+| WireGuard-порт / port | `51830/udp` |
+| Туннельная подсеть / Tunnel subnet | `10.210.0.0/30` |
 
-> **Секреты вне репозитория.** SSH-ключ и WireGuard private/public ключи в git
-> не хранятся (правило проекта «без секретов в git»). Они лежат в workspace вне
-> NASA:
-> - SSH-ключ EU VPS: `.master.env` → `SERVER_EU_VPS_SSH_KEY`;
-> - WireGuard-ключи контура: `/home/alexey/work/Amnezia/secrets/id_sshadmin_vps`;
-> - публичный ключ сервера: `.master.env` → `AMNEZIA_WG_SERVER_PUBLIC_KEY`.
->
-> При развёртывании NASA-схемы поверх этого endpoint ключи и peer-конфиги
-> подключаются локально, в репозиторий не попадают.
+> 🇷🇺 Секреты вне репозитория. SSH-ключ и WireGuard ключи в git не хранятся.
+> 🇬🇧 Secrets outside repository. SSH key and WireGuard keys are not in git.
 
-Подключение к EU VPS (из workspace, с загруженными секретами):
+## 3.3. wg-nasa (тест 2026-05-31, откачено / rolled back)
 
-```bash
-set -a; . /home/alexey/work/.master.env; set +a
-ssh -i "$SERVER_EU_VPS_SSH_KEY" "${SERVER_EU_VPS_SSH_USER}@${SERVER_EU_VPS_HOST}"
-```
+> ⚠️ 🇷🇺 Статус: откачено 2026-06-13 из-за нестабильности через CGNAT. Раздел оставлен для истории.
+> ⚠️ 🇬🇧 Status: rolled back 2026-06-13 due to CGNAT instability. Section kept for reference.
 
-Перед использованием этого endpoint для NASA по-прежнему нужен отдельный
-risk-документ (см. конец §3.1): какие порты открыты через VPN, какие маршруты
-добавляются и как откатить доступ.
+## 4. DNS внутри сети / Internal DNS
 
-## 3.3. Реализованная схема wg-nasa (2026-05-31, тестовый стенд)
-
-> ⚠️ Статус: откачено 2026-05-31 из-за нестабильности через CGNAT (TCP не
-> проходил), полностью удалено с VPS и Jetson — конфиги и ключи (2026-06-13)
-> убраны и из `/etc/wireguard/wg-nasa.conf` на Jetson (бэкап в
-> `/root/rollback-backup-2026-06-13/`). Раздел оставлен для истории/референса
-> конфигурации (см. `TEST_STAND_CHECKPOINT_2026-05-31.md` §4.1, §6).
-
-Поднят отдельный WireGuard-интерфейс `wg-nasa` на EU VPS — **изолированно** от
-Amnezia-туннеля `wg-yandex` (порт 51830, не затронут).
-
-| Узел | Параметры |
-|---|---|
-| EU VPS `45.95.2.49` | интерфейс `wg-nasa`, порт `51820/udp` (уже открыт в UFW), адрес `10.13.13.1/24`; форвардинг только внутри интерфейса (`-i wg-nasa -o wg-nasa`) |
-| Jetson | пир `10.13.13.2/24`, Endpoint `45.95.2.49:51820`, AllowedIPs `10.13.13.0/24`, PersistentKeepalive 25 (нужен из-за CGNAT дома) |
-| Клиент (телефон/ноут) | пир `10.13.13.3/24` |
-
-Особенность Jetson: ядро L4T **4.9** не имеет встроенного WireGuard — модуль
-собран через `wireguard-dkms` (заголовки ядра в составе `nvidia-l4t-kernel-headers`).
-Хендшейк Jetson↔VPS подтверждён.
-
-Доступ к сервисам извне: клиент поднимает WireGuard → VPS → Jetson, далее по
-адресу `10.13.13.2` (Nextcloud `:8080`, Immich `:2283`, LLM Gateway `:8090`).
-Прямого проброса портов нет (дома CGNAT, WAN `100.78.121.189`) — только этот
-исходящий VPN-контур.
-
-Ключи и приватные параметры — только в `.master.env` (`NASA_WG_*`), в git не
-коммитятся.
-
-## 4. DNS внутри сети
-
-Минимально: доступ по IP.
-
-Расширенно:
+🇷🇺 Минимально: доступ по IP. Расширенно:
+🇬🇧 Minimum: IP access. Extended:
 
 ```text
 cloud.home.arpa  -> 192.168.0.50
@@ -294,11 +164,12 @@ photos.home.arpa -> 192.168.0.50
 llm.home.arpa    -> 192.168.0.50
 ```
 
-## 5. Роутер
+## 5. Роутер / Router
 
-На домашнем роутере (модель уточняется на месте) выполнить:
+🇷🇺 На домашнем роутере выполнить:
+🇬🇧 On the home router:
 
-1. Найти Jetson в DHCP-клиентах.
-2. Закрепить IP, например `192.168.0.50`.
-3. Проверить ping из LAN.
-4. Не включать port forwarding на первом этапе.
+1. 🇷🇺 Найти Jetson в DHCP-клиентах / 🇬🇧 Find Jetson in DHCP clients
+2. 🇷🇺 Закрепить IP `192.168.0.50` / 🇬🇧 Reserve IP `192.168.0.50`
+3. 🇷🇺 Проверить ping из LAN / 🇬🇧 Verify ping from LAN
+4. 🇷🇺 Не включать port forwarding на первом этапе / 🇬🇧 Do not enable port forwarding in Stage 1

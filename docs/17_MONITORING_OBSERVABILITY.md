@@ -1,15 +1,15 @@
 ﻿# 17. Мониторинг и наблюдаемость / Monitoring & Observability
 
-> Актуализировано: 2026-06-20.
+> 🇷🇺 Документ описывает выбор инструментов мониторинга для NASA Home Cloud на Jetson Nano (ARM64, 4 GB RAM) и стратегию их поэтапного развёртывания. Актуализировано: 2026-06-27.
 >
-> Документ описывает выбор инструментов мониторинга для NASA Home Cloud на
-> Jetson Nano (ARM64, 4 GB RAM) и стратегию их поэтапного развёртывания.
-> Compose-файл: `docker/compose/docker-compose.monitoring.yml`.
-> Промпт агента: `docs/prompts/CODEX_MONITORING_PROMPT.md`.
+> 🇬🇧 This document describes monitoring tool selection for NASA Home Cloud on Jetson Nano (ARM64, 4 GB RAM) and phased deployment strategy. Updated: 2026-06-27.
+>
+> Compose-файл / Compose file: `docker/compose/docker-compose.monitoring.yml`.
+> Промпт агента / Agent prompt: `docs/prompts/CODEX_MONITORING_PROMPT.md`.
 
 ---
 
-## РУССКАЯ СЕКЦИЯ
+## 🇷🇺 Русская секция / Russian section
 
 ---
 
@@ -387,7 +387,7 @@ TELEGRAM_CHAT_ID="ваш_chat_id"
 ---
 ---
 
-## ENGLISH SECTION
+## 🇬🇧 English section / Английская секция
 
 ---
 

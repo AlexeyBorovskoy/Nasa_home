@@ -1,30 +1,30 @@
 # 09. Android Stage 2 Architecture
 
-## 1. Цель Stage 2
+## 1. Цель Stage 2 / Stage 2 Goal
 
-Разработать собственное Android-приложение для синхронизации и восстановления пользовательских данных семьи.
+🇷🇺 Разработать собственное Android-приложение для синхронизации и восстановления пользовательских данных семьи. Stage 2 не заменяет системный backup Google/Xiaomi полностью, так как Android ограничивает доступ обычных приложений к системным данным.
 
-Stage 2 не заменяет системный backup Google/Xiaomi полностью, так как Android ограничивает доступ обычных приложений к системным данным.
+🇬🇧 Develop a custom Android app for syncing and restoring family user data. Stage 2 does not fully replace the Google/Xiaomi system backup, since Android restricts regular app access to system data.
 
-## 2. Что можно реализовать без root
+## 2. Что можно реализовать без root / What is possible without root
 
-| Данные | Реализация |
+| Данные / Data | Реализация / Implementation |
 |---|---|
-| Фото/видео | Да |
-| Документы | Да |
-| Downloads | Да |
-| Музыка | Да |
-| Контакты | Да, через экспорт/vCard или CardDAV |
-| Календарь | Да, через iCal/CalDAV |
-| SMS | Частично, при разрешениях |
-| Журнал вызовов | Частично, при разрешениях |
-| Список приложений | Да |
-| APK | Частично |
-| Данные приложений | Обычно нет |
-| Wi-Fi пароли | Нет без системных прав/root |
-| Настройки Android | Нет/частично |
+| Фото/видео / Photos & video | Да / Yes |
+| Документы / Documents | Да / Yes |
+| Downloads | Да / Yes |
+| Музыка / Music | Да / Yes |
+| Контакты / Contacts | Да / Yes, через экспорт/vCard или CardDAV / via vCard export or CardDAV |
+| Календарь / Calendar | Да / Yes, через iCal/CalDAV / via iCal/CalDAV |
+| SMS | Частично / Partial, при разрешениях / with permissions |
+| Журнал вызовов / Call log | Частично / Partial, при разрешениях / with permissions |
+| Список приложений / App list | Да / Yes |
+| APK | Частично / Partial |
+| Данные приложений / App data | Обычно нет / Usually No |
+| Wi-Fi пароли / Wi-Fi passwords | Нет / No — без системных прав/root / without system rights/root |
+| Настройки Android / Android settings | Нет/частично / No/partial |
 
-## 3. Модули приложения
+## 3. Модули приложения / App modules
 
 ```text
 Android Backup Client
@@ -63,7 +63,7 @@ Android Backup Client
 }
 ```
 
-## 5. Серверный Backup API
+## 5. Серверный Backup API / Server Backup API
 
 ```http
 POST /api/v1/devices/register
@@ -76,11 +76,15 @@ POST /api/v1/restore/plan
 
 ## 6. Xiaomi/HyperOS
 
-Для стабильной фоновой синхронизации потребуется инструкция пользователю:
+🇷🇺 Для стабильной фоновой синхронизации потребуется инструкция пользователю:
+🇬🇧 For stable background sync the user must configure:
 
-- разрешить автозапуск;
-- снять ограничения батареи;
-- разрешить работу в фоне;
-- разрешить доступ к файлам/фото;
-- разрешить SMS/CallLog только при необходимости;
-- включить уведомления.
+- 🇷🇺 разрешить автозапуск / 🇬🇧 allow autostart
+- 🇷🇺 снять ограничения батареи / 🇬🇧 remove battery restrictions
+- 🇷🇺 разрешить работу в фоне / 🇬🇧 allow background activity
+- 🇷🇺 разрешить доступ к файлам/фото / 🇬🇧 allow file/photo access
+- 🇷🇺 разрешить SMS/CallLog только при необходимости / 🇬🇧 allow SMS/CallLog only if needed
+- 🇷🇺 включить уведомления / 🇬🇧 enable notifications
+
+> 🇷🇺 Подробно: [XIAOMI_MIUI_QUIRKS.md](android/XIAOMI_MIUI_QUIRKS.md)
+> 🇬🇧 Details: [XIAOMI_MIUI_QUIRKS.md](android/XIAOMI_MIUI_QUIRKS.md)
