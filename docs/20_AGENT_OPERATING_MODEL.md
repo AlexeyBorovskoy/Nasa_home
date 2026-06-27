@@ -1,4 +1,4 @@
-# 20. Agent Operating Model
+﻿# 20. Agent Operating Model
 
 ## 1. Purpose
 
@@ -244,17 +244,17 @@ with scope, hard rules, architecture facts, and report format.
 
 | Agent | Prompt file | Primary zone |
 |---|---|---|
-| **Code Agent** | `prompts/CODEX_CODE_AGENT.md` | `services/`, Dockerfiles, CI `.github/` |
-| **Hardware Agent** | `prompts/CODEX_HARDWARE_AGENT.md` | `scripts/diagnostics/`, `systemd/`, Jetson SSH |
-| **Docs Agent** | `prompts/CODEX_DOCS_AGENT.md` | `docs/`, `README.md`, `CHANGELOG.md`, ADR |
-| **Network Agent** | `prompts/CODEX_NETWORK_AGENT.md` | `scripts/network/`, `docker/vps/`, VPS nginx |
-| **SysApps Agent** | `prompts/CODEX_SYSAPPS_AGENT.md` | `docker/compose/`, `configs/`, `.env.example` |
+| **Code Agent** | `docs/prompts/CODEX_CODE_AGENT.md` | `services/`, Dockerfiles, CI `.github/` |
+| **Hardware Agent** | `docs/prompts/CODEX_HARDWARE_AGENT.md` | `scripts/diagnostics/`, `systemd/`, Jetson SSH |
+| **Docs Agent** | `docs/prompts/CODEX_DOCS_AGENT.md` | `docs/`, `README.md`, `CHANGELOG.md`, ADR |
+| **Network Agent** | `docs/prompts/CODEX_NETWORK_AGENT.md` | `scripts/network/`, `docker/vps/`, VPS nginx |
+| **SysApps Agent** | `docs/prompts/CODEX_SYSAPPS_AGENT.md` | `docker/compose/`, `configs/`, `.env.example` |
 
 ### How to invoke
 
 In a new session, tell the coordinator which agent role to apply:
 ```
-Apply the Hardware Agent role (prompts/CODEX_HARDWARE_AGENT.md).
+Apply the Hardware Agent role (docs/prompts/CODEX_HARDWARE_AGENT.md).
 Task: <one bounded task here>
 ```
 

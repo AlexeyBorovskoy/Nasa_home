@@ -1,4 +1,4 @@
-# 23. GitHub Integration — Claude Code + gh CLI
+﻿# 23. GitHub Integration — Claude Code + gh CLI
 
 > Этот документ описывает полный рабочий процесс проекта NASA Home Cloud:
 > как Claude Code взаимодействует с GitHub через `gh` CLI на Windows-машине.
@@ -189,7 +189,7 @@ gh run view <run-id> --log
 | Мониторинг | Telegram daily report | Автономно |
 
 **Человек формулирует цели. Claude Code реализует, тестирует и документирует.**  
-Все решения задокументированы в ADR (`docs/decisions/`) и промптах (`prompts/`).
+Все решения задокументированы в ADR (`docs/decisions/`) и промптах (`docs/prompts/`).
 
 ## Безопасность токена
 

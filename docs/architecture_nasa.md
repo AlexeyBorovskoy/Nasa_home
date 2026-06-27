@@ -1,4 +1,4 @@
-# Архитектура NASA Home Cloud
+﻿# Архитектура NASA Home Cloud
 
 > Актуализировано: 2026-06-23.
 >
@@ -251,7 +251,7 @@ NASA/
 │   │   └── ADR-0005-vps-autossh-reverse-tunnel.md  ← Implemented
 │   └── plans/
 │       └── VPS_INTEGRATION_PLAN.md                 ← Завершено
-├── prompts/
+├── docs/prompts/
 │   ├── CODEX_CODE_AGENT.md
 │   ├── CODEX_HARDWARE_AGENT.md
 │   ├── CODEX_DOCS_AGENT.md

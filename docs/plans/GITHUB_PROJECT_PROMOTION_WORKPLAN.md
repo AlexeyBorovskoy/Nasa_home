@@ -1,4 +1,4 @@
-# Подробный план и содержание работ по продвижению проекта на GitHub
+﻿# Подробный план и содержание работ по продвижению проекта на GitHub
 
 **Проект:** Home Cloud for Old Hardware  
 **Рабочий слоган:** «Оживим старое железо»  
@@ -149,7 +149,7 @@ home-cloud-old-hardware/
 │   ├── mini-pc/
 │   └── x86-server/
 │
-├── prompts/
+├── docs/prompts/
 │   ├── CODEX_PROJECT_BOOTSTRAP_PROMPT.md
 │   ├── CODEX_JETSON_AUDIT_PROMPT.md
 │   ├── CODEX_SECURITY_AUDIT_PROMPT.md

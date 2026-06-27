@@ -10,27 +10,28 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.7 — USB SSD audit + watchdog hardening + .gitattributes
+- Текущий релиз: v1.3.8 — password rotation, repo structure refactor, mem_limit fix
 - Основная ветка: `main`
 
 ## Операционное состояние
 
-**Состояние на 2026-06-27: v1.3.7 — SSD ✅ смонтирован, Docker ✅ все 13 контейнеров up. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳.**
+**Состояние на 2026-06-28: v1.3.8 — Docker ✅ все 13 контейнеров up. SSD ✅ смонтирован. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳. JMS583 бокс — ждём замену RTL9210B-CG.**
 
 | Компонент | Статус | Детали |
 |---|---|---|
 | Jetson Nano | ✅ up | 192.168.0.50 |
-| SSD `/dev/sda1` → `/mnt/storage` | ✅ **mounted** | 229G, 2% use |
+| SSD `/dev/sda1` → `/mnt/storage` | ✅ **mounted** | 229G, ~2% use |
 | USB SSD порт | ✅ **порт 2** (1-2.2) | preboot service делает power cycle при boot |
 | SCSI timeout | ✅ **120s** | udev правило активно |
 | `usbcore.autosuspend=-1` | ✅ **kernel** | `/proc/cmdline` |
 | `usb-storage.quirks=0bda:9210:rw` | ✅ **kernel** | `/proc/cmdline` |
-| USB watchdog timer | ✅ active | `nasa-usb-watchdog.timer` — PORT=2, OnBootSec=2min |
+| USB watchdog timer | ⚠️ **STOPPED** | Временно остановлен (`systemctl stop nasa-usb-watchdog.timer`). Включить после замены на JMS583: `sudo systemctl enable --now nasa-usb-watchdog.timer` |
 | USB pre-boot service | ✅ active | `nasa-usb-preboot.service` — power cycle до монтирования |
 | USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при error -71 |
 | Docker daemon | ✅ **active** | 13 контейнеров up, healthy |
-| Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / `$BESZEL_ADMIN_PASSWORD` (config/.env) |
-| Beszel Agent Jetson (45876) | ✅ up | status=up, CPU~17%, RAM~56% |
+| immich-microservices | ✅ **mem_limit 512m** | Применён и перезапущен 2026-06-28 |
+| Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / пароль в config/secrets.json |
+| Beszel Agent Jetson (45876) | ✅ up | status=up |
 | Beszel Agent VPS (45877) | ✅ up | v0.18.7 |
 | VPS nginx HTTP | ✅ live | :8080 Nextcloud · :2283 Immich · :8090 LLM |
 | VPS nginx HTTPS | ✅ live | :8443 Nextcloud · :2443 Immich · :9443 LLM (self-signed 10y) |
@@ -39,18 +40,22 @@
 | Immich Android | ✅ **настроен** | Логин: admin@nasa.local, сервер: http://193.8.215.130:2283 |
 | Immich backup | ✅ **активирован** | 31 альбом, 6710 фото/видео в очереди |
 
-**🔧 Чтобы восстановить систему (если SSD упал снова):**
+**🔑 Ротация паролей (2026-06-28):** Все пароли изменены на новые. Git history очищен (filter-repo). Актуальные — в `config/secrets.json`.
+
+**🔧 Чтобы восстановить систему (если SSD упал):**
 1. Физически отключить USB кабель SSD от хаба — подождать 30 сек — воткнуть обратно
-2. После reconnect: `ssh admin@192.168.0.50 "echo $JETSON_SUDO_PASS | sudo -S bash ~/nasa/scripts/storage/storage_preflight.sh"`
-3. Затем Docker: `ssh admin@192.168.0.50 "echo $JETSON_SUDO_PASS | sudo -S systemctl start docker"`
-   > Переменная `JETSON_SUDO_PASS` — брать из `config/.env` (не коммитить!).
+2. После reconnect: `ssh admin@192.168.0.50 'echo "PASS" | sudo -S bash ~/nasa/scripts/storage/storage_preflight.sh'`
+3. Docker: `ssh admin@192.168.0.50 'echo "PASS" | sudo -S systemctl start docker'`
+   > PASS — брать из `config/secrets.json` (не коммитить!).
 
-**🔜 Android (pending):**
-- Nextcloud Android: войти через `https://193.8.215.130:8443`, логин `admin` / `$NEXTCLOUD_ADMIN_PASSWORD` (config/.env)
-- DAVx⁵: добавить аккаунт `https://193.8.215.130:8443/remote.php/dav`
-- Immich: настроить локальный URL `http://192.168.0.50:2283` в Настройки → Сеть (домашний WiFi)
+**🔜 Ближайшие задачи:**
+- JMS583 бокс: заменить RTL9210B-CG → после замены включить watchdog
+- Nextcloud Android: `https://193.8.215.130:8443`, admin / пароль из secrets.json
+- DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
+- Immich локальный URL: `http://192.168.0.50:2283` в Настройки → Сеть (WiFi: TP-Link_828C)
+- Restic off-site backup на VPS
 
-**⚠️ Hardware note**: RTL9210B-CG ненадёжен. Купить замену: Orient 3502 U3 (~865р, ASM1153E/JMS578)
+**⚠️ Hardware note**: RTL9210B-CG (USB 2.0, 40 MB/s, SMART заблокирован). JMS583 на замену — ожидается доставка 2026-06-28.
 
 ## Железо и доступ
 
@@ -135,14 +140,21 @@ gh release create v1.x.x --title "v1.x.x — название" --notes "опис
 
 ```
 docker/compose/   — Docker Compose файлы для всех сервисов
-config/.env       — реальные секреты (НЕ в git, .gitignore)
-config/.env.example — шаблон (в git)
-scripts/          — bash/python скрипты (backup, monitoring, setup)
+config/           — конфиги (шаблоны); .env — НЕ в git
+scripts/          — bash/python скрипты (backup, monitoring, setup, storage)
 systemd/          — systemd units (таймеры, сервисы)
-docs/             — документация (00–22)
-tests/goss/       — goss infrastructure tests
-prompts/          — агентные промпты (CODEX_*)
+docs/             — документация (00–24 + подпапки)
+docs/prompts/     — агентные промпты (CODEX_*, Claude, ChatGPT)
+docs/quality/     — test plan, matrix, baseline reports
+docs/references/  — внешние ссылки (external_docs/ — gitignored)
+tests/            — автоматические тесты (network, service, storage, backup)
+assets/           — фото, схемы, скриншоты
+artifacts/        — отчёты аудитов, JSON exports
+archive/legacy/   — устаревшие файлы (не удалять, хранить)
+.github/          — CI/CD workflows, issue templates
 ```
+
+> **Полная карта структуры:** `docs/REPOSITORY_STRUCTURE.md`
 
 ## Сервисы и порты (Jetson 192.168.0.50)
 

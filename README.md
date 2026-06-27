@@ -26,21 +26,8 @@
 **Если проект полезен — поставь ⭐ звезду, это помогает другим его найти.**  
 **If you find this useful — please ⭐ star this repo so others can discover it.**
 
-![NASA Home Cloud — реальный стенд](photo/test_sys.jpg)
+![NASA Home Cloud — реальный стенд](assets/photos/test_sys.jpg)
 *Jetson Nano на роутере + DEXP-плата от сына (232 ГБ) · реальный стенд проекта*
-
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="photo/immich_ui.jpg" alt="Immich — семейный фотоархив" width="100%"/><br/>
-      <sub><b>Immich</b> — семейный фотоархив · заменяет Google Фото</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="photo/nextcloud_ui.jpg" alt="Nextcloud — файловое облако" width="100%"/><br/>
-      <sub><b>Nextcloud</b> — файловое облако · заменяет Google Drive</sub>
-    </td>
-  </tr>
-</table>
 
 ---
 
@@ -106,7 +93,7 @@ docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.
 
 Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Покупать готовый NAS или новое железо не хотелось.
 
-Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. SSD смонтирован в `/mnt/storage` (229 GB), 13 контейнеров `Up (healthy)` после ребута 2026-06-25. USB autosuspend отключён на уровне ядра. HTTPS добавлен на VPS nginx.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. SSD смонтирован в `/mnt/storage` (229 GB), 13 контейнеров `Up (healthy)` после ребута 2026-06-27. USB autosuspend отключён на уровне ядра. HTTPS добавлен на VPS nginx. USB-мост RTL9210B-CG деградирует USB 3.0→2.0 и блокирует SMART — ожидаем замену JMS583.
 
 **NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
@@ -122,7 +109,7 @@ docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.
 
 It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. My son brought a DEXP board with 232 GB storage — "dad, you'll need this". Didn't want to buy a ready-made NAS or new hardware.
 
-Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-25 the SSD is mounted at `/mnt/storage` (229 GB), all 13 containers are `Up (healthy)` after a clean reboot, USB autosuspend is disabled at kernel level, and HTTPS is live on VPS nginx.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-27 the SSD is mounted at `/mnt/storage` (229 GB), all 13 containers are `Up (healthy)`, USB autosuspend is disabled at kernel level, and HTTPS is live on VPS nginx. The RTL9210B-CG USB bridge degrades USB 3.0→2.0 and blocks SMART passthrough — replacement JMS583 enclosure ordered.
 
 **NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
@@ -142,25 +129,26 @@ Principles:
 >
 > Мне не нужна была экспертиза в Docker и systemd — достаточно было сформулировать задачи для [Claude Code](https://claude.ai/code). Агент генерировал код, отлаживал, тестировал, писал документацию. Я проверял, принимал решения, говорил что делать дальше. Получился рабочий сервер.
 >
-> Весь лог решений открыт: промпты (`prompts/`), архитектурные решения (`docs/decisions/`), CHANGELOG с каждым шагом.
+> Весь лог решений открыт: промпты (`docs/prompts/`), архитектурные решения (`docs/decisions/`), CHANGELOG с каждым шагом.
 
 > 🇬🇧 If you have a Jetson Nano, Raspberry Pi 4/5, or any mini-PC sitting somewhere — either unused or barely used — this project is for you. You don't need to be a DevOps engineer. You just need to be willing to work through it step by step.
 >
 > I didn't need expertise in Docker or systemd — just the ability to formulate tasks for [Claude Code](https://claude.ai/code). The agent wrote the code, debugged it, tested it, and documented everything. I reviewed, made decisions, and directed what to do next. The result: a working home server.
 >
-> The full decision log is open: agent prompts (`prompts/`), architecture decisions (`docs/decisions/`), CHANGELOG with every step.
+> The full decision log is open: agent prompts (`docs/prompts/`), architecture decisions (`docs/decisions/`), CHANGELOG with every step.
 
 ---
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-25 / State as of 2026-06-25 · **Stage 1 fully operational + Android mobile ready**
+> Состояние на 2026-06-27 / State as of 2026-06-27 · **Stage 1 fully operational**
 > Jetson доступен через VPS reverse tunnel. SSD смонтирован в `/mnt/storage` (229 GB, 217 GB free).
 > `storage_preflight.sh` — errors=0, warnings=0. Все 13 контейнеров `Up (healthy)`.
-> USB autosuspend отключён: `usbcore.autosuspend=-1` **подтверждён после ребута** (`/sys/module/usbcore/parameters/autosuspend = -1`).
+> USB autosuspend отключён: `usbcore.autosuspend=-1` **подтверждён после ребута**.
 > Beszel Hub на VPS:8091, оба агента Up (Jetson 17% CPU / VPS 2% CPU).
-> nginx HTTPS добавлен: Nextcloud :8443 · Immich :2443 · LLM :9443 (самоподписанный сертификат, 10 лет).
-> Android модуль готов: `docs/android/` — настройка Immich + DAVx⁵ + Nextcloud на Xiaomi + гайд миграции с Google.
+> nginx HTTPS: Nextcloud :8443 · Immich :2443 · LLM :9443 (самоподписанный сертификат, 10 лет).
+> Android: Immich ✅ настроен, 6710 фото/видео в бэкапе. Nextcloud/DAVx⁵ ⏳ pending.
+> USB watchdog ⚠️ остановлен до замены RTL9210B-CG → JMS583 (ожидается 2026-06-28).
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
@@ -180,8 +168,8 @@ Principles:
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) + Beszel data |
 | DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard |
-| USB storage watchdog | udev | udev rules + smartd | ✅ Live · autosuspend=-1 kernel confirmed |
-| Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud | ✅ Configured · [docs/android/](docs/android/) |
+| USB storage watchdog | udev | udev rules + smartd | ⚠️ Timer STOPPED · JMS583 swap pending 2026-06-28 |
+| Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud | Immich ✅ (6710 фото) · Nextcloud/DAVx⁵ ⏳ |
 
 > **Хранилище:** целевой `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB storage.
 > После переподключения он виден как `/dev/sda1`, смонтирован `rw,noatime`,
@@ -522,27 +510,35 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 
 ## Безопасность / Security
 
+🇷🇺
 - Не коммитьте реальные `.env`, ключи, токены, дампы и персональные данные.
 - LLM Gateway блокирует отправку фото, видео, контактов и ключей во внешний API.
 - Samba доступна только из локальной сети (`iptables`: 192.168.0.0/24 → 445/139).
 - VPS nginx слушает публичные порты, но данные хранятся только на Jetson.
 - Telegram-токен передаётся через зашифрованный SSH-туннель, не раскрывается в `ps aux` на VPS.
 
-Проверка перед push:
+🇬🇧
+- Do not commit real `.env` files, keys, tokens, database dumps, or personal data.
+- LLM Gateway blocks sending photos, videos, contacts, and credentials to external APIs.
+- Samba is LAN-only (`iptables`: 192.168.0.0/24 → 445/139).
+- VPS nginx forwards public ports, but all data stays on Jetson.
+- Telegram bot token travels through an encrypted SSH tunnel — never visible in `ps aux` on VPS.
+
+Проверка перед push / Pre-push check:
 
 ```bash
 ./scripts/security/check_no_secrets.sh
 ```
 
-CI автоматически проверяет секреты: `.github/workflows/secrets-check.yml`.
+CI автоматически проверяет секреты / CI automatically checks for secrets: `.github/workflows/secrets-check.yml`.
 
-Полная политика: [SECURITY.md](SECURITY.md) · [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) · [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md).
+Полная политика / Full policy: [SECURITY.md](SECURITY.md) · [docs/10_SECURITY_PRIVACY.md](docs/10_SECURITY_PRIVACY.md) · [docs/11_SECRETS_POLICY.md](docs/11_SECRETS_POLICY.md).
 
 ---
 
 ## Известные ограничения / Known Limitations
 
-- **USB autosuspend fix confirmed 2026-06-25 after reboot** — `usbcore.autosuspend=-1` активен на уровне ядра (`/sys/module/usbcore/parameters/autosuspend = -1`). udev rules для RTL9210B-CG + USB hub действуют. SSD стабилен. При повторном `error -71` — физически переподключить USB.
+- **RTL9210B-CG USB bridge** — деградирует USB 3.0→2.0 (480 Mbps / ~40 MB/s вместо 5 Gbps / ~400 MB/s), блокирует SMART passthrough. USB watchdog таймер ⚠️ **остановлен** до физической замены энклоужера. Замена: **JMS583** (ожидается 2026-06-28). / Degrades USB 3.0→2.0 and blocks SMART passthrough. Watchdog timer ⚠️ **STOPPED** until physical enclosure swap. Replacement: **JMS583** (arriving 2026-06-28).
 - **HTTPS self-signed** — VPS nginx обслуживает Nextcloud на :8443, Immich на :2443, LLM на :9443 с самоподписанным сертификатом (10 лет). Let's Encrypt потребует доменное имя.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.
@@ -555,7 +551,7 @@ CI автоматически проверяет секреты: `.github/workfl
 
 ## Вклад / Contributing
 
-Вклад приветствуется. Прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) перед тем, как открывать pull request.
+🇷🇺 Вклад приветствуется. Прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) перед тем, как открывать pull request.
 
 **Есть вопрос или идея?** Заходи в [Discussions](https://github.com/AlexeyBorovskoy/Nasa_home/discussions) — там есть тема для знакомства и Q&A.
 
@@ -564,12 +560,21 @@ CI автоматически проверяет секреты: `.github/workfl
 - Предпочитайте небольшие PR с документацией.
 - Stage 1 должен оставаться безопасным: нет прямого публичного доступа к сервисам.
 
+🇬🇧 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+**Questions or ideas?** Join the [Discussions](https://github.com/AlexeyBorovskoy/Nasa_home/discussions) — there's an intro thread and Q&A.
+
+Rules:
+- Do not commit secrets or personal data.
+- Prefer small PRs with documentation.
+- Keep Stage 1 safe: no direct public access to services.
+
 Хорошие первые задачи / Good first issues:
-- [#5 Адаптация под Raspberry Pi 4/5](https://github.com/AlexeyBorovskoy/Nasa_home/issues/5) — только документация, без изменения кода.
-- [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — самоподписанный сертификат готов, нужен домен для Let's Encrypt.
-- [#6 Netdata Telegram alerts](https://github.com/AlexeyBorovskoy/Nasa_home/issues/6) — настроить и описать в docs.
-- CI shellcheck для всех bash-скриптов в `scripts/`.
-- Подключение **USB HDD** как резервного хранилища (Stage 3.1, план готов в `docs/04_STORAGE_DESIGN.md`).
+- [#5 Адаптация под Raspberry Pi 4/5](https://github.com/AlexeyBorovskoy/Nasa_home/issues/5) — только документация / documentation only, no code changes.
+- [#4 HTTPS (Let's Encrypt) для VPS nginx](https://github.com/AlexeyBorovskoy/Nasa_home/issues/4) — самоподписанный сертификат готов / self-signed cert ready, need a domain for Let's Encrypt.
+- [#6 Netdata Telegram alerts](https://github.com/AlexeyBorovskoy/Nasa_home/issues/6) — настроить и описать / configure and document.
+- CI shellcheck для всех bash-скриптов / for all bash scripts in `scripts/`.
+- Подключение **USB HDD** как резервного хранилища / as backup storage (Stage 3.1, план в `docs/04_STORAGE_DESIGN.md`).
 
 ---
 

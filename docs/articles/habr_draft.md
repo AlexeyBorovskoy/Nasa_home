@@ -1,4 +1,4 @@
-# Домашнее облако на Jetson Nano: задумал я, реализовал Claude Code
+﻿# Домашнее облако на Jetson Nano: задумал я, реализовал Claude Code
 
 > **Платформы:** [Habr.com](https://habr.com)  
 > **Хабы:** Системное администрирование · Open Source · Искусственный интеллект · Self-hosted  
@@ -150,7 +150,7 @@ nasa-home-cloud/
 │   └── storage/           ← setup_disk, benchmark_io
 ├── systemd/               ← health timer, tunnel service
 ├── tests/                 ← test_samba_config, test_mount
-└── prompts/               ← промпты агентов по этапам
+└── docs/prompts/               ← промпты агентов по этапам
 ```
 
 ---

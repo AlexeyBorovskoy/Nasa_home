@@ -1,11 +1,11 @@
-# 17. Мониторинг и наблюдаемость / Monitoring & Observability
+﻿# 17. Мониторинг и наблюдаемость / Monitoring & Observability
 
 > Актуализировано: 2026-06-20.
 >
 > Документ описывает выбор инструментов мониторинга для NASA Home Cloud на
 > Jetson Nano (ARM64, 4 GB RAM) и стратегию их поэтапного развёртывания.
 > Compose-файл: `docker/compose/docker-compose.monitoring.yml`.
-> Промпт агента: `prompts/CODEX_MONITORING_PROMPT.md`.
+> Промпт агента: `docs/prompts/CODEX_MONITORING_PROMPT.md`.
 
 ---
 
@@ -381,7 +381,7 @@ TELEGRAM_CHAT_ID="ваш_chat_id"
 | Файл | Назначение |
 |---|---|
 | `docker/compose/docker-compose.monitoring.yml` | Compose Stage 1 мониторинга |
-| `prompts/CODEX_MONITORING_PROMPT.md` | Промпт агента для развёртывания |
+| `docs/prompts/CODEX_MONITORING_PROMPT.md` | Промпт агента для развёртывания |
 | `docs/13_MONITORING_RUNBOOK.md` | Runbook: ежедневные проверки и экстренные действия |
 
 ---
@@ -724,5 +724,5 @@ TELEGRAM_CHAT_ID="your_chat_id"
 | File | Purpose |
 |---|---|
 | `docker/compose/docker-compose.monitoring.yml` | Stage 1 monitoring compose |
-| `prompts/CODEX_MONITORING_PROMPT.md` | Agent prompt for deployment |
+| `docs/prompts/CODEX_MONITORING_PROMPT.md` | Agent prompt for deployment |
 | `docs/13_MONITORING_RUNBOOK.md` | Runbook: daily checks and emergency actions |

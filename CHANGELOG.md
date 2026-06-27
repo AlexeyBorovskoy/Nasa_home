@@ -10,6 +10,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.8] — 2026-06-27 · Password rotation + repo refactor + tech debt closure
+
+### Added / Добавлено
+
+- **Repository structure refactor** per open-source conventions: new dirs `assets/`, `artifacts/`, `archive/`, `docs/prompts/`; agent prompts moved `prompts/` → `docs/prompts/`; hardware photos → `assets/photos/`; audit reports → `artifacts/reports/`; migration log at `docs/quality/STRUCTURE_REFACTOR_REPORT.md`
+- **`docs/REPOSITORY_STRUCTURE.md`** — guide for where to put new files, Docker Compose commands reference
+- **`tests/storage/smart_check.sh`** — updated for RTL9210B-CG: detects USB bridge, skips SMART (blocked), checks USB bus speed, runs `dd` read test; reports USB 2.0 degradation (480 Mbps / ~40 MB/s vs expected 5 Gbps)
+- **`.gitattributes`** — enforces LF for `*.md` docs (prevents Windows CRLF in documentation files)
+
+### Fixed / Исправлено
+
+- **Security: git history rewrite** — removed leaked password hash from 87 commits using `git filter-repo`; force-pushed clean history to GitHub
+- **Password rotation** — Jetson sudo, Nextcloud admin, Portainer admin, Beszel Hub admin all rotated; `config/secrets.json` updated (gitignored, never committed)
+- **`immich-microservices` mem_limit** — 512 MB applied and confirmed (`MemoryLimit: 536870912`); container recreated to apply
+- **CLAUDE.md** — comprehensive update: watchdog ⚠️ STOPPED (pending JMS583 swap), prompts path → `docs/prompts/`, password rotation dated, mem_limit confirmed
+- **Stale path references** in README.md: `photo/test_sys.jpg` → `assets/photos/test_sys.jpg`, `prompts/` → `docs/prompts/`
+- **README.md bilingual** — Security and Contributing sections fully bilingual (🇷🇺+🇬🇧), broken image table removed (images not tracked in git)
+- **`docs/references/EXTERNAL_DOCS_CACHE.md`** — all path references updated `external_docs/` → `docs/references/external_docs/`
+
+### Security / Безопасность
+
+- Leaked password removed from git history via `git filter-repo` (87 commits rewritten, force-pushed)
+- All 4 service passwords rotated; old credentials invalidated on Jetson, Nextcloud, Portainer, Beszel Hub
+- `config/secrets.json` confirmed gitignored; `config/.env` confirmed gitignored
+
+---
+
 ## [1.3.7] — 2026-06-26 · USB SSD audit + watchdog hardening
 
 ### Added / Добавлено

@@ -1,4 +1,4 @@
-# План продвижения проекта: «Оживим старое железо»
+﻿# План продвижения проекта: «Оживим старое железо»
 
 **Проект:** Home Cloud for Old Hardware  
 **Рабочая идея:** превращение старого оборудования в домашнее семейное облако  
@@ -73,7 +73,7 @@ home-cloud-old-hardware/
 ├── docker/
 ├── scripts/
 ├── examples/
-├── prompts/
+├── docs/prompts/
 └── LICENSE
 ```
 
@@ -93,7 +93,7 @@ home-cloud-old-hardware/
 | `LLM_GATEWAY.md` | DeepSeek Gateway, privacy-фильтр, режимы диагностики |
 | `docs/references/` | Ссылки на внешнюю документацию |
 | `scripts/` | Диагностика, backup, обслуживание |
-| `prompts/` | Промты для Codex/агентов |
+| `docs/prompts/` | Промты для Codex/агентов |
 
 ---
 
