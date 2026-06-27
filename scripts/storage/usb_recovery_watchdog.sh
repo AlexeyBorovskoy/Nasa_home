@@ -77,9 +77,15 @@ fi
 warn "SSD ${SSD_DEV} not available or ${MOUNT_POINT} not mounted"
 
 # Читаем счётчик попыток из state файла
+# Если state-файл старше 30 мин — сбрасываем счётчик (защита от зависшего цикла)
 RETRIES=0
 if [[ -f "$STATE_FILE" ]]; then
-    RETRIES=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+    if [[ -n "$(find "$STATE_FILE" -mmin +30 2>/dev/null)" ]]; then
+        warn "State file older than 30 min, resetting retry counter"
+        rm -f "$STATE_FILE"
+    else
+        RETRIES=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+    fi
 fi
 
 if [[ "$RETRIES" -lt "$MAX_SOFT_RETRIES" ]]; then
