@@ -1,0 +1,39 @@
+auth:
+  - user: nas
+    group: nas
+    uid: 1000
+    gid: 1000
+    password_file: /run/secrets/samba_password
+
+global:
+  - "server string = NASA Home Cloud"
+  - "server role = standalone server"
+  - "log level = 0"
+  - "map to guest = bad user"
+
+share:
+  - name: public
+    comment: NASA Public Share
+    path: /mnt/public
+    browsable: yes
+    readonly: no
+    guestok: yes
+    veto: no
+
+  - name: nextcloud
+    comment: Nextcloud Files
+    path: /mnt/nc-data
+    browsable: yes
+    readonly: yes
+    guestok: no
+    users:
+      - nas
+
+  - name: immich
+    comment: Immich Photos (read-only)
+    path: /mnt/immich-data
+    browsable: yes
+    readonly: yes
+    guestok: no
+    users:
+      - nas
