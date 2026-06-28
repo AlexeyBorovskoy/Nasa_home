@@ -32,6 +32,13 @@ services:
     secrets:
       - samba_password
     restart: always
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD-SHELL", "smbclient -N -L //127.0.0.1 >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 secrets:
   samba_password:

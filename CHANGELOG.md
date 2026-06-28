@@ -8,6 +8,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added / Добавлено
+
+- **`scripts/diagnostics/sd_wear_check.sh`** + **`systemd/nasa-sd-wear.service/.timer`** —
+  еженедельный мониторинг износа microSD через MMC sysfs (`life_time`); Telegram-алерт при износе ≥ 50%
+- **Samba `mem_limit: 128m`** + **healthcheck** (`smbclient -N -L //127.0.0.1`) добавлены в compose
+- **`immich-microservices` healthcheck** — `pgrep -f 'node /usr/src/app'` added to compose
+- **Screenshots retouched** — faces and personal filenames blurred; placed in `assets/screenshots/article/`
+- **`docs/articles/ARTICLE_AUDIT_REPORT.md`** — full audit for Habr/Hackaday.io article preparation
+
+---
+
+## [1.3.9] — 2026-06-28 · SSD hotplug auto-recovery + Android family setup + users
+
+### Added / Добавлено
+
+- **`scripts/storage/ssd_hotplug_recovery.sh`** + **`systemd/nasa-ssd-recovery.service`** —
+  udev hotplug auto-recovery: `sda1 ADD` → mount → preflight → `systemctl start docker` →
+  `docker start` stopped containers. Logs: `/var/log/nasa-monitor/ssd-recovery.log`
+- **udev rule** (in `install_usb_watchdog.sh`): `ACTION=="add", KERNEL=="sda1"` → start recovery service
+- **Family users** — OLGA, IVAN, ULYANA created in Nextcloud and Immich; setup memos: `artifacts/users/`
+- **2151 contacts imported** to Nextcloud via CardDAV PUT (Python script, bulk VCF → individual vCards)
+- **Android apps configured**: Immich ✅ (6719 photos, backup active), Nextcloud ✅, DAVx⁵ ✅ (CalDAV/CardDAV)
+- **Samba `config.yml`** (`configs/samba/config.yml`) — proper YAML config for crazymax/samba;
+  shares: `public` (guest OK), `nextcloud` (read-only), `immich` (read-only)
+- **`docs/plans/API_MOBILE_PLAN.md`** — NASA API expansion plan: FastAPI facade + JWT + Flutter MVP
+- **`docs/articles/habr_draft.md`** — Habr article first draft
+
+### Fixed / Исправлено
+
+- **Immich admin password** — reset via bcrypt + PostgreSQL after rotation; saved to `config/secrets.json`
+- **Samba `config.yml` was a directory** — Docker bind-mount created dir when file missing; fixed + YAML added
+- **SSD mounted at boot** — `nasa-usb-preboot.service` ensures power cycle before `fstab` mount attempt
+- **immich-microservices `mem_limit: 512m`** — applied and confirmed on Jetson
+
+### Security / Безопасность
+
+- **`config/secrets.json`** updated with Immich admin + family user credentials (gitignored)
+- All service passwords rotated 2026-06-28; git history clean (filter-repo done in v1.3.8)
+
 ---
 
 ## [1.3.8] — 2026-06-27 · Password rotation + repo refactor + tech debt closure
