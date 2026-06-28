@@ -111,6 +111,11 @@ ACTION=="add", KERNEL=="sda", SUBSYSTEM=="block", \
 # Telegram alert when sda block device is removed (SSD disconnected)
 ACTION=="remove", KERNEL=="sda", SUBSYSTEM=="block", \
   RUN+="/bin/systemd-run --no-block /usr/local/sbin/nasa-storage-alert.sh removed"
+
+# Auto-recovery: when SSD partition (sda1) appears, mount /mnt/storage + restart Docker + containers
+# Triggered on sda1 (partition) not sda (disk) — partition must exist before mount attempt
+ACTION=="add", KERNEL=="sda1", SUBSYSTEM=="block", \
+  RUN+="/bin/systemctl --no-block start nasa-ssd-recovery.service"
 RULES
 echo "[2/4] udev rules installed → $RULES_FILE"
 
