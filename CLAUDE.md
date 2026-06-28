@@ -10,12 +10,12 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.8 — password rotation, repo structure refactor, mem_limit fix
+- Текущий релиз: v1.3.9 — SSD hotplug auto-recovery (udev → systemd)
 - Основная ветка: `main`
 
 ## Операционное состояние
 
-**Состояние на 2026-06-28: v1.3.8 — Docker ✅ все 13 контейнеров up. SSD ✅ смонтирован. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳. JMS583 бокс — ждём замену RTL9210B-CG.**
+**Состояние на 2026-06-28: v1.3.9 — Docker ✅ все 13 контейнеров up. SSD ✅ смонтирован. Auto-recovery ✅ активен. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳. JMS583 бокс — ждём замену RTL9210B-CG.**
 
 | Компонент | Статус | Детали |
 |---|---|---|
@@ -28,6 +28,7 @@
 | USB watchdog timer | ⚠️ **STOPPED** | Временно остановлен (`systemctl stop nasa-usb-watchdog.timer`). Включить после замены на JMS583: `sudo systemctl enable --now nasa-usb-watchdog.timer` |
 | USB pre-boot service | ✅ active | `nasa-usb-preboot.service` — power cycle до монтирования |
 | USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при error -71 |
+| SSD hotplug auto-recovery | ✅ active | `nasa-ssd-recovery.service` — udev(`sda1`) → mount → preflight → Docker → контейнеры |
 | Docker daemon | ✅ **active** | 13 контейнеров up, healthy |
 | immich-microservices | ✅ **mem_limit 512m** | Применён и перезапущен 2026-06-28 |
 | Beszel Hub (VPS:8091) | ✅ up | admin@nasa.local / пароль в config/secrets.json |
@@ -42,18 +43,21 @@
 
 **🔑 Ротация паролей (2026-06-28):** Все пароли изменены на новые. Git history очищен (filter-repo). Актуальные — в `config/secrets.json`.
 
-**🔧 Чтобы восстановить систему (если SSD упал):**
-1. Физически отключить USB кабель SSD от хаба — подождать 30 сек — воткнуть обратно
-2. После reconnect: `ssh admin@192.168.0.50 'echo "PASS" | sudo -S bash ~/nasa/scripts/storage/storage_preflight.sh'`
-3. Docker: `ssh admin@192.168.0.50 'echo "PASS" | sudo -S systemctl start docker'`
-   > PASS — брать из `config/secrets.json` (не коммитить!).
+**🔧 Если SSD упал — восстановление АВТОМАТИЧЕСКОЕ:**
+> Просто физически переткни кабель SSD. Система сделает остальное сама:
+> udev(`sda1`) → `nasa-ssd-recovery.service` → mount → preflight → Docker → все 13 контейнеров
+> Лог: `journalctl -u nasa-ssd-recovery` или `/var/log/nasa-monitor/ssd-recovery.log`
+>
+> Если авто-recovery не сработал (маловероятно):
+> 1. `ssh admin@192.168.0.50 'echo "PASS" | sudo -S systemctl start nasa-ssd-recovery.service'`
+>    PASS — из `config/secrets.json`
 
 **🔜 Ближайшие задачи:**
-- JMS583 бокс: заменить RTL9210B-CG → после замены включить watchdog
+- JMS583 бокс: заменить RTL9210B-CG → после замены включить watchdog: `sudo systemctl enable --now nasa-usb-watchdog.timer`
 - Nextcloud Android: `https://193.8.215.130:8443`, admin / пароль из secrets.json
 - DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
 - Immich локальный URL: `http://192.168.0.50:2283` в Настройки → Сеть (WiFi: TP-Link_828C)
-- Restic off-site backup на VPS
+- Restic off-site backup: после подключения 2 ТБ HDD
 
 **⚠️ Hardware note**: RTL9210B-CG (USB 2.0, 40 MB/s, SMART заблокирован). JMS583 на замену — ожидается доставка 2026-06-28.
 
