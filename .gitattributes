@@ -2,7 +2,8 @@
 # Without this, git on Windows converts LF→CRLF, which breaks bash shebangs
 # (#!/usr/bin/env bash\r → systemd 203/EXEC "No such file or directory")
 
-# Shell scripts: always LF
+# Shell scripts: always LF + preserve exec bit
+# Note: after git add on Windows, run: git update-index --chmod=+x <file.sh>
 *.sh        text eol=lf
 *.bash      text eol=lf
 
