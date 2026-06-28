@@ -1,3 +1,5 @@
+import secrets
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +16,15 @@ class Settings(BaseSettings):
     log_file: str = "/var/log/nasa-monitor/nasa-api.jsonl"
     log_max_bytes: int = 10 * 1024 * 1024  # 10 MB per file
     log_backup_count: int = 5
+
+    # JWT auth — secret should be set via NASA_API_JWT_SECRET in .env
+    # If not set, a random secret is generated (tokens lost on container restart).
+    jwt_secret: str = secrets.token_hex(32)
+    jwt_ttl_hours: int = 24
+
+    # Nextcloud internal URL for OCS credential validation
+    # Inside docker network: http://homecloud_nextcloud:80 or via host-gateway
+    nextcloud_internal_url: str = "http://host.docker.internal:8080"
 
     # Space-separated list of expected container names
     expected_containers: str = (

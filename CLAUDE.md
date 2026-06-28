@@ -10,24 +10,25 @@
 
 - GitHub: https://github.com/AlexeyBorovskoy/Nasa_home
 - Owner: AlexeyBorovskoy (a.e.borovskoy@gmail.com)
-- Текущий релиз: v1.3.9 — SSD hotplug auto-recovery (udev → systemd)
+- Текущий релиз: v1.4.0 — JMS583 USB SSD enclosure, UAS quirk, goss 40/40
 - Основная ветка: `main`
 
 ## Операционное состояние
 
-**Состояние на 2026-06-28: v1.3.9 — Docker ✅ все 13 контейнеров up. SSD ✅ смонтирован. Auto-recovery ✅ активен. Android: Immich ✅, Nextcloud/DAVx⁵ ⏳. JMS583 бокс — ждём замену RTL9210B-CG.**
+**Состояние на 2026-06-28: v1.4.0 — JMS583 ✅ подключён (USB 3.0, 5 Gbps). Docker ✅ все 13 контейнеров up. goss 40/40. UAS quirk добавлен в extlinux.conf — нужен reboot для применения.**
 
 | Компонент | Статус | Детали |
 |---|---|---|
 | Jetson Nano | ✅ up | 192.168.0.50 |
-| SSD `/dev/sda1` → `/mnt/storage` | ✅ **mounted** | 229G, ~2% use |
-| USB SSD порт | ✅ **порт 2** (1-2.2) | preboot service делает power cycle при boot |
+| SSD `/dev/sda1` → `/mnt/storage` | ✅ **mounted** | 229G, ~3% use |
+| USB SSD энклоужер | ✅ **JMS583** (152d:a583) | USB 3.0 SuperSpeed, порт 2-1.3, 5000 Mbps |
+| USB SSD порт | ✅ **порт 2** | preboot service делает power cycle при boot |
 | SCSI timeout | ✅ **120s** | udev правило активно |
 | `usbcore.autosuspend=-1` | ✅ **kernel** | `/proc/cmdline` |
-| `usb-storage.quirks=0bda:9210:rw` | ✅ **kernel** | `/proc/cmdline` |
-| USB watchdog timer | ⚠️ **STOPPED** | Временно остановлен (`systemctl stop nasa-usb-watchdog.timer`). Включить после замены на JMS583: `sudo systemctl enable --now nasa-usb-watchdog.timer` |
+| `usb-storage.quirks=...,152d:a583:u` | ⚠️ **pending reboot** | Добавлен в extlinux.conf — отключит UAS для JMS583 (fix stream errors). После reboot: write ~100+ MB/s вместо 8 MB/s |
+| USB watchdog timer | ✅ **active (waiting)** | `nasa-usb-watchdog.timer` включён |
 | USB pre-boot service | ✅ active | `nasa-usb-preboot.service` — power cycle до монтирования |
-| USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при error -71 |
+| USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при USB ошибках (error -71 + JMS583 stream errors) |
 | SSD hotplug auto-recovery | ✅ active | `nasa-ssd-recovery.service` — udev(`sda1`) → mount → preflight → Docker → контейнеры |
 | Docker daemon | ✅ **active** | 13 контейнеров up, healthy |
 | immich-microservices | ✅ **mem_limit 512m** | Применён и перезапущен 2026-06-28 |
@@ -53,13 +54,14 @@
 >    PASS — из `config/secrets.json`
 
 **🔜 Ближайшие задачи:**
-- JMS583 бокс: заменить RTL9210B-CG → после замены включить watchdog: `sudo systemctl enable --now nasa-usb-watchdog.timer`
+- **REBOOT Jetson** для применения UAS quirk (`152d:a583:u`): `ssh admin@192.168.0.50 'echo "PASS" | sudo -S reboot'` — после reboot write speed вырастет с 8 MB/s до ~100+ MB/s
+- После reboot: повторить benchmark `dd if=/dev/zero of=/mnt/storage/testfile bs=4M count=256 oflag=direct`
 - Nextcloud Android: `https://193.8.215.130:8443`, admin / пароль из secrets.json
 - DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
 - Immich локальный URL: `http://192.168.0.50:2283` в Настройки → Сеть (WiFi: TP-Link_828C)
 - Restic off-site backup: после подключения 2 ТБ HDD
 
-**⚠️ Hardware note**: RTL9210B-CG (USB 2.0, 40 MB/s, SMART заблокирован). JMS583 на замену — ожидается доставка 2026-06-28.
+**✅ Hardware**: JMS583 (152d:a583, USB 3.0, 5 Gbps) — подключён и работает. Read 205 MB/s. Write pending fix (UAS quirk). SMART: не поддерживается через старый smartmontools 6.6 (SAT не проходит полностью, но базовые данные есть). RTL9210B-CG — заменён.
 
 ## Железо и доступ
 

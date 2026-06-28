@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import logging_setup
 from app.config import settings
-from app.routers import actions, health, logs, system
+from app.routers import actions, auth, health, logs, storage, system
 
 log = logging.getLogger("nasa_api")
 
@@ -19,10 +19,25 @@ OPENAPI_TAGS = [
         "description": "Базовый healthcheck и сводный статус сервиса.",
     },
     {
+        "name": "Авторизация",
+        "description": (
+            "JWT-авторизация через Nextcloud OCS. "
+            "`POST /api/auth/login` → Bearer token → используй в Authorize (🔒) выше. "
+            "Логин/пароль — те же что в Nextcloud."
+        ),
+    },
+    {
         "name": "Система",
         "description": (
             "Метрики Jetson Nano: CPU load, RAM, диск, температурные зоны. "
             "Статус Docker-контейнеров (`docker ps -a`)."
+        ),
+    },
+    {
+        "name": "Хранилище",
+        "description": (
+            "Статус SSD `/mnt/storage`: смонтирован ли, использование, "
+            "наличие и возраст резервных копий БД. **Требует JWT.**"
         ),
     },
     {
@@ -47,15 +62,23 @@ OPENAPI_DESCRIPTION = """\
 
 Сервис мониторинга и управления домашним облаком на базе Jetson Nano.
 
+### Авторизация
+
+Часть эндпоинтов защищена JWT. Порядок:
+1. `POST /api/auth/login` — введи Nextcloud-логин и пароль → получи `access_token`
+2. Нажми кнопку **Authorize 🔒** вверху страницы → вставь токен
+3. Защищённые эндпоинты (🔒) станут доступны
+
 ### Что отслеживается
 
-| Ресурс | Источник |
-|--------|----------|
-| RAM, CPU load, uptime | `/proc/meminfo`, `/proc/loadavg` |
-| Диск `/` и `/mnt/storage` | `os.statvfs` |
-| Температура (CPU/GPU/PLL) | `/sys/class/thermal/thermal_zone*` |
-| Docker-контейнеры | `docker ps -a` |
-| HTTP-статус сервисов | Nextcloud :8080, Immich :2283, LLM GW :8090 |
+| Ресурс | Источник | Auth |
+|--------|----------|------|
+| RAM, CPU load, uptime | `/proc/meminfo`, `/proc/loadavg` | нет |
+| Диск `/` и `/mnt/storage` | `os.statvfs` | нет |
+| Температура (CPU/GPU/PLL) | `/sys/class/thermal/thermal_zone*` | нет |
+| Docker-контейнеры | `docker ps -a` | нет |
+| HTTP-статус сервисов | Nextcloud :8080, Immich :2283, LLM GW :8090 | нет |
+| SSD статус + backup-дампы | `/mnt/storage` | **JWT** |
 
 ### Логирование
 
@@ -63,16 +86,9 @@ OPENAPI_DESCRIPTION = """\
 - **stdout** — plain-text (доступен через `docker logs homecloud_nasa_api`)
 - **файл** — JSON-lines с ротацией: `/var/log/nasa-monitor/nasa-api.jsonl`
 
-Формат JSON-строки:
-```json
-{"ts":"2026-06-21T09:00:01Z","level":"INFO","service":"nasa-api",
- "logger":"nasa_api.system","msg":"metrics polled","ram_used_pct":42.1}
-```
-
 ### Внешний доступ
 
-Сервис доступен через VPS-туннель:
-`http://193.8.215.130:8099/docs`
+Сервис доступен через VPS-туннель: `http://193.8.215.130:8099/docs`
 """
 
 
@@ -92,7 +108,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title="NASA Home Cloud — Status & Monitoring API",
-    version="0.1.0",
+    version="0.2.0",
     description=OPENAPI_DESCRIPTION,
     openapi_tags=OPENAPI_TAGS,
     contact={
@@ -105,6 +121,7 @@ app = FastAPI(
         "filter": True,
         "displayRequestDuration": True,
         "tryItOutEnabled": True,
+        "persistAuthorization": True,
     },
 )
 
@@ -116,6 +133,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(system.router)
+app.include_router(storage.router)
 app.include_router(logs.router)
 app.include_router(actions.router)

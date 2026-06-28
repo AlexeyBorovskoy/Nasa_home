@@ -1,5 +1,5 @@
 [Unit]
-Description=NASA USB Error Monitor (RTL9210B-CG real-time dmesg watcher)
+Description=NASA USB Error Monitor (real-time dmesg watcher for USB SSD errors)
 Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
 After=network.target
 

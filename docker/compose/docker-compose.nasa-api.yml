@@ -18,6 +18,9 @@ services:
       - /etc/nasa-monitor:/etc/nasa-monitor:ro
     environment:
       API_LOG_LEVEL: ${NASA_API_LOG_LEVEL:-INFO}
+      JWT_SECRET: ${NASA_API_JWT_SECRET}
+      JWT_TTL_HOURS: ${NASA_API_JWT_TTL_HOURS:-24}
+      NEXTCLOUD_INTERNAL_URL: ${NEXTCLOUD_INTERNAL_URL:-http://host.docker.internal:8080}
       EXPECTED_CONTAINERS: >-
         homecloud_nextcloud
         homecloud_nextcloud_db

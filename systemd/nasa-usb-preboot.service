@@ -1,7 +1,7 @@
 [Unit]
-Description=NASA USB SSD Pre-boot Power Cycle (RTL9210B-CG reset)
+Description=NASA USB SSD Pre-boot Power Cycle (port 2 power cycle before mount)
 Documentation=https://github.com/AlexeyBorovskoy/Nasa_home
-# Запускаем ДО монтирования SSD — сбрасываем RTL9210B-CG
+# Запускаем ДО монтирования SSD — power cycle порта 2 для чистой инициализации
 Before=jetson-nas-mount.service
 After=local-fs.target
 DefaultDependencies=no
