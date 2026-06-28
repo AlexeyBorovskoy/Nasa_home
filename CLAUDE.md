@@ -25,7 +25,7 @@
 | USB SSD порт | ✅ **порт 2** | preboot service делает power cycle при boot |
 | SCSI timeout | ✅ **120s** | udev правило активно |
 | `usbcore.autosuspend=-1` | ✅ **kernel** | `/proc/cmdline` |
-| `usb-storage.quirks=...,152d:a583:u` | ⚠️ **pending reboot** | Добавлен в extlinux.conf — отключит UAS для JMS583 (fix stream errors). После reboot: write ~100+ MB/s вместо 8 MB/s |
+| `usb-storage.quirks=...,152d:a583:u` | ✅ **active** | UAS отключён, usb-storage BOT. Write **250 MB/s**, Read 172 MB/s. Нет USB ошибок. |
 | USB watchdog timer | ✅ **active (waiting)** | `nasa-usb-watchdog.timer` включён |
 | USB pre-boot service | ✅ active | `nasa-usb-preboot.service` — power cycle до монтирования |
 | USB error monitor | ✅ active | `nasa-usb-monitor.service` — Telegram при USB ошибках (error -71 + JMS583 stream errors) |
@@ -54,14 +54,12 @@
 >    PASS — из `config/secrets.json`
 
 **🔜 Ближайшие задачи:**
-- **REBOOT Jetson** для применения UAS quirk (`152d:a583:u`): `ssh admin@192.168.0.50 'echo "PASS" | sudo -S reboot'` — после reboot write speed вырастет с 8 MB/s до ~100+ MB/s
-- После reboot: повторить benchmark `dd if=/dev/zero of=/mnt/storage/testfile bs=4M count=256 oflag=direct`
 - Nextcloud Android: `https://193.8.215.130:8443`, admin / пароль из secrets.json
 - DAVx⁵: `https://193.8.215.130:8443/remote.php/dav`
 - Immich локальный URL: `http://192.168.0.50:2283` в Настройки → Сеть (WiFi: TP-Link_828C)
 - Restic off-site backup: после подключения 2 ТБ HDD
 
-**✅ Hardware**: JMS583 (152d:a583, USB 3.0, 5 Gbps) — подключён и работает. Read 205 MB/s. Write pending fix (UAS quirk). SMART: не поддерживается через старый smartmontools 6.6 (SAT не проходит полностью, но базовые данные есть). RTL9210B-CG — заменён.
+**✅ Hardware**: JMS583 (152d:a583, USB 3.0, 5 Gbps) — подключён и работает. Write **250 MB/s**, Read 172 MB/s. UAS quirk активен (usb-storage BOT). Нет USB ошибок. SMART: smartmontools 6.6 слишком старый (SAT passthrough — базовые данные есть). RTL9210B-CG — заменён.
 
 ## Железо и доступ
 
