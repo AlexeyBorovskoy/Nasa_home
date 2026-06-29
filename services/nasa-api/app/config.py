@@ -53,5 +53,33 @@ class Settings(BaseSettings):
         "LLM-Gateway=http://host.docker.internal:8090/health"
     )
 
+    # Nextcloud admin credentials (for Talk API and user management)
+    nextcloud_admin_user: str = "admin"
+    nextcloud_admin_password: str = ""  # Set via NEXTCLOUD_ADMIN_PASSWORD
+
+    # Talk (Nextcloud spreed) — default family room token
+    talk_family_room: str = "37pcobmf"
+
+    # Immich internal URL and API key
+    immich_internal_url: str = "http://host.docker.internal:2283"
+    immich_api_key: str = ""  # Set via IMMICH_API_KEY (generate in Immich → API Keys)
+
+    # Backup script path (for POST /v1/actions/backup/now)
+    backup_cmd: str = "/home/admin/nasa/scripts/backup/backup_databases.sh"
+
+    # Whitelist of containers allowed to be restarted via API
+    restartable_containers: str = (
+        "homecloud_nextcloud "
+        "homecloud_nextcloud_db "
+        "homecloud_nextcloud_redis "
+        "homecloud_immich_server "
+        "homecloud_immich_microservices "
+        "homecloud_llm_gateway "
+        "homecloud_nasa_api "
+        "homecloud_samba "
+        "homecloud_netdata "
+        "homecloud_uptime_kuma"
+    )
+
 
 settings = Settings()

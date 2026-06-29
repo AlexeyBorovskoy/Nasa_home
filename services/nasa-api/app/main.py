@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import logging_setup
 from app.config import settings
-from app.routers import actions, auth, health, logs, storage, system
+from app.routers import actions, auth, health, logs, photos, storage, system, talk, users
 
 log = logging.getLogger("nasa_api")
 
@@ -22,7 +22,7 @@ OPENAPI_TAGS = [
         "name": "Авторизация",
         "description": (
             "JWT-авторизация через Nextcloud OCS. "
-            "`POST /api/auth/login` → Bearer token → используй в Authorize (🔒) выше. "
+            "`POST /api/auth/login` → Bearer token → используй в **Authorize 🔒** выше. "
             "Логин/пароль — те же что в Nextcloud."
         ),
     },
@@ -41,6 +41,34 @@ OPENAPI_TAGS = [
         ),
     },
     {
+        "name": "Talk — Чат",
+        "description": (
+            "Интеграция с Nextcloud Talk: список комнат, участники, "
+            "отправка сообщений в семейный чат. "
+            "`POST /v1/talk/notify` — отправить алерт или уведомление в группу «Семья». "
+            "Использует OCS Talk API v4 с admin-правами. "
+            "`POST /v1/talk/notify` **требует JWT.**"
+        ),
+    },
+    {
+        "name": "Пользователи",
+        "description": (
+            "Управление семейными аккаунтами через Nextcloud OCS API: "
+            "список пользователей, использование диска, время последнего входа. "
+            "`POST /v1/users/{username}/notify` — личное сообщение в Talk. "
+            "**Все эндпоинты требуют JWT.**"
+        ),
+    },
+    {
+        "name": "Фото — Immich",
+        "description": (
+            "Статистика семейного фотоархива Immich: "
+            "количество фото/видео, альбомы, занятое место — по серверу и по каждому пользователю. "
+            "Требует переменной `IMMICH_API_KEY` в конфигурации. "
+            "**Все эндпоинты требуют JWT.**"
+        ),
+    },
+    {
         "name": "Логи",
         "description": (
             "Чтение последних записей структурированного JSON-лога "
@@ -51,44 +79,52 @@ OPENAPI_TAGS = [
     {
         "name": "Действия",
         "description": (
-            "Управляющие действия: ручная отправка Telegram-отчёта. "
-            "Все действия fire-and-forget (HTTP 202)."
+            "Управляющие действия: Telegram-отчёт, перезапуск контейнеров, резервное копирование, "
+            "журнал действий. "
+            "Опасные действия (restart, backup) **требуют JWT.** "
+            "Все действия fire-and-forget (HTTP 202) кроме `GET /v1/actions/history`."
         ),
     },
 ]
 
 OPENAPI_DESCRIPTION = """\
-## NASA Home Cloud — Status & Monitoring API
+## NASA Home Cloud — Status & Control API
 
 Сервис мониторинга и управления домашним облаком на базе Jetson Nano.
 
 ### Авторизация
 
-Часть эндпоинтов защищена JWT. Порядок:
+Часть эндпоинтов защищена JWT (🔒). Порядок:
 1. `POST /api/auth/login` — введи Nextcloud-логин и пароль → получи `access_token`
 2. Нажми кнопку **Authorize 🔒** вверху страницы → вставь токен
-3. Защищённые эндпоинты (🔒) станут доступны
+3. Защищённые эндпоинты станут доступны
 
-### Что отслеживается
+### Что доступно
 
-| Ресурс | Источник | Auth |
-|--------|----------|------|
-| RAM, CPU load, uptime | `/proc/meminfo`, `/proc/loadavg` | нет |
-| Диск `/` и `/mnt/storage` | `os.statvfs` | нет |
-| Температура (CPU/GPU/PLL) | `/sys/class/thermal/thermal_zone*` | нет |
-| Docker-контейнеры | `docker ps -a` | нет |
-| HTTP-статус сервисов | Nextcloud :8080, Immich :2283, LLM GW :8090 | нет |
-| SSD статус + backup-дампы | `/mnt/storage` | **JWT** |
-
-### Логирование
-
-Все события пишутся в два места:
-- **stdout** — plain-text (доступен через `docker logs homecloud_nasa_api`)
-- **файл** — JSON-lines с ротацией: `/var/log/nasa-monitor/nasa-api.jsonl`
+| Группа | Эндпоинты | Auth |
+|--------|-----------|------|
+| Система | RAM, CPU, диск, температура, контейнеры | — |
+| Хранилище | SSD статус, бэкапы | 🔒 |
+| Talk | Комнаты, участники, отправка сообщений | частично 🔒 |
+| Пользователи | Список, детали, личные DM | 🔒 |
+| Фото | Статистика Immich по серверу и пользователям | 🔒 |
+| Действия | Restart контейнера, бэкап, Telegram-отчёт | частично 🔒 |
+| Логи | Последние записи лога с фильтрами | — |
 
 ### Внешний доступ
 
-Сервис доступен через VPS-туннель: `http://193.8.215.130:8099/docs`
+`http://193.8.215.130:8099/docs`
+
+### Версия
+
+| Версия | Что добавлено |
+|--------|---------------|
+| v0.1.0 | health, status |
+| v0.2.0 | auth, metrics, containers, storage, logs, report |
+| v0.3.0 | **Talk: rooms, notify** |
+| v0.4.0 | **Actions: container restart, backup** |
+| v0.5.0 | **Users: list, detail, DM notify** |
+| v0.6.0 | **Photos: Immich stats** |
 """
 
 
@@ -107,8 +143,8 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    title="NASA Home Cloud — Status & Monitoring API",
-    version="0.2.0",
+    title="NASA Home Cloud — Status & Control API",
+    version="0.6.0",
     description=OPENAPI_DESCRIPTION,
     openapi_tags=OPENAPI_TAGS,
     contact={
@@ -136,5 +172,8 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(system.router)
 app.include_router(storage.router)
+app.include_router(talk.router)
+app.include_router(users.router)
+app.include_router(photos.router)
 app.include_router(logs.router)
 app.include_router(actions.router)
