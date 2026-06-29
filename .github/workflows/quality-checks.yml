@@ -117,29 +117,16 @@ jobs:
               --no-git \
               --exit-code 1
 
-      - name: Install Trivy
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin v0.50.0
-          trivy --version
-
       - name: Trivy filesystem scan
-        run: |
-          trivy fs . \
-            --severity HIGH,CRITICAL \
-            --scanners secret,misconfig \
-            --exit-code 0 \
-            --format table \
-            --ignore-unfixed
-
-      - name: Trivy config scan (misconfigurations)
-        run: |
-          trivy fs . \
-            --severity MEDIUM,HIGH,CRITICAL \
-            --scanners misconfig \
-            --exit-code 0 \
-            --format table \
-            --ignorefile .trivyignore 2>/dev/null || true
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          scanners: secret,misconfig
+          exit-code: 0
+          format: table
+          ignore-unfixed: true
 
   # ---------------------------------------------------------------------------
   # actionlint: validate GitHub Actions workflow files
