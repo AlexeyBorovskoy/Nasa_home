@@ -3,7 +3,7 @@
 > **Платформы:** [Habr.com](https://habr.com)  
 > **Хабы:** Системное администрирование · Open Source · Искусственный интеллект · Self-hosted  
 > **Теги:** `selfhosted` `nextcloud` `immich` `jetson-nano` `docker` `homelab` `claude-code` `ai-assisted-dev`  
-> **Статус проекта (июнь 2026):** Stage 1, тестовое развёртывание  
+> **Статус проекта (июнь 2026):** Stage 1+2 полностью работает · v1.4.0 · NASA API v0.6.0 · семья подключена  
 > **Репозиторий:** [github.com/AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home)
 
 ---
@@ -116,14 +116,16 @@ Android / Windows / macOS (LAN)
              Jetson Nano 192.168.0.50
          ┌─────────────────────────────┐
          │ homecloud_nextcloud   :8080 │
+         │   + Talk «Семья» (5 чел)   │
          │ homecloud_immich      :2283 │
          │ homecloud_llm_gw      :8090 │
+         │ homecloud_nasa_api    :8099 │  ← v0.6.0: Talk/Users/Photos API
          │ homecloud_samba        :445 │
          │ homecloud_*_db (postgres)   │
          │ Netdata + Uptime Kuma       │
          └────────────┬────────────────┘
-                      │ USB
-              /mnt/storage (HDD, ext4)
+                      │ USB 3.0 SuperSpeed
+              /mnt/storage (JMS583 SSD, 229 GB, 250 MB/s)
 
 Внешний доступ (CGNAT → reverse SSH tunnel):
   Jetson → autossh → VPS nginx :8080 → интернет
@@ -178,6 +180,8 @@ nasa-home-cloud/
 
 ---
 
-**Текущий статус:** завтра подключаю внешний HDD и запускаю всё вживую. Следующая статья — результаты с реальным железом, скорости, скриншоты.
+**Текущий статус (v1.4.0, 2026-06-29):** Система полностью работает. JMS583 подключён (Write 250 MB/s). Семья использует чат «Семья» в Nextcloud Talk. NASA API v0.6.0 — Talk/Users/Photos/Actions эндпоинты в Swagger. goss 40/40.
 
-**GitHub:** [AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home) — промпты, ADR, Docker Compose, скрипты — всё открыто.
+**Следующая статья:** Restic off-site backup, Ollama local AI на Jetson, GitHub metrics.
+
+**GitHub:** [AlexeyBorovskoy/Nasa_home](https://github.com/AlexeyBorovskoy/Nasa_home) — промпты, ADR, Docker Compose, скрипты, памятки пользователей — всё открыто.
