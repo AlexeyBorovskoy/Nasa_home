@@ -41,8 +41,8 @@ jobs:
       - name: ShellCheck (error level, enforced)
         run: |
           echo "=== ShellCheck errors (enforced) ==="
-          find scripts/ tests/ -name "*.sh" -type f | \
-            xargs shellcheck --severity=error --shell=bash --format=gcc
+          find scripts/ tests/ -name "*.sh" -type f -print0 | \
+            xargs -0 shellcheck --severity=error --shell=bash --format=gcc
 
   # ---------------------------------------------------------------------------
   # Docker Compose validation

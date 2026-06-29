@@ -3,7 +3,7 @@ set -euo pipefail
 
 SECRET_ASSIGNMENT_PATTERN='[A-Z0-9_]*(API[_-]?KEY|SECRET|TOKEN|PASSWORD|BEARER)[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*['"'"'"]?[A-Za-z0-9_./+=:@-]{16,}'
 PRIVATE_KEY_PATTERN='-----BEGIN [A-Z ]*PRIVATE KEY-----'
-PLACEHOLDER_PATTERN='(change_me|replace_me|example|mock|REDACTED|ВАШ_)'
+PLACEHOLDER_PATTERN='(change_me|replace_me|example|mock|REDACTED|ВАШ_|x{8,}|X{8,})'
 
 # Сканируем только то, что git реально опубликует (tracked-файлы).
 # Untracked/.gitignored (например локальный config/.env с реальными ключами)
