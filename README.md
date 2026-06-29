@@ -81,6 +81,7 @@ docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.
 - [Этапы / Stages](#этапы--stages)
 - [Документация / Documentation](#документация--documentation)
 - [Безопасность / Security](#безопасность--security)
+- [Статьи и публикации / Articles](#статьи-и-публикации--articles)
 - [Вклад / Contributing](#вклад--contributing)
 - [Лицензия / License](#лицензия--license)
 
@@ -553,6 +554,21 @@ CI автоматически проверяет секреты / CI automatical
 - VPS IP может меняться — при смене обновить `VPS_HOST` в `config/.env` на Jetson и перезапустить `nasa-tunnel.service`.
 - Docker 20.10.7 (JetPack 4.x) — устаревший. Обновление нетривиально из-за зависимостей NVIDIA runtime. Для home lab допустимо.
 - HTTPS для VPS nginx — Let's Encrypt не настроен (нет доменного имени).
+
+---
+
+## Статьи и публикации / Articles
+
+🇷🇺 **Habr:** [«Домашний облачный сервер за ноль рублей»](https://habr.com/ru/sandbox/291694/) — статья в Песочнице (ждёт выхода в основную ленту).
+
+🇬🇧 **GitHub Pages:** [alexeyborovskoy.github.io/Nasa_home](https://alexeyborovskoy.github.io/Nasa_home/) — project site with architecture, reliability story, evidence.
+
+| Материал | Язык | Ссылка |
+|---|---|---|
+| Habr статья | RU | [habr.com/ru/sandbox/291694/](https://habr.com/ru/sandbox/291694/) |
+| GitHub Pages | EN/RU | [alexeyborovskoy.github.io/Nasa_home](https://alexeyborovskoy.github.io/Nasa_home/) |
+| Hackaday.io | EN | [docs/articles/hackaday_project_en.md](docs/articles/hackaday_project_en.md) |
+| Архив версий статьи | — | [docs/articles/README.md](docs/articles/README.md) |
 
 ---
 

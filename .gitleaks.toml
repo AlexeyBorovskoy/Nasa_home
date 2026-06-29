@@ -1,0 +1,22 @@
+# Gitleaks configuration for NASA Home Cloud repo
+# Extends built-in ruleset; adds allowlist for placeholder patterns.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key — skip placeholder values"
+
+[allowlist]
+description = "Placeholder / example values that are not real secrets"
+regexes = [
+  'change_me',
+  'replace_me',
+  'ВАШ_',
+  'example',
+  'x{8,}',
+  'X{8,}',
+  'REDACTED',
+  'mock',
+]
