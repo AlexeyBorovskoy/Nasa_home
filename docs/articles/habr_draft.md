@@ -157,6 +157,105 @@ nasa-home-cloud/
 
 ---
 
+## Три USB-инцидента, или как системе дали надёжность
+
+Это центральный сюжет — не архитектура, а реальные поломки.
+
+**Инцидент 1 (2026-06-23) — error -71**
+
+Ночью пришёл алерт в Telegram. SSD исчез с USB-шины, Docker упал, данные недоступны. В `dmesg` — `usb 2-1.3: USB disconnect, device number 3` и `sd 0:0:0:0: [sda] tag#0 FAILED Result: hostbyte=DID_ERROR`. Причина: Linux по умолчанию переводит USB-устройства в autosuspend через 2 секунды простоя. RTL9210B-CG не умел выходить из autosuspend без физического переподключения.
+
+Решение: `usbcore.autosuspend=-1` в `extlinux.conf` (kernel params), SCSI timeout 120s через udev-правило.
+
+**Инцидент 2 (2026-06-26) — порт 4 аппаратно сломан**
+
+После очередного `error -71` выяснилось: порт 4 на USB-хабе физически не обеспечивает достаточно тока. Решение простое — переткнуть кабель в порт 2. Теперь watchdog мониторит именно порт 2.
+
+**Инцидент 3 (незаметный) — CRLF в bash shebang**
+
+Watchdog-скрипт был написан на Windows и закоммичен через git. При клоне на Jetson `#!/bin/bash` превратился в `#!/bin/bash\r` — невалидный shebang. Скрипт отказывался запускаться, но молчал. Системный watchdog не работал 4+ часов.
+
+Решение: `.gitattributes` с `*.sh text eol=lf` — после этого git перестал конвертировать LF→CRLF.
+
+**RTL9210B-CG → JMS583 (2026-06-28)**
+
+Через 5 дней нестабильной работы пришёл вывод: RTL9210B-CG деградировал USB 3.0 до USB 2.0 (~40 MB/s), блокировал SMART-данные. Заказал JMS583 (Realtek JMS583 чип, отдельный класс).
+
+Результат после замены: Write **250 MB/s**, Read **172 MB/s**. SMART стал читаться. Нет ни одного `error -71` после замены.
+
+```
+dmesg | grep usb-storage
+# До (RTL9210B-CG):
+# usb 2-1.3: new high-speed USB device (USB 2.0!)
+# После (JMS583):
+# usb 2-1.3: new SuperSpeed USB device (USB 3.0, 5 Gbps)
+```
+
+Но JMS583 с UAS-режимом не дружит с Jetson kernel 4.9 — нужен quirk:
+
+```
+# /boot/extlinux/extlinux.conf
+APPEND ... usb-storage.quirks=152d:a583:u usbcore.autosuspend=-1
+```
+
+После этого `u` (usb-storage BOT mode) — скорость записи выросла с 8 MB/s до 250 MB/s.
+
+**Итог инженерной работы по USB:**
+- `nasa-usb-preboot.service` — power cycle USB-порта при каждом boot (до монтирования)
+- `nasa-usb-monitor.service` — dmesg watcher, Telegram alert при первом `error -71`
+- `nasa-ssd-recovery.service` — udev hotplug: подключил кабель → система сама монтирует, запускает preflight, поднимает Docker
+
+---
+
+## Семья подключилась: Talk и NASA API
+
+Когда система стала стабильной, я добавил семью.
+
+**Nextcloud Talk «Семья»**
+
+Nextcloud Talk — встроенный мессенджер. Создал группу «Семья» (5 человек: admin, olga, ivan, ulyana, anna). История переписки хранится на нашем SSD, не в облаке Telegram.
+
+![Nextcloud Talk — чат «Семья»](../../assets/screenshots/article/nextcloud_talk.png)
+
+Каждому члену семьи отправил `docs/clients/` — персональную памятку на 1 страницу с URL, логином, шагами настройки на Android.
+
+**NASA API v0.6.0 — 20 эндпоинтов**
+
+Параллельно я попросил Claude Code построить REST API поверх всего стека. Зачем? Чтобы можно было скриптовать действия, смотреть статистику и управлять контейнерами без SSH.
+
+| Группа | Эндпоинты | Что делает |
+|---|---|---|
+| Health/System | `/healthcheck`, `/v1/status`, `/v1/metrics`, `/v1/containers` | Состояние системы |
+| Auth | `POST /api/auth/login`, `GET /api/auth/me` | JWT через Nextcloud OCS |
+| Storage | `GET /v1/storage` | Диск, монтирование |
+| Talk | `GET /v1/talk/rooms`, `POST /v1/talk/notify` | Чат «Семья» |
+| Users | `GET /v1/users`, `POST /v1/users/{id}/notify` | Семейные пользователи |
+| Photos | `GET /v1/photos/stats` | Immich: 6484 фото, 210 видео, 4.24 GB |
+| Actions | `POST /v1/actions/containers/{name}/restart` | Перезапуск контейнеров |
+
+Промпт, с которого начался API:
+
+```
+Создай FastAPI сервис nasa-api. Пусть он умеет авторизоваться 
+через Nextcloud OCS, читать состояние Docker-контейнеров, 
+отправлять сообщения в Talk и показывать статистику Immich.
+JWT токен — от Nextcloud. Swagger UI обязателен.
+```
+
+Агент написал 9 роутеров, pydantic-модели, конфиг через pydantic-settings, JWT middleware и Swagger с примерами. Всё живёт в `services/nasa-api/`.
+
+---
+
+## Что сейчас работает
+
+![Immich — фотоархив семьи (6.1 GiB, 228 GB свободно)](../../assets/screenshots/article/immich_web.png)
+
+![Nextcloud — дашборд](../../assets/screenshots/article/nextcloud_dashboard.png)
+
+Telegram daily report в 09:00 показывает: 13 контейнеров ✅, LOCAL HTTP ✅, EXTERNAL ACCESS ✅, Beszel ✅.
+
+---
+
 ## Честная оценка подхода
 
 **Плюсы:**
