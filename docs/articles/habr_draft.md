@@ -254,6 +254,12 @@ JWT токен — от Nextcloud. Swagger UI обязателен.
 
 Telegram daily report в 09:00 показывает: 13 контейнеров ✅, LOCAL HTTP ✅, EXTERNAL ACCESS ✅, Beszel ✅.
 
+![Beszel Hub — обзор систем: Jetson Nano + VPS Vienna](../../assets/screenshots/article/beszel_systems_overview.png)
+
+![Beszel Hub — метрики Jetson Nano: CPU 14–19%, RAM 2.3 GB, Docker containers](../../assets/screenshots/article/beszel_jetson_metrics.png)
+
+![NASA API v0.6.0 — Swagger UI: Talk, Users, Photos, Actions](../../assets/screenshots/article/nasa_api_swagger.png)
+
 ---
 
 ## Честная оценка подхода
