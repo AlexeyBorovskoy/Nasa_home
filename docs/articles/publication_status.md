@@ -9,9 +9,10 @@
 
 ## GitHub Pages
 
-- Status: prepared (enable manually in repo Settings → Pages → main /docs)
+- Status: **live** ✅
 - URL: https://alexeyborovskoy.github.io/Nasa_home/
 - Source: main /docs
+- Enabled: 2026-06-29
 
 ## Hackaday.io
 

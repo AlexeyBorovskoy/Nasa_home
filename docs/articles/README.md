@@ -6,7 +6,9 @@ This folder contains public article drafts and publication materials for NASA Ho
 
 | File | Language | Purpose | Status |
 |---|---|---|---|
-| habr_article_ru.md | RU | Habr article (canonical) | submitted to Sandbox |
+| habr_article_ru.md | RU | Habr article — GitHub Pages version (image paths 01–07) | published |
+| habr_ready.md | RU | Habr article — clean paste for Markdown editor | ready |
+| habr_wysiwyg.html | RU | Habr article — HTML for WYSIWYG editor paste | ready |
 | hackaday_project_en.md | EN | Hackaday.io project page | draft |
 | publication_status.md | RU/EN | Publication checklist and links | active |
 | GITHUB_PUBLICATION_CHECKLIST.md | RU/EN | Pre-publish checklist | active |

@@ -10,6 +10,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.1] — 2026-06-29 · GitHub Pages + Habr publication
+
+### Added / Добавлено
+
+- **GitHub Pages** (`docs/` → `main` branch):
+  - `docs/_config.yml` — Jekyll theme (jekyll-theme-minimal)
+  - `docs/index.md` — landing page: highlights, status table, links
+  - `docs/pages/architecture.md` · `reliability.md` · `android.md` · `evidence.md`
+  - `docs/assets/screenshots/article/redacted/` — 7 редактированных скриншотов (01–07)
+  - URL: https://alexeyborovskoy.github.io/Nasa_home/
+- **Habr article** — публикация в Песочнице https://habr.com/ru/sandbox/291694/
+  - `docs/articles/habr_article_ru.md` — канонический вариант для GitHub Pages (пути 01–07)
+  - `docs/articles/habr_ready.md` — чистая версия для вставки в Markdown-редактор Хабра
+  - `docs/articles/habr_wysiwyg.html` — HTML для вставки в WYSIWYG-редактор Хабра
+  - `docs/articles/hackaday_project_en.md` — черновик для Hackaday.io
+- **`.gitleaks.toml`** — конфиг подавления ложных срабатываний (placeholders)
+- **README.md**: раздел «Статьи и публикации / Articles» с ссылками на Habr и GitHub Pages
+- **`docs/prompts/CODEX_GITHUB_PAGES_PUBLICATION_PROMPT.md`** — сохранён промпт публикации
+
+---
+
 ## [1.4.0] — 2026-06-29 · JMS583 USB SSD + Nextcloud Talk + NASA API v0.6.0
 
 ### Added / Добавлено
