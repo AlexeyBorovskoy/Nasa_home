@@ -8,14 +8,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.4.0] — 2026-06-29 · JMS583 USB SSD + Nextcloud Talk + NASA API v0.6.0
+
 ### Added / Добавлено
 
-- **`scripts/diagnostics/sd_wear_check.sh`** + **`systemd/nasa-sd-wear.service/.timer`** —
-  еженедельный мониторинг износа microSD через MMC sysfs (`life_time`); Telegram-алерт при износе ≥ 50%
-- **Samba `mem_limit: 128m`** + **healthcheck** (`smbclient -N -L //127.0.0.1`) добавлены в compose
-- **`immich-microservices` healthcheck** — `pgrep -f 'node /usr/src/app'` added to compose
-- **Screenshots retouched** — faces and personal filenames blurred; placed in `assets/screenshots/article/`
-- **`docs/articles/ARTICLE_AUDIT_REPORT.md`** — full audit for Habr/Hackaday.io article preparation
+- **JMS583 USB SSD enclosure** (152d:a583, USB 3.0 SuperSpeed, 5 Gbps) — заменил RTL9210B-CG:
+  - Write **250 MB/s**, Read **172 MB/s** подтверждены (`dd bs=1M`)
+  - `usb-storage.quirks=152d:a583:u` в `/boot/extlinux/extlinux.conf` — UAS quirk, BOT mode
+  - `scripts/monitoring/jms583_health.sh` + `systemd/nasa-jms583-health.{service,timer}` —
+    ежечасный мониторинг: USB ошибки, скорость I/O, статус очереди; Telegram-алерт
+- **Nextcloud Talk** — семейный чат на базе Nextcloud spreed v23.0.7:
+  - Группа «Семья» (`token: 37pcobmf`), 5 участников: admin, olga, ivan, ulyana, anna
+  - Пользователь `anna` (Talk-only) добавлен в Nextcloud
+  - `artifacts/users/ANNA_setup.txt` — памятка для Anna (Talk-only)
+  - Памятки OLGA/IVAN/ULYANA переписаны: Talk → первый раздел
+- **NASA API v0.6.0** — новые роутеры:
+  - `GET /v1/talk/rooms` · `GET /v1/talk/rooms/{token}` · `POST /v1/talk/notify` — Talk интеграция
+  - `GET /v1/users` · `GET /v1/users/{username}` · `POST /v1/users/{username}/notify` — пользователи
+  - `GET /v1/photos/stats` · `GET /v1/photos/users` — статистика Immich (6484 фото, 210 видео, 4.24 GB)
+  - `POST /v1/actions/containers/{name}/restart` · `POST /v1/actions/backup/now` · `GET /v1/actions/history`
+  - `main.py` v0.6.0: 9 Swagger-секций, `tryItOutEnabled`, `persistAuthorization`
+  - `config.py`: `NEXTCLOUD_ADMIN_PASSWORD`, `IMMICH_API_KEY`, `TALK_FAMILY_ROOM`, `RESTARTABLE_CONTAINERS`
+  - `docker-compose.nasa-api.yml`: новые env vars пробрасываются в контейнер
+  - Immich API key `nasa-api-monitor` создан (permission: all), сохранён в `config/secrets.json`
+- **goss**: 40/40 тестов (было 34) — добавлены тесты для JMS583, Talk, новых systemd-сервисов
+- **`docs/plans/NASA_API_ROADMAP.md`** — дорожная карта NASA API, v0.2.0→v0.6.0
+
+### Fixed / Исправлено
+
+- **exec bit loss** — 33 bash-скрипта потеряли exec bit после Windows pull;
+  `git update-index --chmod=+x` для 9 критических; `nasa-ssd-recovery.service` восстановлен
+- **NEXTCLOUD_ADMIN_PASSWORD** в `.env` на Jetson исправлен (регистр: `all270174bae` → `ALL_270174_bae`)
+- **Nextcloud `overwrite.cli.url`** → `https://193.8.215.130:8443` — исправлен для корректного
+  browser redirect при login через Talk/Nextcloud app на Android
+- **Дубликаты Talk-комнат** (3 шт.) удалены через `occ talk:room:delete`; осталась одна `37pcobmf`
+
+### Security / Безопасность
+
+- Immich API key добавлен в `config/secrets.json` (gitignored)
 
 ---
 
@@ -492,7 +524,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `.github/workflows/secrets-check.yml` — CI secret scanner on push/PR
   - `.github/workflows/validate-compose.yml` — CI Docker Compose validation
 
-[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.4...HEAD
+[Unreleased]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.9...v1.4.0
+[1.3.9]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.8...v1.3.9
+[1.3.8]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.7...v1.3.8
 [1.3.4]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/AlexeyBorovskoy/Nasa_home/compare/v1.3.1...v1.3.2

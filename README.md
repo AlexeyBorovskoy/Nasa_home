@@ -93,7 +93,7 @@ docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.
 
 Всё началось с того, что в ящике лежал NVIDIA Jetson Nano, купленный несколько лет назад для экспериментов. Поиграл, отложил и забыл. Сын принёс плату DEXP с 232 ГБ памяти — «папа, пригодится». Покупать готовый NAS или новое железо не хотелось.
 
-Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. Плата DEXP стала целевым USB-хранилищем. SSD смонтирован в `/mnt/storage` (229 GB), 13 контейнеров `Up (healthy)` после ребута 2026-06-27. USB autosuspend отключён на уровне ядра. HTTPS добавлен на VPS nginx. USB-мост RTL9210B-CG деградирует USB 3.0→2.0 и блокирует SMART — ожидаем замену JMS583.
+Решил попробовать сделать домашний сервер из того, что уже есть. Jetson Nano оказался вполне достаточным: 4 ГБ RAM, ARM64, умеет в Docker. SSD смонтирован в `/mnt/storage` (229 GB), 13 контейнеров `Up (healthy)`. USB autosuspend отключён на уровне ядра. HTTPS добавлен на VPS nginx. SSD подключён через **JMS583** (USB 3.0 SuperSpeed, 5 Gbps, 250 MB/s write). Семейный чат работает через Nextcloud Talk — 5 участников. NASA API v0.6.0 живёт на `:8099/docs` (Talk, Photos, Users, Actions).
 
 **NASA Home Cloud** — это не инсталлятор в один клик. Это инженерный шаблон: документация, Docker Compose, диагностические скрипты, systemd-юниты и промпты для агентов, позволяющие разворачивать платформу малыми проверяемыми шагами.
 
@@ -109,7 +109,7 @@ docker compose -f docker/compose/docker-compose.immich.yml   --env-file config/.
 
 It started with an NVIDIA Jetson Nano sitting in a drawer — bought years ago for experiments, tinkered with it once, then forgot about it. My son brought a DEXP board with 232 GB storage — "dad, you'll need this". Didn't want to buy a ready-made NAS or new hardware.
 
-Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. As of 2026-06-27 the SSD is mounted at `/mnt/storage` (229 GB), all 13 containers are `Up (healthy)`, USB autosuspend is disabled at kernel level, and HTTPS is live on VPS nginx. The RTL9210B-CG USB bridge degrades USB 3.0→2.0 and blocks SMART passthrough — replacement JMS583 enclosure ordered.
+Decided to try building a home server from what was already there. The Jetson Nano turned out to be perfectly capable: 4 GB RAM, ARM64, Docker-ready. The DEXP board became the target USB storage. The SSD is mounted at `/mnt/storage` (229 GB), all 13 containers are `Up (healthy)`, USB autosuspend is disabled at kernel level, HTTPS is live on VPS nginx. The **JMS583** enclosure (USB 3.0 SuperSpeed, 5 Gbps, 250 MB/s write) replaced the original DEXP/RTL9210B-CG bridge. Family chat runs on Nextcloud Talk (5 members). NASA API v0.6.0 is live at `:8099/docs` with Talk, Photos, Users, and Actions endpoints.
 
 **NASA Home Cloud** is not a one-command installer. It is an engineering template with documentation, Docker Compose files, diagnostics, systemd units, and agent prompts for safe, step-by-step deployment.
 
@@ -141,14 +141,16 @@ Principles:
 
 ## Что работает прямо сейчас / What's running
 
-> Состояние на 2026-06-27 / State as of 2026-06-27 · **Stage 1 fully operational**
-> Jetson доступен через VPS reverse tunnel. SSD смонтирован в `/mnt/storage` (229 GB, 217 GB free).
+> Состояние на 2026-06-29 / State as of 2026-06-29 · **Stage 1 fully operational**
+> Jetson доступен через VPS reverse tunnel. SSD смонтирован в `/mnt/storage` (229 GB, ~222 GB free).
 > `storage_preflight.sh` — errors=0, warnings=0. Все 13 контейнеров `Up (healthy)`.
 > USB autosuspend отключён: `usbcore.autosuspend=-1` **подтверждён после ребута**.
-> Beszel Hub на VPS:8091, оба агента Up (Jetson 17% CPU / VPS 2% CPU).
+> Beszel Hub на VPS:8091, оба агента Up (Jetson · VPS).
 > nginx HTTPS: Nextcloud :8443 · Immich :2443 · LLM :9443 (самоподписанный сертификат, 10 лет).
-> Android: Immich ✅ настроен, 6710 фото/видео в бэкапе. Nextcloud/DAVx⁵ ⏳ pending.
-> USB watchdog ⚠️ остановлен до замены RTL9210B-CG → JMS583 (ожидается 2026-06-28).
+> Android: Immich ✅ (6484 фото, 210 видео) · Nextcloud ✅ · DAVx⁵ ✅ · Talk ✅.
+> USB SSD: **JMS583** ✅ (152d:a583, USB 3.0 SuperSpeed, 5 Gbps, write 250 MB/s, UAS quirk активен).
+> Nextcloud Talk: группа «Семья» ✅ (5 участников: admin, olga, ivan, ulyana, anna).
+> NASA API: **v0.6.0** ✅ — Talk, Users, Photos, Actions endpoints live · goss 40/40.
 
 | Сервис / Service | Порт / Port | Доступ / Access | Статус / Status |
 |---|---|---|---|
@@ -168,10 +170,11 @@ Principles:
 | autossh tunnel | — | Jetson → VPS persistent | ✅ Live |
 | Telegram daily report | — | Bot → personal chat | ✅ Live (09:00) + Beszel data |
 | DB backup timer | — | pg_dump → /mnt/storage/backups | ✅ Live; fail-closed guard |
-| USB storage watchdog | udev | udev rules + smartd | ⚠️ Timer STOPPED · JMS583 swap pending 2026-06-28 |
-| Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud | Immich ✅ (6710 фото) · Nextcloud/DAVx⁵ ⏳ |
+| USB storage watchdog | udev | udev rules + systemd timers | ✅ active (nasa-usb-watchdog.timer) |
+| Android mobile sync | — | Immich app + DAVx⁵ + Nextcloud + Talk | ✅ Immich (6484 фото/210 видео) · Nextcloud · DAVx⁵ · Talk |
+| Nextcloud Talk | 8080/8443 | Семейный чат, 5 участников | ✅ Live · группа «Семья» (admin, olga, ivan, ulyana, anna) |
 
-> **Хранилище / Storage:** `/mnt/storage` — DEXP/Realtek 250 GB ext4 USB.
+> **Хранилище / Storage:** `/mnt/storage` — JMS583 USB 3.0 SSD (152d:a583, 229 GB ext4, write 250 MB/s, UAS quirk активен).
 > После переподключения / After reconnect: виден как / visible as `/dev/sda1`, смонтирован / mounted `rw,noatime`.
 > `e2fsck -f -n` вернул `0`, `storage_preflight.sh` завершился без ошибок / completed without errors.
 > История инцидента / Incident log: [docs/plans/STORAGE_INCIDENT_2026-06-23.md](docs/plans/STORAGE_INCIDENT_2026-06-23.md).
@@ -210,8 +213,11 @@ Principles:
         +-- LLM Gateway / FastAPI (8090)
         |     +-- [ DeepSeek API ] — privacy-filtered (PII redaction / редакция персданных)
         |
-        +-- nasa-api / FastAPI (8099) · Swagger UI /docs
-        |     · /v1/metrics · /v1/containers · /v1/logs · POST /v1/report/now
+        +-- nasa-api / FastAPI (8099) · Swagger UI /docs · v0.6.0
+        |     · /v1/metrics · /v1/containers · /v1/storage · /v1/logs
+        |     · /v1/talk/rooms · POST /v1/talk/notify
+        |     · /v1/users · /v1/photos/stats
+        |     · POST /v1/actions/containers/{name}/restart · POST /v1/actions/backup/now
         |
         +-- Samba NAS (445, LAN only)
         |     iptables: LAN only / разрешён только 192.168.0.0/24
@@ -225,10 +231,13 @@ Principles:
         +-- systemd: nasa-backup.timer         (03:00 daily / ежедневно, pg_dump)
         +-- systemd: jetson-nas-health.timer   (SMART HDD monitoring / мониторинг HDD, 6h)
         +-- systemd: beszel-agent.service      (monitoring → Beszel Hub at / на VPS:8091)
-        +-- udev:    85-nasa-storage-watchdog  (autosuspend=off for / для RTL9210B-CG + hub)
+        +-- udev:    usb-storage.quirks=152d:a583:u (UAS quirk для JMS583, в extlinux.conf)
+        +-- systemd: nasa-usb-preboot.service  (power cycle SSD порта при boot)
+        +-- systemd: nasa-usb-monitor.service  (Telegram alert при USB ошибках)
+        +-- systemd: nasa-ssd-recovery.service (udev sda1 add → mount → Docker)
         +-- smartd:  /dev/sda monitoring       (S.M.A.R.T., weekly self-test)
 
-/mnt/storage  (DEXP/Realtek 250 GB ext4 USB; mounted, fsck/preflight OK; Nextcloud live)
+/mnt/storage  (JMS583 USB 3.0 SSD 229 GB ext4; mounted, fsck/preflight OK; write 250 MB/s)
   ├── nextcloud/data
   ├── immich/library
   ├── db/
@@ -264,7 +273,7 @@ Principles:
 | Локальный NAS / Local NAS | Samba (crazymax/samba) | latest ARM64 | SMB2+ for Windows/Android/macOS |
 | LLM-шлюз / LLM Gateway | FastAPI LLM Gateway | — | Privacy shim, PII redaction / редакция персданных |
 | LLM API | DeepSeek API | deepseek-chat | Admin assistant / Помощник администратора |
-| Admin API | nasa-api (FastAPI) | — | Metrics, logs, containers, Swagger UI |
+| Admin API | nasa-api (FastAPI) | v0.6.0 | Metrics, logs, containers, Talk, Users, Photos, Actions — Swagger UI |
 | Тоннель / Tunnel | autossh + systemd | — | Reverse SSH via CGNAT → VPS |
 | VPS прокси / VPS proxy | nginx:alpine | — | Reverse proxy to public ports |
 | Мониторинг / Monitoring | Netdata | latest ARM64 | CPU, RAM, Disk, Docker, Jetson temp |
@@ -272,7 +281,7 @@ Principles:
 | Docker UI | Portainer CE | latest | Web UI for Docker management |
 | Ежедневный отчёт / Daily report | bash + SSH relay + Telegram | — | 09:00 cluster health report |
 | Бэкап БД / DB backup | bash pg_dump + gzip | — | 03:00 daily, 7-day rotation |
-| Тестирование / Testing | goss v0.4.9 (ARM64) | — | Infrastructure state tests (34 tests) |
+| Тестирование / Testing | goss v0.4.9 (ARM64) | — | Infrastructure state tests (40 tests) |
 | Здоровье системы / System health | systemd timers + SMART | — | 6h diagnostics + HDD health |
 | Unified monitoring | Beszel | 0.18.7 | Hub at VPS:8091, Agent Jetson:45876 + VPS:45877 |
 | Android sync | Immich app + DAVx⁵ + Nextcloud | — | Photos / contacts / calendar / files; [docs/android/](docs/android/) |
@@ -402,7 +411,7 @@ curl -sf http://localhost:8090/health             # LLM Gateway → {"status":"o
 curl -sf http://localhost:8099/healthcheck        # nasa-api → {"status":"ok"}
 curl -sf http://localhost:19999/api/v1/info       # Netdata → {...}
 
-goss -g tests/goss/goss.yaml validate --format tap   # 34 infrastructure tests
+goss -g tests/goss/goss.yaml validate --format tap   # 40 infrastructure tests
 ```
 
 Web UI:
@@ -462,7 +471,7 @@ IMMICH_DISABLE_MACHINE_LEARNING=true   # обязательно для Jetson Na
 | Stage 1G | nasa-api (FastAPI, Swagger, JSON logs) + Telegram отчёт | ✅ **Развёрнут и работает** |
 | Stage 1H | Resilience audit: healthchecks, mem_limit, goss | ✅ **8/10 findings fixed** |
 | Stage 1 Ops | Uptime Kuma (5 мониторов) + Portainer (admin) + бэкап-таймер | ✅ **Monitoring + fail-closed backup live** |
-| Stage 2 | Android sync: Immich + DAVx⁵ + Nextcloud + миграция с Google | ✅ **Документация готова** · [docs/android/](docs/android/) |
+| Stage 2 | Android sync: Immich + DAVx⁵ + Nextcloud + Talk + миграция с Google | ✅ **Работает** · [docs/android/](docs/android/) · семья подключена |
 | Stage 3 | Backup / restore (restic full + pg\_dump) | 🔜 Скрипты готовы |
 | Stage 3.1 | USB HDD: резервное расширение хранилища (NTFS + ext4 гибрид) | 📋 Готово к подключению |
 | Stage 4 | Analytics, RAG, fallback LLM providers | 📋 Будущее |
@@ -536,7 +545,7 @@ CI автоматически проверяет секреты / CI automatical
 
 ## Известные ограничения / Known Limitations
 
-- **RTL9210B-CG USB bridge** — деградирует USB 3.0→2.0 (480 Mbps / ~40 MB/s вместо 5 Gbps / ~400 MB/s), блокирует SMART passthrough. USB watchdog таймер ⚠️ **остановлен** до физической замены энклоужера. Замена: **JMS583** (ожидается 2026-06-28). / Degrades USB 3.0→2.0 and blocks SMART passthrough. Watchdog timer ⚠️ **STOPPED** until physical enclosure swap. Replacement: **JMS583** (arriving 2026-06-28).
+- **JMS583 USB SSD enclosure** (152d:a583) — UAS quirk активен (`usb-storage.quirks=152d:a583:u` в extlinux.conf). Для применения требуется reboot. Write 250 MB/s подтверждён. SMART passthrough ограничен (smartmontools 6.6 — базовые данные без SCSI passthrough). / UAS quirk active (`usb-storage.quirks=152d:a583:u` in extlinux.conf). Requires reboot to apply. Write 250 MB/s confirmed. SMART limited (smartmontools 6.6).
 - **HTTPS self-signed** — VPS nginx обслуживает Nextcloud на :8443, Immich на :2443, LLM на :9443 с самоподписанным сертификатом (10 лет). Let's Encrypt потребует доменное имя.
 - `scripts/backup/backup_databases.sh` работает fail-closed: если `/mnt/storage` не является отдельным mountpoint, backup не пишется в ложный каталог на microSD.
 - `services/backup-api` — Stage 2 placeholder, не production backup-сервис.

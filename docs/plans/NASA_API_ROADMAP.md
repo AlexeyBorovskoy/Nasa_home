@@ -5,9 +5,9 @@
 
 ---
 
-## Текущее состояние — v0.2.0 ✅
+## Текущее состояние — v0.6.0 ✅ (live 2026-06-29)
 
-**Стек:** FastAPI 0.111 · Python 3.12 · JWT (Nextcloud OCS) · Swagger UI `:8099/docs`
+**Стек:** FastAPI 0.138 · Python 3.12 · Pydantic v2 · JWT (Nextcloud OCS) · Swagger UI `:8099/docs`
 
 | Метод | Маршрут | Auth | Статус |
 |---|---|---|---|
@@ -20,13 +20,25 @@
 | GET | `/v1/storage` | JWT | ✅ |
 | GET | `/v1/logs` | — | ✅ |
 | POST | `/v1/report/now` | — | ✅ |
+| GET | `/v1/talk/rooms` | — | ✅ Talk интеграция |
+| GET | `/v1/talk/rooms/{token}` | — | ✅ |
+| POST | `/v1/talk/notify` | JWT | ✅ |
+| GET | `/v1/users` | JWT | ✅ 5 семейных пользователей |
+| GET | `/v1/users/{username}` | JWT | ✅ |
+| POST | `/v1/users/{username}/notify` | JWT | ✅ DM через Talk |
+| GET | `/v1/photos/stats` | JWT | ✅ Immich v2.7.5: 6484 фото, 210 видео, 4.24 GB |
+| GET | `/v1/photos/users` | JWT | ✅ |
+| POST | `/v1/actions/containers/{name}/restart` | JWT | ✅ whitelist 10 контейнеров |
+| POST | `/v1/actions/backup/now` | JWT | ✅ fire-and-forget |
+| GET | `/v1/actions/history` | JWT | ✅ |
+
+**Live:** `http://192.168.0.50:8099/docs` · `http://193.8.215.130:8099/docs`
 
 ---
 
-## v0.3.0 — Talk Integration 💬
+## v0.3.0 — Talk Integration 💬 ✅ Реализовано
 
-**Цель:** API умеет читать чат и отправлять сообщения в семейную группу.  
-Система сама пишет в чат при важных событиях (заполнен SSD, упал контейнер).
+**Цель:** API умеет читать чат и отправлять сообщения в семейную группу.
 
 | Метод | Маршрут | Auth | Описание |
 |---|---|---|---|
@@ -34,15 +46,13 @@
 | GET | `/v1/talk/rooms/{token}` | — | Детали комнаты: участники, последнее сообщение |
 | POST | `/v1/talk/notify` | JWT | Отправить сообщение в комнату |
 
-**Ключевые детали:**
 - Используется Nextcloud OCS Talk API (`/ocs/v2.php/apps/spreed/api/v4/...`)
-- Admin-credentials берутся из env (`NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD`)
-- Семейная комната по умолчанию: токен `37pcobmf` (env `TALK_FAMILY_ROOM`)
-- `POST /v1/talk/notify` — главный endpoint: позволяет любому сервису или cron отправить алерт в чат
+- Admin-credentials из env (`NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD`)
+- Семейная комната: токен `37pcobmf`, группа «Семья», 5 участников
 
 ---
 
-## v0.4.0 — Control Actions ⚙️
+## v0.4.0 — Control Actions ⚙️ ✅ Реализовано
 
 **Цель:** API не только читает, но и управляет — перезапускает контейнеры, запускает бэкап.
 
@@ -52,32 +62,27 @@
 | POST | `/v1/actions/backup/now` | JWT | Запустить резервное копирование БД немедленно |
 | GET | `/v1/actions/history` | JWT | Журнал последних действий (из JSON-лога) |
 
-**Ключевые детали:**
-- Restart — через Docker UNIX socket (`POST /containers/{name}/restart`)
-- Разрешены только контейнеры из whitelist (не весь docker)
-- Backup — запуск `scripts/backup/backup_databases.sh` (async, fire-and-forget)
-- History — читает из `/var/log/nasa-monitor/nasa-api.jsonl`, фильтр по action-событиям
+- Restart — через Docker UNIX socket, whitelist из env `RESTARTABLE_CONTAINERS`
+- Backup — `backup_databases.sh` (async, fire-and-forget, 300s timeout)
 
 ---
 
-## v0.5.0 — Family Users 👨‍👩‍👧‍👦
+## v0.5.0 — Family Users 👨‍👩‍👧‍👦 ✅ Реализовано
 
 **Цель:** Видеть всех пользователей семейного облака и их статус.
 
 | Метод | Маршрут | Auth | Описание |
 |---|---|---|---|
 | GET | `/v1/users` | JWT | Список пользователей Nextcloud (имя, группы, last seen) |
-| GET | `/v1/users/{username}` | JWT | Детали: квота, использование диска, last seen, Talk-статус |
+| GET | `/v1/users/{username}` | JWT | Детали: квота, использование диска, last seen |
 | POST | `/v1/users/{username}/notify` | JWT | Отправить личное сообщение в Talk |
 
-**Ключевые детали:**
 - Данные из Nextcloud OCS API (`/ocs/v1.php/cloud/users`)
-- `last_seen` — из Nextcloud, показывает когда пользователь последний раз входил
-- `notify` — отправляет личное DM через Talk API (создаёт или переиспользует 1-to-1 комнату)
+- `notify` — DM через Talk API (1-to-1 комната, создаётся автоматически)
 
 ---
 
-## v0.6.0 — Photos (Immich) 📷
+## v0.6.0 — Photos (Immich) 📷 ✅ Реализовано
 
 **Цель:** Базовая статистика фотоархива семьи.
 
@@ -86,11 +91,8 @@
 | GET | `/v1/photos/stats` | JWT | Общая статистика: кол-во фото/видео, альбомы, размер |
 | GET | `/v1/photos/users` | JWT | Статистика по каждому пользователю |
 
-**Ключевые детали:**
-- Immich Admin API: `GET /api/server/statistics` (требует `x-api-key`)
-- API-ключ генерируется в Immich → Account Settings → API Keys
-- Хранится в env: `IMMICH_API_KEY`
-- Immich внутри Docker-сети: `http://homecloud_immich_server:3001` или через host-gateway
+- Immich Admin API (`/api/server/statistics`, `x-api-key`)
+- API-ключ: env `IMMICH_API_KEY` (name: `nasa-api-monitor`, permission: `all`)
 
 ---
 
@@ -130,8 +132,8 @@ services/nasa-api/app/
     ├── system.py        ✅ v0.2  (metrics, containers)
     ├── storage.py       ✅ v0.2
     ├── logs.py          ✅ v0.2
-    ├── actions.py       ✅ v0.2 → 🔧 v0.4 (restart, backup)
-    ├── talk.py          🆕 v0.3
-    ├── users.py         🆕 v0.5
-    └── photos.py        🆕 v0.6
+    ├── actions.py       ✅ v0.4 (report, restart, backup, history)
+    ├── talk.py          ✅ v0.3 (rooms, room detail, notify)
+    ├── users.py         ✅ v0.5 (list, detail, DM notify)
+    └── photos.py        ✅ v0.6 (server stats, per-user stats)
 ```

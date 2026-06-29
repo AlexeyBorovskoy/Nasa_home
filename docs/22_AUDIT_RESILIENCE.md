@@ -1,8 +1,8 @@
 # 22. Аудит надёжности и устойчивости / Resilience Audit
 
-> 🇷🇺 Документ фиксирует результаты аудита инфраструктуры NASA Home Cloud (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): тесты состояния через goss, статический анализ скриптов и Dockerfile, симуляцию отказов контейнеров и туннеля. Всего зафиксировано 11 находок. Актуализировано: 2026-06-27.
+> 🇷🇺 Документ фиксирует результаты аудита инфраструктуры NASA Home Cloud (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): тесты состояния через goss, статический анализ скриптов и Dockerfile, симуляцию отказов контейнеров и туннеля. Всего зафиксировано 11 находок. Актуализировано: 2026-06-29. **goss: 40/40 (v1.4.0). JMS583 заменил RTL9210B-CG.**
 >
-> 🇬🇧 This document records the results of a NASA Home Cloud infrastructure audit (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): goss state tests, static analysis of scripts and Dockerfiles, container/tunnel failure simulation. 11 findings total. Updated: 2026-06-27.
+> 🇬🇧 This document records the results of a NASA Home Cloud infrastructure audit (Jetson Nano, ARM64, Ubuntu 18.04 JetPack): goss state tests, static analysis of scripts and Dockerfiles, container/tunnel failure simulation. 11 findings total. Updated: 2026-06-29. **goss: 40/40 (v1.4.0). JMS583 replaced RTL9210B-CG.**
 
 ---
 
@@ -72,7 +72,7 @@ Portainer, nasa-api и их зависимости), 14 bash-скриптов, 3
 
 ## 5. Что прошло успешно
 
-- **goss**: 33/34 теста инфраструктуры прошли — порты 8080, 2283, 8090, 8099, 19999, 3001, 9000 слушают.
+- **goss**: 40/40 теста инфраструктуры прошли — порты 8080, 2283, 8090, 8099, 19999, 3001, 9000 слушают.
 - **hadolint**: 3/3 Dockerfile чистые (backup-api, llm-gateway, nasa-api).
 - **bandit**: 0 проблем безопасности в 738 строках Python-кода.
 - **shellcheck**: 11/14 скриптов чистые.
@@ -256,7 +256,7 @@ goss -g tests/goss/goss.yaml validate --format documentation
 goss -g tests/goss/goss.yaml validate --format json
 ```
 
-Включённые тесты (33/34 прошли):
+Включённые тесты (40/40 прошли):
 
 | Группа | Что проверяется |
 |---|---|
@@ -342,7 +342,7 @@ HTTP 200 again. Database backups fail closed if storage preflight fails again.
 
 ## 5. Passed Checks
 
-- **goss**: 33/34 infrastructure tests passed — ports 8080, 2283, 8090, 8099, 19999, 3001, 9000 are listening.
+- **goss**: 40/40 infrastructure tests passed — ports 8080, 2283, 8090, 8099, 19999, 3001, 9000 are listening.
 - **hadolint**: 3/3 Dockerfiles clean (backup-api, llm-gateway, nasa-api).
 - **bandit**: 0 security issues in 738 lines of Python code.
 - **shellcheck**: 11/14 scripts clean.
@@ -520,7 +520,7 @@ goss -g tests/goss/goss.yaml validate --format documentation
 goss -g tests/goss/goss.yaml validate --format json
 ```
 
-Tests covered (33/34 passed):
+Tests covered (40/40 passed):
 
 | Group | What is checked |
 |---|---|

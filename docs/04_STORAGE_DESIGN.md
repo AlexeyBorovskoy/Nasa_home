@@ -6,8 +6,8 @@
 
 🇬🇧 USB HDD/SSD is the primary data storage. microSD is used for the OS and minimal runtime only.
 
-> 🇷🇺 Статус 2026-06-27: 250 GB USB SSD смонтирован как `/mnt/storage` (ext4, label `nasa-storage`). USB-мост RTL9210B-CG деградирует USB 3.0→2.0 и блокирует SMART. Замена JMS583 ожидается. Инцидент: `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
-> 🇬🇧 Status 2026-06-27: 250 GB USB SSD mounted at `/mnt/storage` (ext4, label `nasa-storage`). RTL9210B-CG USB bridge degrades USB 3.0→2.0 and blocks SMART. JMS583 replacement pending. Incident: `docs/plans/STORAGE_INCIDENT_2026-06-23.md`.
+> 🇷🇺 Статус 2026-06-29: SSD 229 GB смонтирован как `/mnt/storage` (ext4). Энклоужер **JMS583** (152d:a583, USB 3.0 SuperSpeed, 5 Gbps). Write **250 MB/s**, Read 172 MB/s. UAS quirk активен (`usb-storage.quirks=152d:a583:u` в extlinux.conf). RTL9210B-CG заменён 2026-06-28.
+> 🇬🇧 Status 2026-06-29: SSD 229 GB mounted at `/mnt/storage` (ext4). Enclosure: **JMS583** (152d:a583, USB 3.0 SuperSpeed, 5 Gbps). Write **250 MB/s**, Read 172 MB/s. UAS quirk active (`usb-storage.quirks=152d:a583:u` in extlinux.conf). RTL9210B-CG replaced on 2026-06-28.
 
 ## 2. Рекомендуемая файловая система / Recommended Filesystem
 
