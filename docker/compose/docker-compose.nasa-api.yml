@@ -39,6 +39,10 @@ services:
         Nextcloud=http://192.168.0.50:8080/
         Immich=http://192.168.0.50:2283/
         LLM-Gateway=http://192.168.0.50:8090/health
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      TALK_FAMILY_ROOM: ${TALK_FAMILY_ROOM:-37pcobmf}
+      IMMICH_API_KEY: ${IMMICH_API_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8099/healthcheck', timeout=3)\""]
       interval: 30s
