@@ -25,6 +25,17 @@ This folder contains public article drafts and publication materials for NASA Ho
 | habr_final_edited.md | **CODEX editorial pass** — canonical source for habr_article_ru.md |
 | habr_article_ru.md | **Publication version** for GitHub Pages and Habr |
 
+## Reddit posts
+
+See [reddit/](reddit/) folder:
+
+| File | Subreddit | Audience | Priority |
+|---|---|---|---|
+| reddit/r_selfhosted.md | r/selfhosted | 620k — privacy, Google replacement | ⭐ High |
+| reddit/r_homelab.md | r/homelab | 850k — hardware, architecture | ⭐ High |
+| reddit/r_immich.md | r/Immich | ~50k — Immich on constrained hardware | Medium |
+| reddit/r_jetsonnano.md | r/JetsonNano | ~30k — JMS583 quirk, ARM64 Docker | Medium |
+
 ## Publication links
 
 - Habr Sandbox: https://habr.com/ru/sandbox/291694/
